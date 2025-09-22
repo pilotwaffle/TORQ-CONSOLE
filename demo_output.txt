@@ -1,0 +1,58 @@
+
+🚀 TORQ CONSOLE Project Overview
+==================================================
+📦 Version: 0.60.0
+👤 Author: B Flowers
+📜 License: MIT
+📊 Python files: 19
+📏 Lines of code: ~2553
+
+📁 Main Modules:
+   🔹 Core: Configuration, main console, logging
+   🔹 MCP: Model Context Protocol client and manager
+   🔹 UI: Interactive shell and web interface
+   🔹 Utils: Git manager, AI integration
+   🔹 Plugins: Extensible plugin system
+
+🔧 Configuration Management Demo
+----------------------------------------
+📁 Project root: /home/runner/work/TORQ-CONSOLE/TORQ-CONSOLE
+💾 Cache directory: /home/runner/.torq_cache
+🤖 Default AI model: gpt-4o
+🔇 Telemetry disabled: True
+🔌 Added custom MCP endpoint: custom_server
+🧠 Added custom AI model: ollama:codellama:13b
+💾 Saved configuration to: /tmp/torq_demo_config.json
+📂 Loaded configuration with 1 MCP endpoints
+
+🔌 MCP Client Demo
+----------------------------------------
+📤 Request 1: initialize
+📤 Request 2: tools/list
+📤 Request 3: tools/call
+🔗 Created MCP client for: mcp://github.example.com
+🛠️  Available tool: github_search - Search GitHub repositories
+🛠️  Available tool: postgres_query - Execute PostgreSQL queries
+
+📂 Git Manager Demo
+----------------------------------------
+📁 Git repository detected
+🌿 Current branch: copilot/fix-73ea869c-9408-42c7-8c2a-9d67a09e615d
+📄 Tracked files: 25
+✏️  Modified files: 0
+❓ Untracked files: 1
+📋 Recent tracked files:
+   • .gitignore
+   • LICENSE
+   • README.md
+   • demo.py
+   • examples/README.md
+   ... and 20 more
+
+✨ Demo completed successfully!
+
+🎯 Next Steps:
+   1. Install full dependencies: pip install -e .
+   2. Run: torq --help
+   3. Try interactive mode: torq --interactive
+   4. Connect to MCP: torq --mcp-connect mcp://your-server
