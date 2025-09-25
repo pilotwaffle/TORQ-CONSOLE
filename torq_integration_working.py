@@ -1,0 +1,924 @@
+#!/usr/bin/env python3
+"""
+TORQ Console Prince Flowers Integration v0.70.0
+
+Comprehensive integration wrapper for the Prince Flowers Enhanced Agent
+with standardized response formatting, CLI testing interface, and full
+TORQ Console compatibility.
+
+This module provides:
+1. PrinceFlowersAgent class wrapper with enhanced capabilities
+2. Registration functions for TORQ Console integration
+3. CLI test interface for standalone testing
+4. Standardized response formatting and error handling
+5. Demo capabilities and health monitoring
+
+Author: TORQ Console Team
+Version: 0.70.0
+Compatible with: TORQ Console v0.70.0
+"""
+
+import asyncio
+import logging
+import time
+import json
+import sys
+import traceback
+import os
+from typing import Dict, List, Any, Optional, Tuple, Union
+from dataclasses import dataclass, asdict
+from pathlib import Path
+import argparse
+
+# Add the current directory to path for imports
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Import TORQ Console components
+try:
+    from torq_console.agents.prince_flowers_agent import PrinceFlowersAgent as BasePrinceFlowersAgent
+    from torq_console.agents.torq_prince_flowers import TORQPrinceFlowersInterface
+    from torq_console.core.config import TorqConfig
+    from torq_console.llm.providers.base import BaseLLMProvider
+    TORQ_CONSOLE_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: TORQ Console components not available: {e}")
+    TORQ_CONSOLE_AVAILABLE = False
+
+# Try importing local torq_prince_flowers for fallback
+try:
+    from torq_prince_flowers import TORQPrinceFlowersInterface as LocalTORQPrinceFlowersInterface
+    LOCAL_INTERFACE_AVAILABLE = True
+except ImportError:
+    print("⚠️ Could not import local torq_prince_flowers.py")
+    LOCAL_INTERFACE_AVAILABLE = False
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('PrinceFlowersIntegration')
+
+@dataclass
+class IntegrationResponse:
+    """Standardized response format for Prince Flowers integration."""
+    success: bool
+    content: str
+    confidence: float
+    tools_used: List[str]
+    execution_time: float
+    metadata: Dict[str, Any]
+    error: Optional[str] = None
+    agent_status: Optional[Dict[str, Any]] = None
+
+@dataclass
+class AgentCapabilities:
+    """Agent capability definitions."""
+    web_search: bool = True
+    research: bool = True
+    analysis: bool = True
+    planning: bool = True
+    memory: bool = True
+    learning: bool = True
+    tool_composition: bool = True
+    error_recovery: bool = True
+
+class PrinceFlowersIntegrationWrapper:
+    """
+    Integration wrapper for Prince Flowers Enhanced Agent.
+
+    Provides standardized interface, error handling, and performance monitoring
+    for seamless TORQ Console integration.
+    """
+
+    def __init__(self, torq_console=None, config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the integration wrapper.
+
+        Args:
+            torq_console: Reference to TORQ Console instance
+            config: Optional configuration dictionary
+        """
+        self.torq_console = torq_console
+        self.config = config or {}
+        self.logger = logging.getLogger(f"PrinceFlowers.Integration")
+
+        # Initialize base agent
+        self._init_base_agent()
+
+        # Integration state
+        self.integration_active = True
+        self.start_time = time.time()
+        self.total_queries = 0
+        self.successful_queries = 0
+        self.failed_queries = 0
+
+        # Performance metrics
+        self.performance_history = []
+        self.max_history = 100
+
+        self.logger.info("Prince Flowers Integration Wrapper initialized")
+
+    def _init_base_agent(self):
+        """Initialize the base Prince Flowers agent."""
+        try:
+            if TORQ_CONSOLE_AVAILABLE and self.torq_console:
+                # Use TORQ Console integrated agent
+                self.agent = self.torq_console.prince_flowers
+                self.agent_type = "torq_console"
+                self.logger.info("Using TORQ Console integrated Prince Flowers agent")
+            elif LOCAL_INTERFACE_AVAILABLE:
+                # Use local interface
+                self.agent = LocalTORQPrinceFlowersInterface()
+                self.agent_type = "local"
+                self.logger.info("Using local Prince Flowers interface")
+            else:
+                # Fallback to mock agent
+                self.agent = self._create_mock_agent()
+                self.agent_type = "mock"
+                self.logger.info("Using mock Prince Flowers agent")
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialize base agent: {e}")
+            self.agent = self._create_mock_agent()
+            self.agent_type = "mock"
+
+    def _create_mock_agent(self):
+        """Create a mock agent for testing/demonstration."""
+        class MockAgent:
+            def __init__(self):
+                self.agent_name = "Prince Flowers (Mock)"
+                self.capabilities = AgentCapabilities()
+
+            async def process_query(self, query: str, context: Dict = None):
+                await asyncio.sleep(0.1)  # Simulate processing
+
+                # Handle special commands
+                if query.lower() == 'help':
+                    content = """Prince Flowers Enhanced Agent (Mock Version)
+
+I am an advanced agentic RL agent with the following capabilities:
+- Web search and research
+- Analysis and reasoning
+- Multi-tool composition
+- Self-correction and learning
+
+Available commands:
+- prince help - Show this help
+- prince status - Show agent status
+- prince search <query> - Search for information
+- Any other query will be processed through my reasoning system
+
+This is a mock version for testing. The full agent provides:
+- Advanced web search and content fetching
+- Browser automation capabilities
+- Multi-step reasoning chains
+- Tool composition and error recovery
+- Persistent memory and learning systems"""
+                elif query.lower() == 'status':
+                    content = """Prince Flowers Agent Status (Mock):
+- Status: Active and ready
+- Type: Mock agent for integration testing
+- Capabilities: All core features simulated
+- Performance: Optimal for testing scenarios"""
+                elif 'search' in query.lower():
+                    search_term = query.lower().replace('search', '').strip()
+                    content = f"""Search Results for: {search_term}
+
+Based on my research capabilities, here's what I found:
+
+This is a simulated search response demonstrating the agent's ability to:
+1. Process search queries intelligently
+2. Return structured information
+3. Show reasoning steps and tool usage
+4. Provide confidence metrics
+
+In the full version, I would use real web search APIs to fetch current information."""
+                else:
+                    content = f"""Analysis of your query: "{query}"
+
+I've processed your request using my enhanced reasoning capabilities. This mock response demonstrates:
+
+1. **Query Understanding**: I analyze the intent and context
+2. **Tool Selection**: I choose appropriate tools for the task
+3. **Multi-step Processing**: I break complex tasks into steps
+4. **Response Synthesis**: I provide comprehensive, helpful answers
+
+The full Prince Flowers agent would perform actual web searches, tool compositions, and advanced reasoning for this query."""
+
+                # Create a mock result that matches the expected interface
+                class MockResult:
+                    def __init__(self, content):
+                        self.success = True
+                        self.content = content
+                        self.confidence = 0.8
+                        self.tools_used = ['mock_processor', 'reasoning_engine']
+                        self.execution_time = 0.1
+                        self.metadata = {'mock': True, 'query_type': 'general'}
+
+                return MockResult(content)
+
+            async def handle_prince_command(self, command: str, context: Dict = None):
+                """Handle prince commands in TORQ Console format."""
+                # Extract the actual query from the command
+                if command.lower().startswith('prince '):
+                    query = command[7:].strip()
+                elif command.lower().startswith('@prince '):
+                    query = command[8:].strip()
+                else:
+                    query = command.strip()
+
+                result = await self.process_query(query, context)
+                return result.content
+
+            def get_status(self):
+                return {
+                    'agent_name': self.agent_name,
+                    'status': 'active',
+                    'type': 'mock',
+                    'uptime_seconds': time.time() - self.start_time if hasattr(self, 'start_time') else 0
+                }
+
+            async def health_check(self):
+                return {'status': 'healthy', 'type': 'mock'}
+
+            def get_capabilities_description(self):
+                return """Prince Flowers Enhanced Agent (Mock Version)
+
+I am an intelligent agent designed for comprehensive assistance with:
+- Advanced web search and research
+- Multi-step analysis and reasoning
+- Tool composition and workflow automation
+- Self-correction and adaptive learning
+
+This mock version demonstrates the integration interface while the full agent provides real capabilities."""
+
+        mock = MockAgent()
+        mock.start_time = time.time()
+        return mock
+
+    async def query(
+        self,
+        query_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        show_performance: bool = False
+    ) -> IntegrationResponse:
+        """
+        Process a query through Prince Flowers with standardized response format.
+
+        Args:
+            query_text: The query string
+            context: Optional context dictionary
+            show_performance: Whether to include performance metrics
+
+        Returns:
+            IntegrationResponse with standardized format
+        """
+        start_time = time.time()
+        self.total_queries += 1
+
+        try:
+            # Prepare context
+            enhanced_context = self._prepare_context(context)
+
+            # Process query through agent based on type
+            if self.agent_type == "local" and hasattr(self.agent, 'process_command'):
+                # Use local interface method
+                result = await self.agent.process_command(query_text, enhanced_context)
+                # Convert to expected format
+                class LocalResult:
+                    def __init__(self, result_dict):
+                        self.success = result_dict.get("success", True)
+                        self.content = result_dict.get("response", str(result_dict))
+                        self.confidence = result_dict.get("performance", {}).get("confidence", 0.8)
+                        self.tools_used = result_dict.get("tools_used", ["local_processor"])
+                        self.execution_time = result_dict.get("performance", {}).get("execution_time", 0.1)
+                        self.metadata = result_dict.get("metadata", {})
+
+                result = LocalResult(result)
+            else:
+                # Use standard interface
+                result = await self.agent.process_query(query_text, enhanced_context)
+
+            execution_time = time.time() - start_time
+
+            # Track performance
+            self._track_performance(result.success, execution_time, result.confidence)
+
+            if result.success:
+                self.successful_queries += 1
+            else:
+                self.failed_queries += 1
+
+            # Create standardized response
+            response = IntegrationResponse(
+                success=result.success,
+                content=result.content,
+                confidence=result.confidence,
+                tools_used=result.tools_used,
+                execution_time=execution_time,
+                metadata=result.metadata,
+                agent_status=self.get_status() if show_performance else None
+            )
+
+            return response
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self.failed_queries += 1
+
+            error_msg = f"Integration error: {str(e)}"
+            self.logger.error(f"Query processing failed: {e}")
+
+            return IntegrationResponse(
+                success=False,
+                content=f"I encountered an error processing your request. Please try again.",
+                confidence=0.0,
+                tools_used=[],
+                execution_time=execution_time,
+                metadata={'error': str(e)},
+                error=error_msg
+            )
+
+    def _prepare_context(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Prepare enhanced context for the agent."""
+        enhanced_context = {
+            'integration_active': self.integration_active,
+            'total_queries': self.total_queries,
+            'integration_uptime': time.time() - self.start_time,
+            'agent_type': self.agent_type
+        }
+
+        if context:
+            enhanced_context.update(context)
+
+        if self.torq_console:
+            try:
+                enhanced_context.update({
+                    'torq_session': self.torq_console.get_session_info(),
+                    'mcp_servers': len(self.torq_console.connected_servers),
+                    'active_files': len(self.torq_console.active_files)
+                })
+            except Exception as e:
+                self.logger.debug(f"Could not add TORQ Console context: {e}")
+
+        return enhanced_context
+
+    def _track_performance(self, success: bool, execution_time: float, confidence: float):
+        """Track performance metrics."""
+        performance_entry = {
+            'timestamp': time.time(),
+            'success': success,
+            'execution_time': execution_time,
+            'confidence': confidence
+        }
+
+        self.performance_history.append(performance_entry)
+
+        # Keep only recent history
+        if len(self.performance_history) > self.max_history:
+            self.performance_history.pop(0)
+
+    def get_status(self) -> Dict[str, Any]:
+        """Get comprehensive integration status."""
+        uptime = time.time() - self.start_time
+        success_rate = self.successful_queries / max(self.total_queries, 1)
+
+        # Calculate performance metrics
+        if self.performance_history:
+            avg_execution_time = sum(p['execution_time'] for p in self.performance_history) / len(self.performance_history)
+            avg_confidence = sum(p['confidence'] for p in self.performance_history) / len(self.performance_history)
+        else:
+            avg_execution_time = 0.0
+            avg_confidence = 0.0
+
+        base_status = {
+            'integration_active': self.integration_active,
+            'agent_type': self.agent_type,
+            'uptime_seconds': uptime,
+            'total_queries': self.total_queries,
+            'successful_queries': self.successful_queries,
+            'failed_queries': self.failed_queries,
+            'success_rate': success_rate,
+            'avg_execution_time': avg_execution_time,
+            'avg_confidence': avg_confidence,
+            'torq_console_connected': self.torq_console is not None,
+            'torq_console_available': TORQ_CONSOLE_AVAILABLE,
+            'local_interface_available': LOCAL_INTERFACE_AVAILABLE
+        }
+
+        # Add agent status if available
+        try:
+            if hasattr(self.agent, 'get_status'):
+                agent_status = self.agent.get_status()
+                base_status['agent'] = agent_status
+        except Exception as e:
+            base_status['agent_error'] = str(e)
+
+        return base_status
+
+    async def health_check(self) -> Dict[str, Any]:
+        """Perform comprehensive health check."""
+        try:
+            # Check agent health
+            if hasattr(self.agent, 'health_check'):
+                agent_health = await self.agent.health_check()
+            else:
+                agent_health = {'status': 'unknown', 'message': 'health_check not available'}
+
+            # Test query processing
+            test_result = await self.query("health check test", {'test_mode': True})
+
+            overall_status = 'healthy'
+            if not test_result.success or agent_health.get('status') != 'healthy':
+                overall_status = 'degraded'
+
+            return {
+                'overall_status': overall_status,
+                'integration_health': {
+                    'active': self.integration_active,
+                    'agent_type': self.agent_type,
+                    'query_processing': test_result.success,
+                    'response_time': test_result.execution_time
+                },
+                'agent_health': agent_health,
+                'torq_console_connection': self.torq_console is not None,
+                'timestamp': time.time()
+            }
+
+        except Exception as e:
+            return {
+                'overall_status': 'unhealthy',
+                'error': str(e),
+                'timestamp': time.time()
+            }
+
+    def get_capabilities(self) -> Dict[str, Any]:
+        """Get agent capabilities description."""
+        try:
+            if hasattr(self.agent, 'get_capabilities_description'):
+                description = self.agent.get_capabilities_description()
+            else:
+                description = "Prince Flowers Enhanced Agent - capabilities description not available"
+
+            capabilities = {
+                'description': description,
+                'agent_type': self.agent_type,
+                'integration_features': {
+                    'standardized_responses': True,
+                    'performance_tracking': True,
+                    'health_monitoring': True,
+                    'error_recovery': True,
+                    'torq_console_integration': TORQ_CONSOLE_AVAILABLE,
+                    'local_interface_support': LOCAL_INTERFACE_AVAILABLE,
+                    'cli_testing': True
+                }
+            }
+
+            # Add agent-specific capabilities
+            if hasattr(self.agent, 'capabilities'):
+                capabilities['agent_capabilities'] = asdict(self.agent.capabilities)
+
+            return capabilities
+
+        except Exception as e:
+            return {
+                'description': f"Error retrieving capabilities: {e}",
+                'integration_features': {
+                    'error': str(e)
+                }
+            }
+
+# Legacy PrinceFlowersAgent class for backward compatibility
+class PrinceFlowersAgent:
+    """
+    Legacy PrinceFlowers Agent wrapper for backward compatibility
+    """
+
+    def __init__(self):
+        self.name = "PrinceFlowers"
+        self.description = "Advanced Agentic RL Agent with full tool integration"
+        self.version = "2.0-AGENTIC-RL"
+        self.capabilities = [
+            "Web Search & Fetch",
+            "Browser Automation",
+            "File Operations",
+            "N8N Workflow Integration",
+            "Canva Design Tools",
+            "Cloudflare Operations",
+            "Enrichr Gene Analysis",
+            "Conversation Search",
+            "Multi-tool Composition",
+            "Self-Correction & Learning"
+        ]
+
+        # Initialize integration wrapper
+        self.wrapper = PrinceFlowersIntegrationWrapper()
+        self.available = True
+
+    async def process_query(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Process a query through PrinceFlowers
+        Returns standardized response for TORQ Console
+        """
+        try:
+            result = await self.wrapper.query(query, context, show_performance=True)
+
+            # Format for TORQ Console display
+            return {
+                "success": result.success,
+                "response": result.content,
+                "agent": self.name,
+                "metadata": {
+                    "reasoning_steps": len(result.metadata.get("reasoning_chain", [])),
+                    "tool_calls": len(result.tools_used),
+                    "execution_time": result.execution_time,
+                    "confidence": result.confidence,
+                    "reasoning_chain": result.metadata.get("reasoning_chain", [])
+                }
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"PrinceFlowers processing error: {str(e)}",
+                "agent": self.name
+            }
+
+    async def get_status(self) -> Dict[str, Any]:
+        """Get agent status"""
+        try:
+            status = self.wrapper.get_status()
+            return {
+                "name": self.name,
+                "status": "active" if self.available else "inactive",
+                "version": self.version,
+                "description": self.description,
+                "capabilities": self.capabilities,
+                "performance": {
+                    "total_queries": status.get("total_queries", 0),
+                    "success_rate": status.get("success_rate", 0),
+                    "avg_execution_time": status.get("avg_execution_time", 0),
+                    "avg_confidence": status.get("avg_confidence", 0)
+                },
+                "agentic_features": [
+                    "Multi-step reasoning",
+                    "Tool composition",
+                    "Self-correction",
+                    "Adaptive planning",
+                    "Performance tracking"
+                ]
+            }
+        except Exception as e:
+            return {
+                "name": self.name,
+                "status": "error",
+                "error": str(e)
+            }
+
+# TORQ Console Registration Functions
+
+def register_prince_flowers_integration(torq_console) -> PrinceFlowersIntegrationWrapper:
+    """
+    Register Prince Flowers integration with TORQ Console.
+
+    Args:
+        torq_console: TORQ Console instance
+
+    Returns:
+        PrinceFlowersIntegrationWrapper instance
+    """
+    logger.info("Registering Prince Flowers integration with TORQ Console")
+
+    try:
+        integration = PrinceFlowersIntegrationWrapper(torq_console)
+
+        # Add integration methods to console
+        torq_console.prince_flowers_integration = integration
+
+        # Register command handlers
+        _register_command_handlers(torq_console, integration)
+
+        logger.info("Prince Flowers integration registered successfully")
+        return integration
+
+    except Exception as e:
+        logger.error(f"Failed to register integration: {e}")
+        raise
+
+def _register_command_handlers(torq_console, integration: PrinceFlowersIntegrationWrapper):
+    """Register command handlers with TORQ Console."""
+
+    # Enhance existing prince command handler
+    original_handle_prince = getattr(torq_console, 'handle_prince_command', None)
+
+    async def enhanced_handle_prince_command(command: str, context: Dict = None):
+        """Enhanced prince command handler with integration wrapper."""
+        try:
+            # Extract query from command
+            if command.lower().startswith('prince '):
+                query = command[7:].strip()
+            elif command.lower().startswith('@prince '):
+                query = command[8:].strip()
+            else:
+                query = command.strip()
+
+            # Handle special integration commands
+            if query.lower() == 'integration-status':
+                status = integration.get_status()
+                return f"Prince Flowers Integration Status:\n{json.dumps(status, indent=2)}"
+            elif query.lower() == 'integration-health':
+                health = await integration.health_check()
+                return f"Prince Flowers Integration Health:\n{json.dumps(health, indent=2)}"
+            elif query.lower() == 'integration-capabilities':
+                capabilities = integration.get_capabilities()
+                return f"Prince Flowers Integration Capabilities:\n{json.dumps(capabilities, indent=2)}"
+
+            # Use integration wrapper for processing
+            show_performance = context and context.get('show_performance', False)
+            response = await integration.query(query, context, show_performance)
+
+            # Format response
+            if response.success:
+                result = response.content
+                if show_performance and response.agent_status:
+                    result += f"\n\n[Performance: {response.execution_time:.2f}s, Confidence: {response.confidence:.1%}]"
+                return result
+            else:
+                return response.content
+
+        except Exception as e:
+            logger.error(f"Enhanced prince command handler error: {e}")
+            # Fallback to original handler if available
+            if original_handle_prince:
+                return await original_handle_prince(command, context)
+            else:
+                return f"Error processing command: {e}"
+
+    # Replace the handler
+    torq_console.handle_prince_command = enhanced_handle_prince_command
+
+def register_prince_flowers_agent():
+    """
+    Legacy registration function for backward compatibility
+    """
+    agent = PrinceFlowersAgent()
+
+    print(f"🌟 Registering {agent.name} v{agent.version}")
+    print(f"📋 Description: {agent.description}")
+    print(f"✅ Status: {'Available' if agent.available else 'Unavailable'}")
+    print(f"🛠️ Capabilities: {len(agent.capabilities)} tools integrated")
+
+    return agent
+
+# CLI Testing Interface
+
+class PrinceFlowersCLI:
+    """Command-line interface for testing Prince Flowers integration."""
+
+    def __init__(self):
+        self.integration = None
+        self.running = False
+
+    async def initialize(self):
+        """Initialize the CLI testing environment."""
+        print("🤖 Prince Flowers Integration CLI v0.70.0")
+        print("=" * 50)
+
+        try:
+            # Try to create integration wrapper
+            self.integration = PrinceFlowersIntegrationWrapper()
+
+            # Perform health check
+            health = await self.integration.health_check()
+            print(f"Health Check: {health['overall_status']}")
+
+            # Show capabilities
+            capabilities = self.integration.get_capabilities()
+            print(f"Agent Type: {capabilities.get('agent_type', 'unknown')}")
+            print(f"Agent: {capabilities['description']}")
+
+            print("\nType 'help' for commands, 'exit' to quit")
+            print("=" * 50)
+
+        except Exception as e:
+            print(f"❌ Initialization failed: {e}")
+            return False
+
+        return True
+
+    async def run_interactive(self):
+        """Run interactive CLI session."""
+        if not await self.initialize():
+            return
+
+        self.running = True
+
+        while self.running:
+            try:
+                command = input("\nprince> ").strip()
+
+                if not command:
+                    continue
+
+                await self.process_command(command)
+
+            except KeyboardInterrupt:
+                print("\n👋 Goodbye!")
+                break
+            except EOFError:
+                break
+
+    async def process_command(self, command: str):
+        """Process a CLI command."""
+        cmd_lower = command.lower()
+
+        if cmd_lower in ['exit', 'quit']:
+            self.running = False
+            print("👋 Goodbye!")
+        elif cmd_lower == 'help':
+            self.show_help()
+        elif cmd_lower == 'status':
+            await self.show_status()
+        elif cmd_lower == 'health':
+            await self.show_health()
+        elif cmd_lower == 'capabilities':
+            await self.show_capabilities()
+        elif cmd_lower == 'demo':
+            await self.run_demo()
+        elif cmd_lower.startswith('test '):
+            test_query = command[5:].strip()
+            await self.test_query(test_query)
+        else:
+            # Process as query
+            await self.process_query(command)
+
+    def show_help(self):
+        """Show CLI help."""
+        help_text = """
+🤖 Prince Flowers Integration CLI Commands:
+
+**Basic Commands:**
+  help              - Show this help message
+  exit/quit         - Exit the CLI
+  status            - Show integration status
+  health            - Show health check results
+  capabilities      - Show agent capabilities
+  demo              - Run demonstration queries
+
+**Testing:**
+  test <query>      - Test a specific query
+  <any text>        - Process as query through Prince Flowers
+
+**Examples:**
+  test search latest AI developments
+  what is agentic reinforcement learning
+  analyze machine learning trends
+  prince help
+
+The agent supports web search, research, analysis, and complex reasoning tasks.
+        """
+        print(help_text)
+
+    async def show_status(self):
+        """Show integration status."""
+        try:
+            status = self.integration.get_status()
+            print("\n📊 Integration Status:")
+            print(json.dumps(status, indent=2, default=str))
+        except Exception as e:
+            print(f"❌ Error getting status: {e}")
+
+    async def show_health(self):
+        """Show health check results."""
+        try:
+            health = await self.integration.health_check()
+            print(f"\n🏥 Health Check Results:")
+            print(json.dumps(health, indent=2, default=str))
+        except Exception as e:
+            print(f"❌ Error checking health: {e}")
+
+    async def show_capabilities(self):
+        """Show agent capabilities."""
+        try:
+            capabilities = self.integration.get_capabilities()
+            print("\n🔧 Agent Capabilities:")
+            print(json.dumps(capabilities, indent=2, default=str))
+        except Exception as e:
+            print(f"❌ Error getting capabilities: {e}")
+
+    async def test_query(self, query: str):
+        """Test a specific query."""
+        print(f"\n🧪 Testing query: '{query}'")
+        await self.process_query(query, test_mode=True)
+
+    async def process_query(self, query: str, test_mode: bool = False):
+        """Process a query through Prince Flowers."""
+        try:
+            print(f"\n🤔 Processing{'(test)' if test_mode else ''}: {query}")
+
+            start_time = time.time()
+            response = await self.integration.query(query, show_performance=True)
+
+            print(f"\n✅ Response ({response.execution_time:.2f}s, {response.confidence:.1%} confidence):")
+            print("-" * 50)
+            print(response.content)
+
+            if response.tools_used:
+                print(f"\n🛠️ Tools used: {', '.join(response.tools_used)}")
+
+            if response.metadata:
+                print(f"\n📋 Metadata: {json.dumps(response.metadata, indent=2, default=str)}")
+
+            if not response.success and response.error:
+                print(f"\n❌ Error: {response.error}")
+
+        except Exception as e:
+            print(f"❌ Query processing failed: {e}")
+            traceback.print_exc()
+
+    async def run_demo(self):
+        """Run demonstration queries."""
+        demo_queries = [
+            "What is agentic reinforcement learning?",
+            "prince help",
+            "search latest AI developments",
+            "analyze machine learning trends",
+            "What are the key capabilities of Prince Flowers?"
+        ]
+
+        print("\n🎯 Running demonstration queries...")
+
+        for i, query in enumerate(demo_queries, 1):
+            print(f"\n--- Demo Query {i}/{len(demo_queries)} ---")
+            await self.process_query(query)
+
+            if i < len(demo_queries):
+                input("\nPress Enter to continue...")
+
+        print("\n✅ Demo completed!")
+
+# Legacy CLI functions for backward compatibility
+async def test_prince_flowers_cli():
+    """Legacy CLI function for backward compatibility"""
+    cli = PrinceFlowersCLI()
+    await cli.run_interactive()
+
+async def demo_web_search():
+    """Legacy demo function for backward compatibility"""
+    cli = PrinceFlowersCLI()
+    await cli.initialize()
+    await cli.run_demo()
+
+# Main execution
+async def main():
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(description='Prince Flowers Integration CLI')
+    parser.add_argument('--query', '-q', help='Process a single query and exit')
+    parser.add_argument('--demo', '-d', action='store_true', help='Run demo queries')
+    parser.add_argument('--status', '-s', action='store_true', help='Show status and exit')
+    parser.add_argument('--health', action='store_true', help='Show health and exit')
+
+    args = parser.parse_args()
+
+    cli = PrinceFlowersCLI()
+
+    if args.status:
+        await cli.initialize()
+        await cli.show_status()
+    elif args.health:
+        await cli.initialize()
+        await cli.show_health()
+    elif args.demo:
+        await cli.initialize()
+        await cli.run_demo()
+    elif args.query:
+        await cli.initialize()
+        await cli.process_query(args.query)
+    else:
+        await cli.run_interactive()
+
+if __name__ == "__main__":
+    # Handle legacy arguments for backward compatibility
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "demo":
+            asyncio.run(demo_web_search())
+        elif sys.argv[1] == "cli":
+            asyncio.run(test_prince_flowers_cli())
+        else:
+            print("🚀 Starting Prince Flowers Integration CLI...")
+            try:
+                asyncio.run(main())
+            except KeyboardInterrupt:
+                print("\n👋 Goodbye!")
+            except Exception as e:
+                print(f"❌ Fatal error: {e}")
+                traceback.print_exc()
+    else:
+        # Default: show registration info and run CLI
+        agent = register_prince_flowers_agent()
+        print(f"\n🚀 To test PrinceFlowers:")
+        print(f"   python {__file__} cli     # Interactive CLI")
+        print(f"   python {__file__} demo    # Web search demo")
+        print(f"   python {__file__} --help  # Full CLI options")
+        print("\n⚡ Starting interactive CLI...")
+        asyncio.run(main())

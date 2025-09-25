@@ -1,0 +1,26 @@
+{
+  "name": "torq-console",
+  "version": "1.0.0",
+  "description": "[![GitHub stars](https://img.shields.io/github/stars/YOUR-USERNAME/TORQ-CONSOLE?style=social)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/stargazers)\r [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)\r ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)\r [![Last Commit](https://img.shields.io/github/last-commit/YOUR-USERNAME/TORQ-CONSOLE)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/commits/main)\r [![Issues](https://img.shields.io/github/issues/YOUR-USERNAME/TORQ-CONSOLE)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/issues)\r [![Pull Requests](https://img.shields.io/github/issues-pr/YOUR-USERNAME/TORQ-CONSOLE)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/pulls)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pilotwaffle/TORQ-CONSOLE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pilotwaffle/TORQ-CONSOLE/issues"
+  },
+  "homepage": "https://github.com/pilotwaffle/TORQ-CONSOLE#readme",
+  "devDependencies": {
+    "tailwindcss": "^4.1.13"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

@@ -1,0 +1,41 @@
+            elif self.agent_type == "torq_console" and hasattr(self.agent, 'handle_prince_command'):
+                # Use TORQ Console interface - call handle_prince_command with prince prefix
+                prince_command = f"prince {query_text}"
+                response_text = await self.agent.handle_prince_command(prince_command, enhanced_context)
+
+                # Convert string response to standard format
+                class TORQResult:
+                    def __init__(self, content):
+                        self.success = True
+                        self.content = content
+                        self.confidence = 0.8
+                        self.tools_used = ["torq_prince_flowers"]
+                        self.execution_time = time.time() - start_time
+                        self.metadata = {'source': 'torq_console', 'agent_type': 'torq_prince_flowers'}
+
+                result = TORQResult(response_text)
+            elif hasattr(self.agent, 'agent') and hasattr(self.agent.agent, 'process_query'):
+                # Interface has nested agent with process_query
+                result = await self.agent.agent.process_query(query_text, enhanced_context)
+            elif hasattr(self.agent, 'process_query'):
+                # Direct process_query method
+                result = await self.agent.process_query(query_text, enhanced_context)
+            else:
+                # Fallback - try to get response as string
+                if hasattr(self.agent, 'handle_prince_command'):
+                    prince_command = f"prince {query_text}"
+                    response_text = await self.agent.handle_prince_command(prince_command, enhanced_context)
+                else:
+                    response_text = f"Processed query: {query_text} (fallback response)"
+
+                # Convert to standard format
+                class FallbackResult:
+                    def __init__(self, content):
+                        self.success = True
+                        self.content = content
+                        self.confidence = 0.7
+                        self.tools_used = ["fallback_processor"]
+                        self.execution_time = time.time() - start_time
+                        self.metadata = {'source': 'fallback', 'agent_type': self.agent_type}
+
+                result = FallbackResult(response_text)
