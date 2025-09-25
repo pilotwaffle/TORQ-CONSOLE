@@ -1,0 +1,72 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2a2d3a"/>
+      <stop offset="100%" stop-color="#1a1d2e"/>
+    </radialGradient>
+    <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3333"/>
+      <stop offset="100%" stop-color="#cc0000"/>
+    </linearGradient>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a90e2"/>
+      <stop offset="100%" stop-color="#2c5aa0"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Circle -->
+  <circle cx="256" cy="256" r="240" stroke="#4a90e2" stroke-width="8" fill="url(#bgGradient)" filter="url(#shadow)"/>
+
+  <!-- Circuit Pattern Background -->
+  <g opacity="0.15" stroke="#4a90e2" stroke-width="2" fill="none">
+    <!-- Circuit lines radiating from center -->
+    <path d="M256,140 L280,120 L320,130 M256,140 L232,120 L192,130"/>
+    <path d="M140,256 L120,232 L130,192 M140,256 L120,280 L130,320"/>
+    <path d="M372,256 L392,232 L382,192 M372,256 L392,280 L382,320"/>
+    <path d="M200,350 L180,370 L160,350 M312,350 L332,370 L352,350"/>
+    <!-- Circuit nodes -->
+    <circle cx="200" cy="200" r="3" fill="#4a90e2"/>
+    <circle cx="312" cy="200" r="3" fill="#4a90e2"/>
+    <circle cx="200" cy="312" r="3" fill="#4a90e2"/>
+    <circle cx="312" cy="312" r="3" fill="#4a90e2"/>
+    <circle cx="150" cy="256" r="2" fill="#4a90e2"/>
+    <circle cx="362" cy="256" r="2" fill="#4a90e2"/>
+  </g>
+
+  <!-- Large T Symbol -->
+  <g filter="url(#glow)">
+    <path d="M180 140 L332 140 L332 180 L290 180 L290 320 L222 320 L222 180 L180 180 Z"
+          fill="url(#redGradient)" filter="url(#shadow)"/>
+    <!-- T vertical split -->
+    <rect x="251" y="180" width="10" height="140" fill="#1a1d2e"/>
+  </g>
+
+  <!-- TORQ Text -->
+  <text x="50%" y="380" text-anchor="middle"
+        font-family="Arial Black, Arial, sans-serif"
+        font-size="64" font-weight="900"
+        fill="url(#redGradient)"
+        filter="url(#glow)"
+        letter-spacing="4">
+    TORQ
+  </text>
+
+  <!-- CONSOLE Text -->
+  <text x="50%" y="430" text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="36" font-weight="bold"
+        fill="url(#blueGradient)"
+        letter-spacing="6">
+    CONSOLE
+  </text>
+</svg>

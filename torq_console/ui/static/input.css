@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for TORQ CONSOLE */
+.panel-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+.mcp-panel {
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.chat-panel {
+  min-width: 400px;
+}
+
+.diff-panel {
+  min-width: 350px;
+}
+
+.monaco-editor {
+  border-radius: 8px;
+}
+
+.diff-viewer {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.guided-prompt {
+  background: linear-gradient(135deg, #1e40af, #7c3aed);
+  border: 1px solid #3b82f6;
+  animation: pulse 2s infinite;
+}
+
+.mcp-tool-card {
+  background: linear-gradient(135deg, #065f46, #064e3b);
+  border: 1px solid #10b981;
+}
+
+.voice-indicator {
+  animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+.ideation-mode {
+  background: linear-gradient(135deg, #7c2d12, #ea580c);
+  border: 1px solid #f97316;
+}
+
+/* Inline Editor Styles */
+.inline-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inline-editor-modal {
+  background: #1f2937;
+  border-radius: 12px;
+  border: 1px solid #374151;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.ghost-text {
+  color: #6b7280;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.refinement-controls {
+  background: #374151;
+  border-top: 1px solid #4b5563;
+}
+
+/* Command Palette Styles */
+.command-palette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+}
+
+.command-palette-modal {
+  background: #1f2937;
+  border-radius: 8px;
+  border: 1px solid #374151;
+  width: 600px;
+  max-height: 70vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.command-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #374151;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.command-item:hover,
+.command-item.selected {
+  background: #374151;
+}
+
+.command-item.selected {
+  border-left: 3px solid #3b82f6;
+}
+
+.command-shortcut {
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: monospace;
+}
+
+@keyframes voice-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+}

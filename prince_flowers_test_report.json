@@ -1,0 +1,115 @@
+{
+  "timestamp": "2025-09-24T18:18:47.455Z",
+  "version": "Prince Flowers Enhanced Agent v2.1.0",
+  "summary": {
+    "totalTests": 16,
+    "passed": 8,
+    "failed": 8,
+    "overallGrade": 50,
+    "executionTimeSeconds": 0.011
+  },
+  "testResults": [
+    {
+      "name": "Web Server Availability",
+      "success": true,
+      "details": "HTTP 200 response from 127.0.0.1:8899",
+      "timestamp": "2025-09-24T18:18:47.451Z"
+    },
+    {
+      "name": "Prince Web Command: prince help",
+      "success": false,
+      "details": "Web server not available for testing",
+      "timestamp": "2025-09-24T18:18:47.451Z"
+    },
+    {
+      "name": "Prince Web Command: prince status",
+      "success": false,
+      "details": "Web server not available for testing",
+      "timestamp": "2025-09-24T18:18:47.451Z"
+    },
+    {
+      "name": "Prince Web Command: prince search latest AI developments",
+      "success": false,
+      "details": "Web server not available for testing",
+      "timestamp": "2025-09-24T18:18:47.451Z"
+    },
+    {
+      "name": "Prince Web Command: prince capabilities",
+      "success": false,
+      "details": "Web server not available for testing",
+      "timestamp": "2025-09-24T18:18:47.451Z"
+    },
+    {
+      "name": "Real Search Results Validation",
+      "success": false,
+      "details": "Cannot verify without active web server",
+      "timestamp": "2025-09-24T18:18:47.451Z"
+    },
+    {
+      "name": "Environment Configuration",
+      "success": true,
+      "details": "Environment file found with 82 configuration lines",
+      "timestamp": "2025-09-24T18:18:47.452Z"
+    },
+    {
+      "name": "Google Search API Configuration",
+      "success": false,
+      "details": "No Google API key found in environment",
+      "timestamp": "2025-09-24T18:18:47.452Z"
+    },
+    {
+      "name": "Brave Search API Configuration",
+      "success": false,
+      "details": "No Brave API key found in environment",
+      "timestamp": "2025-09-24T18:18:47.452Z"
+    },
+    {
+      "name": ".env Loading Mechanism",
+      "success": false,
+      "details": "No environment loading mechanism found",
+      "timestamp": "2025-09-24T18:18:47.452Z"
+    },
+    {
+      "name": "TORQ Integration Script",
+      "success": true,
+      "details": "Script found with async support: true, Prince integration: true",
+      "timestamp": "2025-09-24T18:18:47.453Z"
+    },
+    {
+      "name": "Async Bug Fixes",
+      "success": true,
+      "details": "Found async error handling in 1 files",
+      "timestamp": "2025-09-24T18:18:47.453Z"
+    },
+    {
+      "name": "Prince Command Formats",
+      "success": true,
+      "details": "5/5 command formats supported",
+      "timestamp": "2025-09-24T18:18:47.454Z"
+    },
+    {
+      "name": "torq_integration.py Structure",
+      "success": true,
+      "details": "Code quality indicators: main function: true, error handling: true, logging: true",
+      "timestamp": "2025-09-24T18:18:47.454Z"
+    },
+    {
+      "name": "Method Routing Fixes",
+      "success": true,
+      "details": "Routing mechanisms detected: true, Method handling: true",
+      "timestamp": "2025-09-24T18:18:47.454Z"
+    },
+    {
+      "name": "Claude Web Search Proxy",
+      "success": true,
+      "details": "Proxy features detected in claude_websearch_real.py: true",
+      "timestamp": "2025-09-24T18:18:47.455Z"
+    }
+  ],
+  "environment": {
+    "nodeVersion": "v22.19.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "workingDirectory": "E:\\TORQ-CONSOLE"
+  }
+}

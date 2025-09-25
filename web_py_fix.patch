@@ -1,0 +1,115 @@
+--- CRITICAL FIX FOR TORQ CONSOLE WEB INTERFACE ---
+
+The user is experiencing "Edit completed successfully!" when asking "search web for ai news"
+instead of getting actual AI responses.
+
+ROOT CAUSE:
+The web interface at 127.0.0.1:8899 is missing the /api/chat endpoint that the frontend
+calls, and the existing chat message handling doesn't properly route search queries
+to the Prince Flowers Enhanced Agent.
+
+FIXES NEEDED:
+
+1. Add /api/chat endpoint in _setup_chat_routes method
+2. Improve _generate_ai_response to properly detect and route search queries
+3. Fix _handle_prince_command to work with the integration wrapper
+4. Add DirectChatRequest model for the new endpoint
+
+INSERTION POINT 1 - Add this right after line 259 in _setup_chat_routes:
+
+        @self.app.post("/api/chat")
+        async def direct_chat(request: "DirectChatRequest"):
+            """
+            Direct chat endpoint for simple query/response without tab management.
+            This is the endpoint the TORQ Console web interface uses.
+            CRITICAL FIX: Routes search queries to Prince Flowers Enhanced Agent.
+            """
+            try:
+                self.logger.info(f"Direct chat request: {request.message}")
+
+                # Detect if this is a search/AI query that should go to Prince Flowers
+                message_lower = request.message.lower().strip()
+                is_search_query = any(keyword in message_lower for keyword in [
+                    "search", "find", "latest", "news", "ai developments",
+                    "what is", "how to", "ai news", "search web", "search for"
+                ])
+
+                if is_search_query:
+                    # Route to Prince Flowers Enhanced Agent
+                    self.logger.info("Routing to Prince Flowers Enhanced Agent")
+                    response = await self._handle_prince_command(request.message, None)
+                    agent_name = "Prince Flowers Enhanced"
+                else:
+                    # Generate regular AI response
+                    response = await self._generate_ai_response(request.message, None)
+                    agent_name = "TORQ Console AI"
+
+                return {
+                    "success": True,
+                    "response": response,
+                    "agent": agent_name,
+                    "timestamp": datetime.now().isoformat()
+                }
+
+            except Exception as e:
+                self.logger.error(f"Direct chat error: {e}")
+                return {
+                    "success": False,
+                    "error": f"Error processing your request: {str(e)}",
+                    "response": f"I apologize, but I encountered an error processing your request: {str(e)}. Please try again."
+                }
+
+INSERTION POINT 2 - Add this at the end of the Pydantic models section (after CreateCheckpointRequest):
+
+class DirectChatRequest(BaseModel):
+    message: str
+    include_context: bool = True
+    generate_response: bool = True
+    model: Optional[str] = None
+
+
+KEY CHANGES TO EXISTING CODE:
+
+1. In _generate_ai_response method around line 377, improve the detection:
+
+Replace this:
+            is_prince_command = (
+                content_lower.startswith("prince ") or
+                content_lower.startswith("@prince ") or
+                any(keyword in content_lower for keyword in [
+                    "prince search", "prince help", "prince status",
+                    "search ai", "search for", "find information"
+                ])
+            )
+
+With this:
+            is_prince_command = (
+                content_lower.startswith("prince ") or
+                content_lower.startswith("@prince ") or
+                any(keyword in content_lower for keyword in [
+                    "prince search", "prince help", "prince status",
+                    "search ai", "search for", "find information",
+                    "search web", "ai news", "latest ai", "what is",
+                    "how to", "find", "search", "news", "latest"
+                ])
+            )
+
+2. In _handle_prince_command method around line 396, ensure it prepends "prince" if needed:
+
+Add this at the beginning of the method:
+            # Ensure command starts with 'prince' for proper routing
+            if not command.lower().startswith('prince'):
+                command = f"prince {command}"
+
+EXPECTED RESULT:
+After applying these fixes, when a user types "search web for ai news" in the
+TORQ Console web interface, it will:
+
+1. Hit the new /api/chat endpoint
+2. Detect it as a search query
+3. Route to _handle_prince_command
+4. Use the Prince Flowers Enhanced Agent
+5. Return actual AI search results instead of "Edit completed successfully!"
+
+This fixes the critical issue where the web interface was defaulting to edit mode
+instead of AI response mode for search queries.
