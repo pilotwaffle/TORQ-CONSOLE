@@ -14,6 +14,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from ..llm.providers.base import BaseLLMProvider
+from .rl_learning_system import ARTISTRLSystem, RewardType
 
 @dataclass
 class AgentResult:
@@ -49,6 +50,10 @@ class PrinceFlowersAgent:
         self._init_tool_system()
         self._init_memory_system()
         self._init_planning_system()
+
+        # Initialize ARTIST RL Learning System
+        self.rl_system = ARTISTRLSystem(self.agent_id)
+        self.logger.info("ARTIST RL Learning System initialized")
 
         # Integration state
         self.active_since = time.time()
@@ -156,11 +161,26 @@ class PrinceFlowersAgent:
         self.logger.info(f"[PRINCE] Processing query: {query[:50]}...")
 
         try:
-            # 1. Analyze query and select strategy
-            query_analysis = await self._analyze_query(query, context)
-            strategy = await self._select_strategy(query_analysis)
+            # 1. RL: Check for predicted errors and corrections
+            state = f"query:{query[:100]}"
+            correction = await self.rl_system.predict_correction(state, query)
+            if correction:
+                self.logger.info(f"[RL] Applying predicted correction: {correction}")
+                query = correction
 
-            # 2. Execute strategy with appropriate tools
+            # 2. Analyze query and select strategy (RL-enhanced)
+            query_analysis = await self._analyze_query(query, context)
+
+            # 3. RL: Select best strategy based on learned policy
+            available_strategies = self.planning_strategies
+            strategy, strategy_confidence = self.rl_system.get_best_action(
+                f"analysis:{query_analysis.get('type', 'general')}",
+                available_strategies
+            )
+            if strategy_confidence < 0.5:
+                strategy = await self._select_strategy(query_analysis)
+
+            # 4. Execute strategy with appropriate tools
             execution_result = await self._execute_strategy(query, strategy, query_analysis, context)
 
             # 3. Synthesize final response
@@ -175,7 +195,18 @@ class PrinceFlowersAgent:
             if success:
                 self.successful_responses += 1
 
-            # Return comprehensive result
+            # 5. RL: Record experience for learning
+            reward = RewardType.SUCCESS.value if success else RewardType.FAILURE.value
+            next_state = f"result:{final_response[:100]}"
+            self.rl_system.record_experience(
+                state=state,
+                action=strategy,
+                reward=reward,
+                next_state=next_state
+            )
+
+            # Return comprehensive result with RL stats
+            rl_stats = self.rl_system.get_learning_stats()
             return AgentResult(
                 success=success,
                 content=final_response,
@@ -187,7 +218,12 @@ class PrinceFlowersAgent:
                     'query_type': query_analysis.get('type', 'general'),
                     'complexity': query_analysis.get('complexity', 0.5),
                     'sources_used': execution_result.get('sources', 0),
-                    'memory_items_retrieved': execution_result.get('memory_items', 0)
+                    'memory_items_retrieved': execution_result.get('memory_items', 0),
+                    'rl_learning': {
+                        'error_patterns_learned': rl_stats['error_patterns_learned'],
+                        'corrections_applied': rl_stats['corrections_applied'],
+                        'learning_efficiency': rl_stats.get('learning_efficiency', 0.0)
+                    }
                 }
             )
 
