@@ -57,6 +57,7 @@ class CommandCategory(Enum):
     AI = "ai"
     WORKSPACE = "workspace"
     TERMINAL = "terminal"
+    MCP = "mcp"
 
 
 class CommandType(Enum):
@@ -555,6 +556,7 @@ class CommandPalette:
             CommandCategory.CONTEXT: self._register_context_commands,
             CommandCategory.AI: self._register_ai_commands,
             CommandCategory.WORKSPACE: self._register_workspace_commands,
+            CommandCategory.MCP: self._register_mcp_commands,
         }
 
         self.logger.info("CommandPalette initialized")
@@ -1469,6 +1471,117 @@ class CommandPalette:
         for command in commands:
             self.registry.register_command(command)
 
+    async def _register_mcp_commands(self) -> None:
+        """Register MCP-related commands."""
+        commands = [
+            Command(
+                id="mcp.list_servers",
+                title="MCP: List Servers",
+                category=CommandCategory.MCP,
+                type=CommandType.ACTION,
+                description="List all configured MCP servers",
+                icon="server",
+                tags=["mcp", "servers", "list"],
+                executor=self._execute_mcp_command
+            ),
+            Command(
+                id="mcp.status",
+                title="MCP: Server Status",
+                category=CommandCategory.MCP,
+                type=CommandType.ACTION,
+                description="Show status of all MCP servers",
+                icon="activity",
+                tags=["mcp", "status", "servers"],
+                executor=self._execute_mcp_command
+            ),
+            Command(
+                id="mcp.connect_server",
+                title="MCP: Connect Server",
+                category=CommandCategory.MCP,
+                type=CommandType.ACTION,
+                description="Connect to an MCP server",
+                icon="link",
+                tags=["mcp", "connect", "server"],
+                executor=self._execute_mcp_command,
+                parameters={
+                    "server_name": {
+                        "type": "string",
+                        "description": "Name of the server to connect to",
+                        "required": True
+                    }
+                }
+            ),
+            Command(
+                id="mcp.disconnect_server",
+                title="MCP: Disconnect Server",
+                category=CommandCategory.MCP,
+                type=CommandType.ACTION,
+                description="Disconnect from an MCP server",
+                icon="unlink",
+                tags=["mcp", "disconnect", "server"],
+                executor=self._execute_mcp_command,
+                parameters={
+                    "server_name": {
+                        "type": "string",
+                        "description": "Name of the server to disconnect from",
+                        "required": True
+                    }
+                }
+            ),
+            Command(
+                id="mcp.list_tools",
+                title="MCP: List Available Tools",
+                category=CommandCategory.MCP,
+                type=CommandType.ACTION,
+                description="List available tools from MCP servers",
+                icon="tool",
+                tags=["mcp", "tools", "list"],
+                executor=self._execute_mcp_command
+            ),
+            Command(
+                id="mcp.add_server",
+                title="MCP: Add Server",
+                category=CommandCategory.MCP,
+                type=CommandType.ACTION,
+                description="Add a new MCP server configuration",
+                icon="plus-circle",
+                tags=["mcp", "add", "server", "config"],
+                executor=self._execute_mcp_command,
+                parameters={
+                    "server_name": {
+                        "type": "string",
+                        "description": "Name for the new server",
+                        "required": True
+                    },
+                    "server_type": {
+                        "type": "string",
+                        "description": "Type of server (github, filesystem, etc.)",
+                        "required": True
+                    }
+                }
+            ),
+            Command(
+                id="mcp.remove_server",
+                title="MCP: Remove Server",
+                category=CommandCategory.MCP,
+                type=CommandType.ACTION,
+                description="Remove an MCP server configuration",
+                icon="trash-2",
+                tags=["mcp", "remove", "server"],
+                executor=self._execute_mcp_command,
+                parameters={
+                    "server_name": {
+                        "type": "string",
+                        "description": "Name of the server to remove",
+                        "required": True
+                    }
+                }
+            )
+        ]
+
+        for command in commands:
+            self.registry.register_command(command)
+
     async def _execute_chat_command(self, command_id: str, parameters: Dict[str, Any]) -> Any:
         """Execute chat-related commands."""
         if command_id == "chat.new_tab":
@@ -1522,6 +1635,83 @@ class CommandPalette:
             return {"action": "show_help"}
         # Add more general command implementations as needed
         return {"executed": command_id}
+
+    async def _execute_mcp_command(self, command_id: str, parameters: Dict[str, Any]) -> Any:
+        """Execute MCP-related commands."""
+        try:
+            # Get the enhanced MCP integration from the console (needs to be passed in)
+            console = getattr(self, '_console', None)
+            if not console or not hasattr(console, 'enhanced_mcp'):
+                return {"error": "MCP integration not available"}
+
+            enhanced_mcp = console.enhanced_mcp
+
+            if command_id == "mcp.list_servers":
+                servers = enhanced_mcp.get_configured_servers()
+                return {"servers": servers}
+
+            elif command_id == "mcp.status":
+                status = await enhanced_mcp.get_server_status()
+                return {"status": status}
+
+            elif command_id == "mcp.connect_server":
+                server_name = parameters.get("server_name")
+                if not server_name:
+                    return {"error": "Server name required"}
+                success = await enhanced_mcp.connect_server(server_name)
+                return {"success": success, "server": server_name}
+
+            elif command_id == "mcp.disconnect_server":
+                server_name = parameters.get("server_name")
+                if not server_name:
+                    return {"error": "Server name required"}
+                await enhanced_mcp.disconnect_server(server_name)
+                return {"success": True, "server": server_name}
+
+            elif command_id == "mcp.list_tools":
+                tools = await enhanced_mcp.list_available_tools()
+                return {"tools": tools}
+
+            elif command_id == "mcp.add_server":
+                server_name = parameters.get("server_name")
+                server_type = parameters.get("server_type")
+                if not server_name or not server_type:
+                    return {"error": "Server name and type required"}
+
+                # Convert server type to config
+                templates = {
+                    "github": {
+                        "type": "stdio",
+                        "command": "npx",
+                        "args": ["-y", "@modelcontextprotocol/server-github"],
+                        "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"}
+                    },
+                    "filesystem": {
+                        "type": "stdio",
+                        "command": "npx",
+                        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/files"]
+                    }
+                    # Add more templates as needed
+                }
+
+                if server_type not in templates:
+                    return {"error": f"Unknown server type: {server_type}"}
+
+                enhanced_mcp.add_server(server_name, templates[server_type])
+                return {"success": True, "server": server_name, "type": server_type}
+
+            elif command_id == "mcp.remove_server":
+                server_name = parameters.get("server_name")
+                if not server_name:
+                    return {"error": "Server name required"}
+                enhanced_mcp.remove_server(server_name)
+                return {"success": True, "server": server_name}
+
+            else:
+                return {"error": f"Unknown MCP command: {command_id}"}
+
+        except Exception as e:
+            return {"error": f"MCP command failed: {str(e)}"}
 
     async def _load_user_data(self) -> None:
         """Load user favorites and preferences."""
