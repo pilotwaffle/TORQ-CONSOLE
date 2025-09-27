@@ -86,6 +86,9 @@ def main(ctx, interactive, web, voice, mcp_connect, ideate, plan,
             planning_mode=plan
         )
 
+        # Initialize async components
+        asyncio.run(console_instance.initialize_async())
+
         # Connect MCP servers
         for endpoint in mcp_connect:
             asyncio.run(console_instance.connect_mcp(endpoint))
