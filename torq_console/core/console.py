@@ -22,6 +22,7 @@ from .context_manager import ContextManager
 from .chat_manager import ChatManager
 from ..mcp.client import MCPClient
 from ..mcp.claude_code_bridge import ClaudeCodeBridge
+from ..mcp.enhanced_integration import EnhancedMCPIntegration
 from ..ui.inline_editor import InlineEditor
 from ..ui.command_palette import CommandPalette
 from ..utils.git_manager import GitManager
@@ -32,6 +33,8 @@ from ..llm.providers.websearch import WebSearchProvider
 from ..swarm.orchestrator import SwarmOrchestrator
 from ..swarm.orchestrator_advanced import AdvancedSwarmOrchestrator
 from ..agents.torq_prince_flowers import TORQPrinceFlowersInterface
+from ..spec_kit.spec_engine import SpecKitEngine
+from ..spec_kit.spec_commands import SpecKitCommands
 
 # Import enhanced integration wrapper
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -106,11 +109,21 @@ class TorqConsole:
         self.command_palette = CommandPalette(
             config, self.context_manager, self.chat_manager, self.inline_editor
         )
+        # Add console reference for MCP commands
+        self.command_palette._console = self
 
-        # MCP components
+        # MCP components - Enhanced integration
         self.mcp_client = MCPClient()
         self.claude_code_bridge = ClaudeCodeBridge(self.mcp_client)
+        self.enhanced_mcp = EnhancedMCPIntegration()
         self.connected_servers: Dict[str, Any] = {}
+
+        # Spec-Kit Integration - Phase 1: Intelligent Spec-Driven Foundation
+        self.spec_engine = SpecKitEngine(
+            workspace_path=str(self.repo_path),
+            enhanced_rl_system=getattr(self, 'enhanced_rl_system', None)
+        )
+        self.spec_commands = SpecKitCommands(self.spec_engine)
 
         # State
         self.current_session: Optional[Dict[str, Any]] = None
@@ -121,26 +134,49 @@ class TorqConsole:
         integration_status = "with Enhanced Integration" if self.prince_flowers_integration else "with Standard Integration"
         self.logger.info(f"All components loaded: ContextManager, ChatManager, InlineEditor, CommandPalette, Prince Flowers Agent {integration_status}")
 
+    async def initialize_async(self):
+        """Async initialization for components that need it"""
+        try:
+            # Initialize enhanced MCP integration
+            await self.enhanced_mcp.initialize()
+            self.logger.info("Enhanced MCP integration initialized successfully")
+
+            # Initialize Spec-Kit Engine
+            await self.spec_engine.initialize()
+            self.logger.info("Spec-Kit Engine initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize enhanced MCP integration: {e}")
+
     async def connect_mcp(self, endpoint: str) -> bool:
-        """Connect to an MCP server endpoint."""
+        """Connect to an MCP server endpoint using enhanced integration."""
         try:
             print(f"Connecting to {endpoint}...")
 
-            success = await self.mcp_client.connect(endpoint)
+            # Try enhanced MCP integration first
+            enhanced_success = await self.enhanced_mcp.connect_legacy_endpoint(endpoint)
 
-            if success:
-                server_info = await self.mcp_client.get_server_info()
-                self.connected_servers[endpoint] = server_info
+            # Also maintain legacy client for backward compatibility
+            legacy_success = await self.mcp_client.connect(endpoint)
 
-                # Initialize Claude Code bridge
-                await self.claude_code_bridge.initialize_for_server(endpoint)
+            if enhanced_success or legacy_success:
+                if legacy_success:
+                    server_info = await self.mcp_client.get_server_info()
+                    self.connected_servers[endpoint] = server_info
+
+                    # Initialize Claude Code bridge
+                    await self.claude_code_bridge.initialize_for_server(endpoint)
 
                 print(f"OK - MCP server connected: {endpoint}")
 
-                # Show available tools
-                tools = await self.mcp_client.list_tools()
-                if tools:
-                    print(f"Available tools: {', '.join([t['name'] for t in tools])}")
+                # Show integration status
+                mcp_info = self.enhanced_mcp.get_integration_info()
+                print(f"Enhanced MCP: {mcp_info['active_enhanced_connections']} connections, Legacy: {mcp_info['legacy_connections']} connections")
+
+                # Show available tools from both systems
+                if legacy_success:
+                    tools = await self.mcp_client.list_tools()
+                    if tools:
+                        print(f"Legacy tools: {', '.join([t['name'] for t in tools])}")
 
                 return True
             else:
@@ -151,6 +187,40 @@ class TorqConsole:
             self.logger.error(f"MCP connection error: {e}")
             print(f"Error: {e}")
             return False
+
+    async def handle_mcp_command(self, command: str) -> str:
+        """Handle MCP commands using enhanced integration"""
+        try:
+            # Parse MCP command: "/mcp <subcommand> <args>"
+            parts = command.split()
+            if len(parts) < 2:
+                return await self.enhanced_mcp.handle_mcp_command("help", [])
+
+            mcp_command = parts[1]  # Remove "/mcp" prefix
+            mcp_args = parts[2:] if len(parts) > 2 else []
+
+            return await self.enhanced_mcp.handle_mcp_command(mcp_command, mcp_args)
+
+        except Exception as e:
+            self.logger.error(f"MCP command error: {e}")
+            return f"Error executing MCP command: {e}"
+
+    async def handle_spec_kit_command(self, command: str) -> str:
+        """Handle Spec-Kit commands using integrated Spec-Kit Engine"""
+        try:
+            # Parse Spec-Kit command: "/torq-spec <subcommand> <args>"
+            parts = command.split()
+            if len(parts) < 2:
+                return self.spec_commands._help()
+
+            spec_command = parts[1]  # Remove "/torq-spec" prefix
+            spec_args = parts[2:] if len(parts) > 2 else []
+
+            return await self.spec_commands.handle_torq_spec_command(spec_command, spec_args)
+
+        except Exception as e:
+            self.logger.error(f"Spec-Kit command error: {e}")
+            return f"Error executing Spec-Kit command: {e}"
 
     async def process_command(self, command: str) -> str:
         """
@@ -163,6 +233,14 @@ class TorqConsole:
             Response string
         """
         command = command.strip()
+
+        # Check for MCP commands
+        if command.lower().startswith('/mcp '):
+            return await self.handle_mcp_command(command)
+
+        # Check for Spec-Kit commands
+        if command.lower().startswith('/torq-spec '):
+            return await self.handle_spec_kit_command(command)
 
         # Check for Prince Flowers commands
         if command.lower().startswith('prince ') or command.lower().startswith('@prince '):
