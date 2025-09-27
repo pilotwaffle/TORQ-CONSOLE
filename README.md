@@ -41,6 +41,13 @@ TORQ CONSOLE answers that call with a complete, production-ready solution.
 - **Agency Swarm Integration:** Multi-agent orchestration patterns for complex task coordination
 - **YYZ Agentics Support:** Advanced parallel execution capabilities and swarm intelligence
 
+### 🟢 Phase 1: Intelligent Spec-Driven Foundation (NEW in v0.80.0)
+- **GitHub Spec-Kit Integration:** Complete spec-driven development workflow with /constitution → /specify → /plan → /tasks → /implement
+- **RL-Powered Specification Analysis:** AI-driven analysis of clarity, completeness, feasibility, and complexity with intelligent recommendations
+- **Automated Task Planning:** Smart generation of implementation plans, milestones, and resource estimates based on specifications
+- **Risk Assessment & Mitigation:** AI-powered identification of technical, scope, timeline, and quality risks with mitigation strategies
+- **Persistent Specification Management:** File-based storage with JSON serialization for constitutions, specifications, and task plans
+
 ### 🟢 Core System Architecture
 - **ContextManager:** Advanced @-symbol parsing with Tree-sitter integration
 - **ChatManager:** Multi-tab chat system with context-aware conversations
@@ -346,6 +353,14 @@ ruff check torq_console/
 - **Inline Edit:** `Ctrl+K` → AI-assisted code editing
 - **New Chat:** `Ctrl+T` → Start a new conversation tab
 - **Quick Question:** `Alt+Enter` → Ask about selected code
+
+### Spec-Kit Commands (Phase 1)
+- **Create Constitution:** `/torq-spec constitution create <name> <purpose>` → Define project principles and constraints
+- **Create Specification:** `/torq-spec specify create <title> <description>` → Create RL-analyzed specifications
+- **Generate Plan:** `/torq-spec plan generate <spec_id>` → Auto-generate implementation plans
+- **List Specifications:** `/torq-spec specify list` → View all project specifications
+- **View Status:** `/torq-spec status` → Show Spec-Kit overview and statistics
+- **Search Specs:** `/torq-spec search <query>` → Find specifications by content
 
 ### API Documentation
 - [ContextManager API](docs/context-manager.md)
