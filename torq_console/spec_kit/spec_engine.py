@@ -13,6 +13,8 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from .rl_spec_analyzer import RLSpecAnalyzer, SpecAnalysis, SpecificationContext
+from .adaptive_intelligence import AdaptiveIntelligenceEngine
+from .realtime_editor import RealTimeEditor
 
 @dataclass
 class ProjectConstitution:
@@ -66,6 +68,11 @@ class SpecKitEngine:
 
         # Initialize components
         self.rl_analyzer = RLSpecAnalyzer(enhanced_rl_system)
+
+        # Phase 2: Adaptive Intelligence Layer
+        self.adaptive_intelligence = AdaptiveIntelligenceEngine(self.rl_analyzer)
+        self.realtime_editor = RealTimeEditor(self.adaptive_intelligence)
+
         self.constitutions = {}
         self.specifications = {}
         self.task_plans = {}
@@ -555,3 +562,114 @@ class SpecKitEngine:
                 results.append(spec)
 
         return results
+
+    # ============================================================================
+    # PHASE 2: ADAPTIVE INTELLIGENCE LAYER METHODS
+    # ============================================================================
+
+    async def start_realtime_editing(self, spec_id: str, initial_content: str, user_prefs: Dict[str, Any]) -> str:
+        """Start real-time editing session for a specification"""
+        try:
+            session_id = await self.realtime_editor.start_editing_session(
+                spec_id, initial_content, user_prefs
+            )
+            self.logger.info(f"Started real-time editing session {session_id} for spec {spec_id}")
+            return session_id
+        except Exception as e:
+            self.logger.error(f"Failed to start real-time editing: {e}")
+            raise
+
+    async def handle_realtime_edit(self, session_id: str, new_content: str, cursor_pos: int,
+                                 selected_text: str = "", section: str = "description") -> Dict[str, Any]:
+        """Handle real-time text changes and get intelligent suggestions"""
+        try:
+            return await self.realtime_editor.handle_text_change(
+                session_id, new_content, cursor_pos, selected_text, section
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to handle real-time edit: {e}")
+            return {'error': str(e)}
+
+    async def get_realtime_analysis(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get cached real-time analysis results"""
+        try:
+            return await self.realtime_editor.get_cached_analysis(session_id)
+        except Exception as e:
+            self.logger.error(f"Failed to get real-time analysis: {e}")
+            return None
+
+    async def accept_editing_suggestion(self, session_id: str, suggestion_id: str) -> Dict[str, Any]:
+        """Accept a real-time editing suggestion"""
+        try:
+            return await self.realtime_editor.accept_suggestion(session_id, suggestion_id)
+        except Exception as e:
+            self.logger.error(f"Failed to accept suggestion: {e}")
+            return {'error': str(e)}
+
+    async def reject_editing_suggestion(self, session_id: str, suggestion_id: str, reason: str = None) -> Dict[str, Any]:
+        """Reject a real-time editing suggestion"""
+        try:
+            return await self.realtime_editor.reject_suggestion(session_id, suggestion_id, reason)
+        except Exception as e:
+            self.logger.error(f"Failed to reject suggestion: {e}")
+            return {'error': str(e)}
+
+    async def end_realtime_editing(self, session_id: str, user_satisfaction: float = None) -> Dict[str, Any]:
+        """End real-time editing session and get summary"""
+        try:
+            summary = await self.realtime_editor.end_editing_session(session_id, user_satisfaction)
+            self.logger.info(f"Ended real-time editing session {session_id}")
+            return summary
+        except Exception as e:
+            self.logger.error(f"Failed to end real-time editing: {e}")
+            return {'error': str(e)}
+
+    async def analyze_specification_realtime(self, spec_text: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform real-time analysis of specification text"""
+        try:
+            analysis = await self.adaptive_intelligence.analyze_specification_realtime(spec_text, context)
+            return asdict(analysis)
+        except Exception as e:
+            self.logger.error(f"Failed real-time analysis: {e}")
+            raise
+
+    async def learn_from_user_feedback(self, feedback: Dict[str, Any]):
+        """Learn from user feedback to improve adaptive intelligence"""
+        try:
+            await self.adaptive_intelligence.learn_from_feedback(feedback)
+            self.logger.info("Processed user feedback for adaptive learning")
+        except Exception as e:
+            self.logger.error(f"Failed to process user feedback: {e}")
+
+    def get_adaptive_intelligence_metrics(self) -> Dict[str, Any]:
+        """Get metrics from adaptive intelligence system"""
+        try:
+            ai_metrics = self.adaptive_intelligence.get_intelligence_metrics()
+            editor_metrics = self.realtime_editor.get_editor_metrics()
+
+            return {
+                'adaptive_intelligence': ai_metrics,
+                'realtime_editor': editor_metrics,
+                'phase2_status': 'active'
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get adaptive intelligence metrics: {e}")
+            return {'phase2_status': 'error', 'error': str(e)}
+
+    def get_enhanced_status_summary(self) -> Dict[str, Any]:
+        """Get enhanced status summary including Phase 2 features"""
+        base_status = self.get_status_summary()
+
+        # Add Phase 2 metrics
+        try:
+            phase2_metrics = self.get_adaptive_intelligence_metrics()
+            base_status['phase2_adaptive_intelligence'] = phase2_metrics
+            base_status['realtime_editing_active'] = len(self.realtime_editor.active_sessions) > 0
+            base_status['adaptive_learning_enabled'] = True
+        except Exception as e:
+            self.logger.error(f"Failed to get Phase 2 status: {e}")
+            base_status['phase2_adaptive_intelligence'] = {'status': 'error', 'error': str(e)}
+            base_status['realtime_editing_active'] = False
+            base_status['adaptive_learning_enabled'] = False
+
+        return base_status
