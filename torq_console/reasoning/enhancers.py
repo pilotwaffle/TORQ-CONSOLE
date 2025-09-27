@@ -169,6 +169,9 @@ class PerplexityCoTEnhancer(CoTEnhancer):
                 }
             )
 
+            # Register chain in enhancer tracking
+            self.active_chains[chain_id] = chain
+
             # Enhance research steps with Perplexity-specific actions
             await self._enhance_research_steps(chain, request)
 
@@ -317,6 +320,9 @@ class AgentCoTEnhancer(CoTEnhancer):
                     "task_context": context
                 }
             )
+
+            # Register chain in enhancer tracking
+            self.active_chains[chain_id] = chain
 
             # Enhance decision steps with agent-specific actions
             await self._enhance_agent_steps(chain, request)
@@ -471,6 +477,9 @@ class SpecKitCoTEnhancer(CoTEnhancer):
                         "content": content
                     }
                 )
+
+            # Register chain in enhancer tracking
+            self.active_chains[chain_id] = chain
 
             # Enhance spec steps with SpecKit-specific actions
             await self._enhance_spec_steps(chain, request)
