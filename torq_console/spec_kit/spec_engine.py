@@ -15,6 +15,8 @@ from datetime import datetime
 from .rl_spec_analyzer import RLSpecAnalyzer, SpecAnalysis, SpecificationContext
 from .adaptive_intelligence import AdaptiveIntelligenceEngine
 from .realtime_editor import RealTimeEditor
+from .ecosystem_intelligence import EcosystemIntelligence, GitRepository, TeamMember
+from .collaboration_server import CollaborationManager
 
 @dataclass
 class ProjectConstitution:
@@ -72,6 +74,12 @@ class SpecKitEngine:
         # Phase 2: Adaptive Intelligence Layer
         self.adaptive_intelligence = AdaptiveIntelligenceEngine(self.rl_analyzer)
         self.realtime_editor = RealTimeEditor(self.adaptive_intelligence)
+
+        # Phase 3: Ecosystem Intelligence
+        ecosystem_storage_path = self.spec_dir / "ecosystem"
+        ecosystem_storage_path.mkdir(parents=True, exist_ok=True)
+        self.ecosystem_intelligence = EcosystemIntelligence(storage_path=ecosystem_storage_path)
+        self.collaboration_manager = CollaborationManager()
 
         self.constitutions = {}
         self.specifications = {}
@@ -673,3 +681,160 @@ class SpecKitEngine:
             base_status['adaptive_learning_enabled'] = False
 
         return base_status
+
+    # Phase 3: Ecosystem Intelligence API Methods
+
+    async def connect_to_github(self, repo_url: str, token: str) -> Dict[str, Any]:
+        """Connect to GitHub repository for specification sync"""
+        try:
+            result = await self.ecosystem_intelligence.connect_to_github(repo_url, token)
+            self.logger.info(f"Connected to GitHub repo: {repo_url}")
+            return result
+        except Exception as e:
+            self.logger.error(f"Failed to connect to GitHub: {e}")
+            raise
+
+    async def sync_spec_to_github(self, spec_id: str, repo_url: str) -> Dict[str, Any]:
+        """Sync specification to GitHub repository"""
+        try:
+            if spec_id not in self.specifications:
+                raise ValueError(f"Specification {spec_id} not found")
+
+            spec = self.specifications[spec_id]
+            spec_data = asdict(spec)
+
+            result = await self.ecosystem_intelligence.sync_specification_to_repo(
+                repo_url, spec_id, spec_data
+            )
+            self.logger.info(f"Synced specification {spec_id} to GitHub")
+            return result
+        except Exception as e:
+            self.logger.error(f"Failed to sync spec to GitHub: {e}")
+            raise
+
+    async def start_collaboration_session(self, spec_id: str, team_members: List[Dict[str, str]]) -> Dict[str, Any]:
+        """Start a collaborative editing session for a specification"""
+        try:
+            if spec_id not in self.specifications:
+                raise ValueError(f"Specification {spec_id} not found")
+
+            # Convert team member dicts to TeamMember objects
+            members = [TeamMember(**member) for member in team_members]
+
+            session_id = await self.ecosystem_intelligence.start_collaboration_session(spec_id, members[0])
+
+            # Add other members to the session
+            for member in members[1:]:
+                await self.ecosystem_intelligence.join_collaboration_session(session_id, member)
+
+            self.logger.info(f"Started collaboration session {session_id} for spec {spec_id}")
+            return {
+                "session_id": session_id,
+                "specification_id": spec_id,
+                "participants": len(members),
+                "status": "active"
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to start collaboration session: {e}")
+            raise
+
+    async def start_collaboration_server(self, host: str = "localhost", port: int = 8765) -> Dict[str, Any]:
+        """Start the WebSocket collaboration server"""
+        try:
+            await self.collaboration_manager.start()
+            self.logger.info(f"Collaboration server started on {host}:{port}")
+            return {
+                "status": "running",
+                "host": host,
+                "port": port,
+                "websocket_url": f"ws://{host}:{port}"
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to start collaboration server: {e}")
+            raise
+
+    async def stop_collaboration_server(self) -> Dict[str, Any]:
+        """Stop the WebSocket collaboration server"""
+        try:
+            await self.collaboration_manager.stop()
+            self.logger.info("Collaboration server stopped")
+            return {"status": "stopped"}
+        except Exception as e:
+            self.logger.error(f"Failed to stop collaboration server: {e}")
+            raise
+
+    async def get_collaboration_stats(self) -> Dict[str, Any]:
+        """Get collaboration server statistics"""
+        try:
+            stats = self.collaboration_manager.get_stats()
+            ecosystem_stats = self.ecosystem_intelligence.get_collaboration_status()
+
+            return {
+                "server_stats": stats,
+                "ecosystem_stats": ecosystem_stats,
+                "active_sessions": len(self.ecosystem_intelligence.team_collaboration.active_sessions),
+                "connected_repositories": len(self.ecosystem_intelligence.connected_repositories)
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get collaboration stats: {e}")
+            return {"status": "error", "error": str(e)}
+
+    def create_workspace(self, name: str, description: str) -> Dict[str, Any]:
+        """Create a new workspace for multi-project management"""
+        try:
+            workspace_data = {"name": name, "description": description, "owner": "user"}
+            workspace_id = self.ecosystem_intelligence.create_workspace(workspace_data)
+            workspace = {"id": workspace_id, "name": name, "description": description}
+            self.logger.info(f"Created workspace: {name}")
+            return workspace
+        except Exception as e:
+            self.logger.error(f"Failed to create workspace: {e}")
+            raise
+
+    def get_workspaces(self) -> List[Dict[str, Any]]:
+        """Get all available workspaces"""
+        try:
+            workspaces = self.ecosystem_intelligence.get_workspaces()
+            return [asdict(ws) for ws in workspaces]
+        except Exception as e:
+            self.logger.error(f"Failed to get workspaces: {e}")
+            return []
+
+    async def get_specification_history(self, spec_id: str) -> List[Dict[str, Any]]:
+        """Get version history for a specification"""
+        try:
+            if spec_id not in self.specifications:
+                raise ValueError(f"Specification {spec_id} not found")
+
+            history = await self.ecosystem_intelligence.get_specification_history(spec_id)
+            return [asdict(version) for version in history]
+        except Exception as e:
+            self.logger.error(f"Failed to get specification history: {e}")
+            raise
+
+    def get_ecosystem_status(self) -> Dict[str, Any]:
+        """Get comprehensive ecosystem intelligence status"""
+        try:
+            base_status = self.get_enhanced_status_summary()
+
+            # Add Phase 3 ecosystem intelligence status
+            ecosystem_status = {
+                "connected_repositories": len(self.ecosystem_intelligence.connected_repositories),
+                "active_workspaces": len(self.ecosystem_intelligence.workspaces),
+                "collaboration_sessions": len(self.ecosystem_intelligence.team_collaboration.active_sessions),
+                "version_control_enabled": True,
+                "analytics_enabled": True,
+                "phase3_status": "active"
+            }
+
+            collaboration_stats = self.collaboration_manager.get_stats()
+
+            base_status.update({
+                "phase3_ecosystem_intelligence": ecosystem_status,
+                "collaboration_server": collaboration_stats
+            })
+
+            return base_status
+        except Exception as e:
+            self.logger.error(f"Failed to get ecosystem status: {e}")
+            return {"phase3_status": "error", "error": str(e)}

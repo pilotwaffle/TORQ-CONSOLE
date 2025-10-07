@@ -23,6 +23,12 @@ try:
 except ImportError:
     MCPClient = None
 
+try:
+    # Try importing Perplexity search integration
+    from ...integrations.perplexity_search import create_perplexity_search_client
+except ImportError:
+    create_perplexity_search_client = None
+
 
 class WebSearchProvider:
     """Enhanced web search provider with multiple search methods and real API integration."""
@@ -45,12 +51,17 @@ class WebSearchProvider:
         self.google_api_key = os.getenv('GOOGLE_SEARCH_API_KEY')
         self.google_engine_id = os.getenv('GOOGLE_SEARCH_ENGINE_ID')
         self.brave_api_key = os.getenv('BRAVE_SEARCH_API_KEY')
+        self.perplexity_api_key = os.getenv('PERPLEXITY_API_KEY')
 
         # MCP client for server-based search
         self.mcp_client = MCPClient() if MCPClient else None
 
         # Available search methods (in priority order)
         self.search_methods = []
+
+        # Add Perplexity Search if configured (highest priority due to AI-powered results)
+        if self.perplexity_api_key:
+            self.search_methods.append('perplexity_search')
 
         # Add Google Custom Search if configured
         if self.google_api_key and self.google_engine_id:
@@ -145,7 +156,9 @@ class WebSearchProvider:
         Returns:
             Search results dictionary or None if failed
         """
-        if method == 'google_custom_search':
+        if method == 'perplexity_search':
+            return await self._perplexity_search(query, max_results, search_type)
+        elif method == 'google_custom_search':
             return await self._google_custom_search(query, max_results, search_type)
         elif method == 'brave_search':
             return await self._brave_search(query, max_results, search_type)
@@ -157,6 +170,75 @@ class WebSearchProvider:
             return await self._fallback_search_response(query, max_results, search_type)
         else:
             raise ValueError(f"Unknown search method: {method}")
+
+    async def _perplexity_search(
+        self,
+        query: str,
+        max_results: int,
+        search_type: str
+    ) -> Optional[Dict[str, Any]]:
+        """Use Perplexity Search API."""
+        if not self.perplexity_api_key or not create_perplexity_search_client:
+            return None
+
+        try:
+            self.logger.info(f"Using Perplexity Search API for: {query}")
+
+            # Create Perplexity client
+            perplexity_client = create_perplexity_search_client(self.perplexity_api_key)
+
+            # Adjust query based on search type
+            if search_type == 'news':
+                result = await perplexity_client.search_news(query)
+            elif search_type == 'academic':
+                result = await perplexity_client.search_academic(query)
+            else:
+                result = await perplexity_client.search(query, max_tokens=min(max_results * 50, 1000))
+
+            # Format results for WebSearchProvider
+            formatted_results = []
+            if result.content:
+                # Split content into snippets and create pseudo-results
+                # Since Perplexity provides comprehensive answers rather than individual results
+                formatted_results.append({
+                    'title': f'Perplexity AI Search: {query}',
+                    'snippet': result.content[:500] + ('...' if len(result.content) > 500 else ''),
+                    'url': 'https://www.perplexity.ai',
+                    'source': 'Perplexity AI',
+                    'model': result.model,
+                    'sources': result.sources[:5]  # Limit to first 5 sources
+                })
+
+                # Add individual sources as separate results if available
+                for i, source in enumerate(result.sources[:max_results-1]):
+                    if isinstance(source, str):
+                        formatted_results.append({
+                            'title': f'Source {i+1}: {source}',
+                            'snippet': f'Referenced in Perplexity search for: {query}',
+                            'url': source,
+                            'source': 'Perplexity Source'
+                        })
+                    elif isinstance(source, dict):
+                        formatted_results.append({
+                            'title': source.get('title', f'Source {i+1}'),
+                            'snippet': source.get('snippet', f'Referenced in Perplexity search for: {query}'),
+                            'url': source.get('url', ''),
+                            'source': 'Perplexity Source'
+                        })
+
+            return {
+                'query': query,
+                'results': formatted_results,
+                'total_found': len(formatted_results),
+                'provider': 'Perplexity',
+                'model_used': result.model,
+                'usage': result.usage,
+                'timestamp': result.timestamp.isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Perplexity search failed: {e}")
+            return None
 
     async def _google_custom_search(
         self,

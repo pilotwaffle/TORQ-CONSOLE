@@ -123,6 +123,9 @@ class TorqConfig:
         self.git: GitConfig = GitConfig()
         self.tbs: TBSConfig = TBSConfig()
 
+        # Initialize logger first before loading API keys
+        self.logger = logging.getLogger(__name__)
+
         # API Keys from environment
         self.api_keys = self._load_api_keys()
 
@@ -137,8 +140,6 @@ class TorqConfig:
         self.current_model: Optional[str] = None
         self.session_timeout: int = 3600  # seconds
         self.max_file_size: int = 10 * 1024 * 1024  # 10MB
-
-        self.logger = logging.getLogger(__name__)
 
     def _load_api_keys(self) -> Dict[str, Optional[str]]:
         """Load API keys from environment variables."""
@@ -306,8 +307,23 @@ class TorqConfig:
         self.ai_models = [
             AIModelConfig(
                 provider="anthropic",
+                model="claude-sonnet-4-5-20250929",
+                api_key=self.api_keys.get('anthropic')
+            ),
+            AIModelConfig(
+                provider="anthropic",
                 model="claude-3-5-sonnet-20241022",
                 api_key=self.api_keys.get('anthropic')
+            ),
+            AIModelConfig(
+                provider="anthropic",
+                model="claude-3-opus-20240229",
+                api_key=self.api_keys.get('anthropic')
+            ),
+            AIModelConfig(
+                provider="openai",
+                model="gpt-4-turbo-preview",
+                api_key=self.api_keys.get('openai')
             ),
             AIModelConfig(
                 provider="openai",
@@ -318,6 +334,12 @@ class TorqConfig:
                 provider="ollama",
                 model="codellama:7b",
                 base_url="http://localhost:11434"
+            ),
+            AIModelConfig(
+                provider="deepseek",
+                model="deepseek-chat",
+                api_key=self.api_keys.get('deepseek'),
+                base_url="https://api.deepseek.com"
             )
         ]
 

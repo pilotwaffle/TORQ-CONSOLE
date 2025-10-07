@@ -11,6 +11,7 @@ from typing import Dict, List, Any, Optional, Union
 import logging
 
 from .providers.deepseek import DeepSeekProvider
+from .providers.claude import ClaudeProvider
 
 
 class LLMManager:
@@ -28,20 +29,43 @@ class LLMManager:
 
         # Initialize providers
         self.providers = {}
-        self.default_provider = 'deepseek'
+        self.default_provider = 'claude'  # Use Claude as default for best quality
+        self.search_provider = 'deepseek'  # Use DeepSeek for fast searches
 
-        # Initialize DeepSeek provider
+        # Initialize providers
+        self._init_claude()
         self._init_deepseek()
 
         # Provider aliases for backward compatibility
         self.provider_aliases = {
+            'claude': 'claude',
+            'claude-sonnet': 'claude',
+            'sonnet': 'claude',
             'deepseek': 'deepseek',
             'deepseek-chat': 'deepseek',
-            'llama': 'deepseek',  # Can route to DeepSeek for now
-            'default': self.default_provider
+            'llama': 'deepseek',
+            'default': self.default_provider,
+            'search': self.search_provider
         }
 
         self.logger.info(f"LLM Manager initialized with providers: {list(self.providers.keys())}")
+
+    def _init_claude(self):
+        """Initialize Claude provider."""
+        try:
+            api_key = os.getenv('ANTHROPIC_API_KEY')
+            model = self.config.get('claude_model', 'claude-sonnet-4-20250514')
+
+            provider = ClaudeProvider(api_key=api_key, model=model)
+            self.providers['claude'] = provider
+
+            if provider.is_configured():
+                self.logger.info(f"Claude provider configured successfully with model: {model}")
+            else:
+                self.logger.warning("Claude provider not properly configured (missing API key)")
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Claude provider: {e}")
 
     def _init_deepseek(self):
         """Initialize DeepSeek provider."""

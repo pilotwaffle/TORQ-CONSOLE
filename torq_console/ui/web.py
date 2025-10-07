@@ -58,6 +58,8 @@ class DirectChatRequest(BaseModel):
     include_context: bool = True
     generate_response: bool = True
     model: Optional[str] = None
+    tools: Optional[List[str]] = None  # Tools to use (e.g., ['web_search'])
+    session_id: Optional[str] = None  # Session identifier
 
 
 
@@ -442,7 +444,37 @@ class WebUI:
                 ])
             )
 
-            # Check if this should be routed to search/AI capabilities
+            # ROUTE ALL QUERIES TO PRINCE FLOWERS FOR BEST QUALITY
+            # Prince Flowers now uses Claude Sonnet 4.5 for reasoning/coding
+            # and DeepSeek for fast searches
+
+            # Try Prince Flowers first (with Claude + DeepSeek integration)
+            if hasattr(self.console, 'prince_flowers_integration') and self.console.prince_flowers_integration:
+                try:
+                    self.logger.info("Routing query to Prince Flowers Enhanced Agent")
+                    integration = self.console.prince_flowers_integration
+
+                    # Process via Prince Flowers
+                    if hasattr(integration, 'process_query_async'):
+                        response = await integration.process_query_async(user_content)
+                    elif hasattr(integration, 'process_query'):
+                        response = await asyncio.to_thread(integration.process_query, user_content)
+                    else:
+                        raise AttributeError("Prince Flowers integration missing process methods")
+
+                    # Extract response content
+                    if isinstance(response, dict):
+                        return response.get('content', response.get('answer', str(response)))
+                    elif hasattr(response, 'content'):
+                        return response.content
+                    else:
+                        return str(response)
+
+                except Exception as e:
+                    self.logger.error(f"Prince Flowers routing error: {e}")
+                    # Fallback to AI integration
+
+            # Fallback: Use AI integration layer
             is_search_or_ai_query = any(keyword in content_lower for keyword in [
                 "search", "find", "latest", "current", "news", "recent",
                 "ai", "artificial intelligence", "developments", "what is",
@@ -1176,22 +1208,254 @@ How else can I assist you with "{query}"?"""
             raise HTTPException(status_code=500, detail=str(e))
 
     async def _list_mcp_tools(self) -> Dict[str, Any]:
-        """List available MCP tools."""
+        """List available MCP tools with enhanced metadata for UI display."""
         tools = []
+
+        # Enhanced tool metadata mapping for better UX
+        tool_metadata = {
+            # File Operations
+            "read_file": {
+                "icon": "📄",
+                "category": "File Operations",
+                "friendly_description": "Opens and displays any file content quickly",
+                "use_case": "Read source code, configs, or any text file"
+            },
+            "write_file": {
+                "icon": "✍️",
+                "category": "File Operations",
+                "friendly_description": "Creates or updates files with new content",
+                "use_case": "Save code changes or create new files"
+            },
+            "list_directory": {
+                "icon": "📁",
+                "category": "File Operations",
+                "friendly_description": "Shows all files and folders in a directory",
+                "use_case": "Explore project structure and locate files"
+            },
+            "delete_file": {
+                "icon": "🗑️",
+                "category": "File Operations",
+                "friendly_description": "Removes files or directories safely",
+                "use_case": "Clean up unwanted files or temporary data"
+            },
+            "search_files": {
+                "icon": "🔍",
+                "category": "File Operations",
+                "friendly_description": "Find files by name pattern across your project",
+                "use_case": "Locate specific files or search by extension"
+            },
+
+            # Search & Analysis
+            "grep": {
+                "icon": "🔎",
+                "category": "Search",
+                "friendly_description": "Search for text patterns across multiple files",
+                "use_case": "Find code references, function calls, or strings"
+            },
+            "ripgrep": {
+                "icon": "⚡",
+                "category": "Search",
+                "friendly_description": "Ultra-fast text search with regex support",
+                "use_case": "Quick code searches across large codebases"
+            },
+            "semantic_search": {
+                "icon": "🧠",
+                "category": "Search",
+                "friendly_description": "AI-powered search by meaning, not just keywords",
+                "use_case": "Find similar code or concepts semantically"
+            },
+
+            # Database
+            "query_database": {
+                "icon": "💾",
+                "category": "Database",
+                "friendly_description": "Execute SQL queries and retrieve results",
+                "use_case": "Inspect data, run analytics, or test queries"
+            },
+            "list_tables": {
+                "icon": "📊",
+                "category": "Database",
+                "friendly_description": "Shows all tables and schemas in database",
+                "use_case": "Explore database structure and relationships"
+            },
+            "describe_table": {
+                "icon": "📋",
+                "category": "Database",
+                "friendly_description": "View table schema with columns and types",
+                "use_case": "Understand table structure before querying"
+            },
+
+            # Web & Network
+            "fetch_url": {
+                "icon": "🌐",
+                "category": "Web",
+                "friendly_description": "Fetch content from any URL or API endpoint",
+                "use_case": "Test APIs, scrape data, or download resources"
+            },
+            "web_search": {
+                "icon": "🔍",
+                "category": "Web",
+                "friendly_description": "Search the web for information and examples",
+                "use_case": "Find documentation, solutions, or tutorials"
+            },
+            "browse_url": {
+                "icon": "🌍",
+                "category": "Web",
+                "friendly_description": "Extract and analyze webpage content",
+                "use_case": "Research documentation or extract web data"
+            },
+
+            # Git & Version Control
+            "git_status": {
+                "icon": "📈",
+                "category": "Git",
+                "friendly_description": "Shows current Git repository status",
+                "use_case": "Check uncommitted changes and branch info"
+            },
+            "git_diff": {
+                "icon": "🔀",
+                "category": "Git",
+                "friendly_description": "Display differences between versions",
+                "use_case": "Review code changes before committing"
+            },
+            "git_commit": {
+                "icon": "✅",
+                "category": "Git",
+                "friendly_description": "Save changes with a descriptive message",
+                "use_case": "Commit completed work to version control"
+            },
+            "git_log": {
+                "icon": "📜",
+                "category": "Git",
+                "friendly_description": "View commit history and timeline",
+                "use_case": "Track changes and find specific commits"
+            },
+
+            # Code Analysis
+            "analyze_code": {
+                "icon": "🔬",
+                "category": "Code Analysis",
+                "friendly_description": "Deep analysis of code quality and patterns",
+                "use_case": "Identify bugs, smells, or improvement areas"
+            },
+            "lint_code": {
+                "icon": "🧹",
+                "category": "Code Analysis",
+                "friendly_description": "Check code style and find common mistakes",
+                "use_case": "Maintain code quality and consistency"
+            },
+            "find_references": {
+                "icon": "🔗",
+                "category": "Code Analysis",
+                "friendly_description": "Locate all usages of a function or variable",
+                "use_case": "Understand code dependencies and impact"
+            },
+
+            # Terminal & Shell
+            "run_command": {
+                "icon": "⚙️",
+                "category": "Terminal",
+                "friendly_description": "Execute shell commands and scripts",
+                "use_case": "Run builds, tests, or system commands"
+            },
+            "bash": {
+                "icon": "💻",
+                "category": "Terminal",
+                "friendly_description": "Interactive bash shell access",
+                "use_case": "Run complex command sequences"
+            },
+
+            # Testing
+            "run_tests": {
+                "icon": "🧪",
+                "category": "Testing",
+                "friendly_description": "Execute test suites and show results",
+                "use_case": "Validate code changes with automated tests"
+            },
+            "coverage_report": {
+                "icon": "📊",
+                "category": "Testing",
+                "friendly_description": "Generate code coverage statistics",
+                "use_case": "Identify untested code areas"
+            },
+
+            # Documentation
+            "generate_docs": {
+                "icon": "📖",
+                "category": "Documentation",
+                "friendly_description": "Auto-generate documentation from code",
+                "use_case": "Create API docs or code references"
+            },
+            "extract_docstrings": {
+                "icon": "📝",
+                "category": "Documentation",
+                "friendly_description": "Extract documentation from source files",
+                "use_case": "Review or export code documentation"
+            }
+        }
+
         for endpoint, server_info in self.console.connected_servers.items():
             try:
                 server_tools = await self.console.mcp_client.list_tools()
                 for tool in server_tools:
+                    tool_name = tool["name"]
+                    base_description = tool.get("description", "")
+
+                    # Get enhanced metadata or use defaults
+                    metadata = tool_metadata.get(tool_name, {
+                        "icon": "🔧",
+                        "category": "Other Tools",
+                        "friendly_description": base_description or "Execute tool operation",
+                        "use_case": "Perform specific tool function"
+                    })
+
+                    # Extract parameter info for tooltips
+                    parameters = tool.get("inputSchema", {}).get("properties", {})
+                    param_summary = self._generate_parameter_summary(parameters)
+
                     tools.append({
-                        "name": tool["name"],
-                        "description": tool.get("description", ""),
+                        "name": tool_name,
+                        "description": base_description,
                         "endpoint": endpoint,
-                        "parameters": tool.get("inputSchema", {}).get("properties", {})
+                        "parameters": parameters,
+                        # Enhanced fields for UI
+                        "icon": metadata["icon"],
+                        "category": metadata["category"],
+                        "user_friendly_description": metadata["friendly_description"],
+                        "use_case": metadata["use_case"],
+                        "parameter_summary": param_summary,
+                        "tooltip": f"{metadata['icon']} {metadata['friendly_description']}\n\nUse case: {metadata['use_case']}\n\nParameters: {param_summary}"
                     })
             except Exception as e:
                 self.logger.error(f"Error listing tools for {endpoint}: {e}")
 
-        return {"tools": tools}
+        # Group tools by category for organized display
+        categorized_tools = {}
+        for tool in tools:
+            category = tool["category"]
+            if category not in categorized_tools:
+                categorized_tools[category] = []
+            categorized_tools[category].append(tool)
+
+        return {
+            "tools": tools,
+            "categorized": categorized_tools,
+            "categories": list(categorized_tools.keys())
+        }
+
+    def _generate_parameter_summary(self, parameters: Dict[str, Any]) -> str:
+        """Generate a concise parameter summary for tooltips."""
+        if not parameters:
+            return "No parameters required"
+
+        param_list = []
+        for param_name, param_info in parameters.items():
+            param_type = param_info.get("type", "any")
+            required = param_info.get("required", False)
+            marker = "*" if required else ""
+            param_list.append(f"{param_name}{marker} ({param_type})")
+
+        return ", ".join(param_list) if param_list else "No parameters"
 
     async def _call_mcp_tool(self, request: 'MCPToolRequest') -> Dict[str, Any]:
         """Call MCP tool."""
