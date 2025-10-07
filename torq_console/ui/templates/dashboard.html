@@ -541,6 +541,59 @@
         .ai-input {
             color: #000000 !important;
         }
+
+        /* Scrollbar styling for MCP tools */
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+
+        /* Line clamp utility */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* MCP Tool Card Hover Effects */
+        .mcp-tool-enhanced {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .mcp-tool-enhanced:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Category Badge Animation */
+        .category-badge {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Tool Icon Pulse on Hover */
+        @keyframes tool-icon-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .group:hover .tool-icon {
+            animation: tool-icon-pulse 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white h-screen overflow-hidden" x-data="torqConsole()">
@@ -585,7 +638,10 @@
             <!-- Model Selector -->
             <select x-model="selectedModel" @change="updateModel()"
                     class="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-sm focus:outline-none focus:border-blue-500">
+                <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (Latest)</option>
                 <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
                 <option value="gpt-4o">GPT-4o</option>
                 <option value="deepseek-chat">DeepSeek Chat</option>
                 <option value="llama-3.1-405b">Llama 3.1 405B</option>
@@ -628,17 +684,92 @@
                 </div>
             </div>
 
-            <!-- Available MCP Tools -->
+            <!-- Available MCP Tools - Enhanced with Categories -->
             <div class="p-4 border-b border-gray-700">
-                <h3 class="text-sm font-medium text-gray-300 mb-2">Available Tools</h3>
-                <div class="space-y-1 max-h-40 overflow-y-auto">
-                    <template x-for="tool in mcpTools" :key="tool.name">
-                        <button @click="suggestTool(tool)"
-                                class="w-full text-left p-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">
-                            <div class="font-medium" x-text="tool.name"></div>
-                            <div class="text-xs text-gray-400" x-text="tool.description"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-medium text-gray-300">MCP Tools</h3>
+                    <span class="text-xs text-gray-500" x-text="mcpTools.length + ' tools'"></span>
+                </div>
+
+                <!-- Category Filter Tabs -->
+                <div x-show="mcpCategories.length > 0" class="flex gap-1 mb-3 overflow-x-auto pb-2 scrollbar-thin">
+                    <button @click="selectedMcpCategory = 'all'; filterMcpTools()"
+                            :class="selectedMcpCategory === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                            class="px-2 py-1 rounded text-xs whitespace-nowrap transition-colors">
+                        All
+                    </button>
+                    <template x-for="category in mcpCategories" :key="category">
+                        <button @click="selectedMcpCategory = category; filterMcpTools()"
+                                :class="selectedMcpCategory === category ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                                class="px-2 py-1 rounded text-xs whitespace-nowrap transition-colors"
+                                x-text="category">
                         </button>
                     </template>
+                </div>
+
+                <!-- Search/Filter Input -->
+                <div class="mb-3">
+                    <input type="text" x-model="mcpSearchQuery" @input="filterMcpTools()"
+                           placeholder="🔍 Search tools..."
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <!-- Tools List - Grouped by Category -->
+                <div class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+                    <template x-for="tool in filteredMcpTools" :key="tool.name">
+                        <div @click="useMcpTool(tool)"
+                             :title="tool.tooltip"
+                             class="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg cursor-pointer transition-all border border-transparent hover:border-blue-500 group">
+
+                            <!-- Tool Header with Icon and Name -->
+                            <div class="flex items-start gap-2 mb-1">
+                                <span class="text-xl flex-shrink-0 tool-icon" x-text="tool.icon"></span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="font-medium text-white text-sm truncate" x-text="tool.name"></span>
+                                        <span class="text-xs px-2 py-0.5 rounded bg-gray-600 text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-colors flex-shrink-0"
+                                              x-text="tool.category"></span>
+                                    </div>
+
+                                    <!-- Friendly Description -->
+                                    <div class="text-xs text-gray-300 mt-1 line-clamp-2" x-text="tool.user_friendly_description"></div>
+
+                                    <!-- Use Case -->
+                                    <div class="text-xs text-blue-300 mt-1 italic" x-text="'💡 ' + tool.use_case"></div>
+
+                                    <!-- Parameter Info (collapsed by default) -->
+                                    <div x-show="showToolParams === tool.name"
+                                         x-transition
+                                         class="mt-2 p-2 bg-gray-800 rounded text-xs">
+                                        <div class="text-gray-400 mb-1">Parameters:</div>
+                                        <div class="text-gray-300" x-text="tool.parameter_summary"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Action Buttons -->
+                            <div class="flex gap-1 mt-2">
+                                <button @click.stop="useMcpTool(tool)"
+                                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded transition-colors">
+                                    ▶ Use Tool
+                                </button>
+                                <button @click.stop="showToolParams = showToolParams === tool.name ? null : tool.name"
+                                        class="bg-gray-600 hover:bg-gray-500 text-white text-xs px-2 py-1 rounded transition-colors">
+                                    ℹ️
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Empty State -->
+                    <div x-show="filteredMcpTools.length === 0" class="text-center py-8 text-gray-500">
+                        <div class="text-2xl mb-2">🔍</div>
+                        <div class="text-sm" x-show="mcpSearchQuery">No tools match "<span x-text="mcpSearchQuery"></span>"</div>
+                        <div class="text-sm" x-show="!mcpSearchQuery && mcpTools.length === 0">No MCP servers connected</div>
+                        <div class="text-sm" x-show="!mcpSearchQuery && mcpTools.length > 0 && selectedMcpCategory !== 'all'">
+                            No tools in "<span x-text="selectedMcpCategory"></span>" category
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -649,17 +780,30 @@
                     <button @click="startIdeation('web')"
                             :class="activeTools.includes('web_search') ?
                                 'w-full bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm ring-2 ring-green-400' :
-                                'w-full bg-orange-600 hover:bg-orange-700 px-3 py-2 rounded text-sm'">
+                                'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
                         🌐 Web Research
                         <span v-if="activeTools.includes('web_search')" class="ml-1">✓</span>
                     </button>
                     <button @click="startIdeation('github')"
-                            class="w-full bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm">
+                            :class="activeTools.includes('github_examples') ?
+                                'w-full bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm ring-2 ring-purple-400' :
+                                'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
                         📚 GitHub Examples
+                        <span v-if="activeTools.includes('github_examples')" class="ml-1">✓</span>
                     </button>
                     <button @click="startPrototyping()"
-                            class="w-full bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm">
+                            :class="planningMode ?
+                                'w-full bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm ring-2 ring-blue-400' :
+                                'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
                         🏗️ Multi-File Prototype
+                        <span v-if="planningMode" class="ml-1">✓</span>
+                    </button>
+                    <button @click="startCodeWriting()"
+                            :class="codeWritingMode ?
+                                'w-full bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-sm ring-2 ring-red-400' :
+                                'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
+                        ✍️ Write/Update Code
+                        <span v-if="codeWritingMode" class="ml-1">✓</span>
                     </button>
                 </div>
             </div>
@@ -1154,7 +1298,7 @@
                 // Core State
                 connected: false,
                 sessionId: '',
-                selectedModel: 'claude-3-5-sonnet-20241022',
+                selectedModel: 'claude-sonnet-4-5-20250929',
 
                 // Command Palette State
                 showCommandPalette: false,
@@ -1187,16 +1331,22 @@
                 // Mode State
                 ideationMode: false,
                 planningMode: false,
+                codeWritingMode: false,
                 voiceEnabled: false,
 
                 // MCP State
                 mcpServers: [],
                 mcpTools: [],
+                mcpCategories: [],
+                selectedMcpCategory: 'all',
+                mcpSearchQuery: '',
+                filteredMcpTools: [],
+                showToolParams: null,
 
                 // Chat State
                 messages: [],
                 currentMessage: '',
-                selectedTools: ['web_search'],
+                selectedTools: [],  // Empty by default - only use tools when explicitly requested
                 activeTools: [],
                 sessionActive: false,
 
@@ -1267,11 +1417,15 @@
                         const data = await response.json();
                         this.sessionId = data.session_id || 'new';
 
-                        // Load MCP tools
+                        // Load MCP tools with enhanced metadata
                         const mcpResponse = await fetch('/api/mcp/tools');
                         const mcpData = await mcpResponse.json();
                         this.mcpTools = mcpData.tools || [];
+                        this.mcpCategories = mcpData.categories || [];
                         this.mcpServers = mcpData.servers || [];
+
+                        // Initialize filtered tools
+                        this.filteredMcpTools = this.mcpTools;
 
                         // Load modified files
                         this.loadModifiedFiles();
@@ -1300,7 +1454,7 @@
                             body: JSON.stringify({
                                 message: this.currentMessage,
                                 session_id: this.sessionId || 'web-session',
-                                tools: this.selectedTools || ['web_search'],
+                                tools: this.selectedTools.length > 0 ? this.selectedTools : undefined,  // Only send tools if explicitly selected
                                 stream: false
                             })
                         });
@@ -1365,27 +1519,112 @@
                     this.currentMessage = `Use ${tool.name}: ${tool.description}`;
                 },
 
-                startIdeation(type) {
-                    this.ideationMode = true;
-                    if (type === 'web') {
-                        this.selectedTools = ['web_search'];
-                        this.activeTools = ['web_search'];
-                        this.currentMessage = 'search web for AI news';
-                    } else if (type === 'github') {
-                        this.selectedTools = ['github_examples'];
-                        this.activeTools = ['github_examples'];
-                        this.currentMessage = 'Find GitHub examples for inspiration';
-                    }
-                    // Auto-focus on AI Assistant input
+                useMcpTool(tool) {
+                    // Enhanced tool usage with friendly description
+                    const prompt = `${tool.icon} Use ${tool.name} - ${tool.user_friendly_description}\n\n💡 ${tool.use_case}\n\nI want to: `;
+                    this.currentMessage = prompt;
+
+                    // Auto-focus on the input
                     this.$nextTick(() => {
-                        const input = this.$el.querySelector('input[placeholder*="Ask AI assistant"]');
-                        if (input) input.focus();
+                        const input = document.querySelector('input[x-model="currentMessage"]');
+                        if (input) {
+                            input.focus();
+                            // Position cursor at the end
+                            input.setSelectionRange(input.value.length, input.value.length);
+                        }
                     });
                 },
 
+                filterMcpTools() {
+                    let tools = this.mcpTools;
+
+                    // Filter by category
+                    if (this.selectedMcpCategory !== 'all') {
+                        tools = tools.filter(tool => tool.category === this.selectedMcpCategory);
+                    }
+
+                    // Filter by search query
+                    if (this.mcpSearchQuery.trim()) {
+                        const query = this.mcpSearchQuery.toLowerCase();
+                        tools = tools.filter(tool => {
+                            return tool.name.toLowerCase().includes(query) ||
+                                   tool.user_friendly_description.toLowerCase().includes(query) ||
+                                   tool.use_case.toLowerCase().includes(query) ||
+                                   tool.category.toLowerCase().includes(query) ||
+                                   (tool.description && tool.description.toLowerCase().includes(query));
+                        });
+                    }
+
+                    this.filteredMcpTools = tools;
+                },
+
+                startIdeation(type) {
+                    // Toggle the specific ideation mode
+                    if (type === 'web') {
+                        // Toggle web search mode
+                        if (this.activeTools.includes('web_search')) {
+                            // Turn off
+                            this.selectedTools = [];
+                            this.activeTools = [];
+                            this.ideationMode = false;
+                            this.currentMessage = '';
+                        } else {
+                            // Turn on
+                            this.selectedTools = ['web_search'];
+                            this.activeTools = ['web_search'];
+                            this.ideationMode = true;
+                            this.currentMessage = 'search web for ';
+                        }
+                    } else if (type === 'github') {
+                        // Toggle GitHub examples mode
+                        if (this.activeTools.includes('github_examples')) {
+                            // Turn off
+                            this.selectedTools = [];
+                            this.activeTools = [];
+                            this.ideationMode = false;
+                            this.currentMessage = '';
+                        } else {
+                            // Turn on
+                            this.selectedTools = ['github_examples'];
+                            this.activeTools = ['github_examples'];
+                            this.ideationMode = true;
+                            this.currentMessage = 'Find GitHub examples for ';
+                        }
+                    }
+                    // Auto-focus on AI Assistant input if enabled
+                    if (this.ideationMode) {
+                        this.$nextTick(() => {
+                            const input = this.$el.querySelector('input[placeholder*="Ask AI assistant"]');
+                            if (input) input.focus();
+                        });
+                    }
+                },
+
                 startPrototyping() {
-                    this.planningMode = true;
-                    this.currentMessage = 'Plan a multi-file prototype with architecture overview';
+                    this.planningMode = !this.planningMode;
+                    if (this.planningMode) {
+                        this.currentMessage = 'Plan a multi-file prototype with architecture overview';
+                    } else {
+                        this.currentMessage = '';
+                    }
+                },
+
+                startCodeWriting() {
+                    this.codeWritingMode = !this.codeWritingMode;
+                    if (this.codeWritingMode) {
+                        this.currentMessage = 'I need you to write/update code for: ';
+                        // Focus on the message input
+                        this.$nextTick(() => {
+                            const input = document.querySelector('textarea[x-model="currentMessage"]');
+                            if (input) {
+                                input.focus();
+                                // Position cursor at the end
+                                input.setSelectionRange(input.value.length, input.value.length);
+                            }
+                        });
+                    } else {
+                        this.currentMessage = '';
+                    }
                 },
 
                 toggleVoice() {

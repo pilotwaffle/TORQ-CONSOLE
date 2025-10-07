@@ -1,0 +1,27 @@
+{
+  "TestApp": {
+    "name": "TestApp",
+    "purpose": "'Build",
+    "principles": [
+      "amazing",
+      "software'"
+    ],
+    "constraints": [
+      "Budget limitations",
+      "Time constraints",
+      "Technical debt"
+    ],
+    "success_criteria": [
+      "User satisfaction",
+      "Performance targets",
+      "Code quality metrics"
+    ],
+    "stakeholders": [
+      "Development team",
+      "Product owner",
+      "End users"
+    ],
+    "created_at": "2025-09-27T11:30:39.069074",
+    "updated_at": "2025-09-27T11:30:39.069074"
+  }
+}

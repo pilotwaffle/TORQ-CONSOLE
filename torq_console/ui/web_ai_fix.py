@@ -15,40 +15,71 @@ class WebUIAIFixes:
     """Container for AI integration fixes for the WebUI class."""
 
     @staticmethod
-    async def _generate_ai_response_fixed(self, user_content: str, context_matches: Optional[List] = None) -> str:
+    async def _generate_ai_response_fixed(self, user_content: str, context_matches: Optional[List] = None, tools: Optional[List[str]] = None) -> str:
         """
         FIXED: Generate AI response using enhanced AI integration.
 
         This method properly routes queries through the enhanced AI integration system
         which includes DeepSeek API, web search, and Prince Flowers capabilities.
+
+        Args:
+            user_content: The user's message/query
+            context_matches: Optional context matches
+            tools: Optional list of tools to use (e.g., ['web_search'])
         """
         try:
-            self.logger.info(f"Processing AI query: {user_content}")
+            self.logger.info(f"Processing AI query: {user_content} (tools: {tools})")
 
             # Check if this is a Prince Flowers command
             content_lower = user_content.lower().strip()
 
-            # Enhanced detection for Prince Flowers commands and search queries
-            is_prince_command = (
-                content_lower.startswith("prince ") or
-                content_lower.startswith("@prince ") or
-                any(keyword in content_lower for keyword in [
-                    "prince search", "prince help", "prince status",
-                ])
+            # Enhanced detection for Prince Flowers commands
+            # CRITICAL: Only treat as Prince command if it's a SEARCH/RESEARCH request
+            # NOT if it's a BUILD/CREATE request!
+            is_prince_search = (
+                content_lower.startswith("prince search") or
+                content_lower.startswith("prince help") or
+                content_lower.startswith("prince status") or
+                ("prince" in content_lower and any(keyword in content_lower for keyword in [
+                    "search", "find", "research", "help", "status"
+                ]))
             )
 
-            # Check if this should be routed to search/AI capabilities
-            is_search_or_ai_query = any(keyword in content_lower for keyword in [
-                "search", "find", "latest", "current", "news", "recent",
-                "ai", "artificial intelligence", "developments", "what is",
-                "how to", "web search", "search for", "ai news"
+            # Detect BUILD/CODE requests (even with "prince" prefix)
+            is_build_request = any(keyword in content_lower for keyword in [
+                "create", "build", "generate", "make", "develop", "implement", "code"
             ])
 
-            if is_prince_command:
+            # Check if web_search tool is explicitly requested
+            is_web_search_requested = tools and 'web_search' in tools
+
+            # Only treat as search query if:
+            # 1. web_search tool is explicitly requested, OR
+            # 2. User explicitly asks for search with keywords like "search web for"
+            is_explicit_search = is_web_search_requested or any(phrase in content_lower for phrase in [
+                "search web for", "search the web", "web search", "find online", "search for information about"
+            ])
+
+            # CRITICAL ROUTING LOGIC:
+            # 1. Build requests (even with "prince" prefix) -> Direct Claude code generation
+            # 2. Prince search/research -> Prince Flowers
+            # 3. Explicit web search -> Enhanced AI with search
+            # 4. Everything else -> Basic query (Claude)
+
+            if is_build_request:
+                # BUILD MODE: Use Claude directly, bypass Prince Flowers entirely
+                self.logger.info(f"Detected BUILD request, using Claude Sonnet 4.5 directly")
+                return await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
+            elif is_prince_search:
+                # RESEARCH MODE: Use Prince Flowers for search/research
+                self.logger.info(f"Detected Prince SEARCH request, using Prince Flowers")
                 return await WebUIAIFixes._handle_prince_command_fixed(self, user_content, context_matches)
-            elif is_search_or_ai_query or True:  # Route all queries through enhanced AI
+            elif is_explicit_search:
+                # WEB SEARCH MODE: Use enhanced AI integration
+                self.logger.info(f"Detected WEB SEARCH request, using enhanced AI")
                 return await WebUIAIFixes._handle_enhanced_ai_query_fixed(self, user_content, context_matches)
             else:
+                # DEFAULT: Basic query mode
                 return await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
         except Exception as e:
@@ -58,13 +89,15 @@ class WebUIAIFixes:
     @staticmethod
     async def _handle_enhanced_ai_query_fixed(self, query: str, context_matches: Optional[List] = None) -> str:
         """
-        FIXED: Handle queries through the enhanced AI integration system.
+        FIXED: Handle WEB SEARCH queries through the enhanced AI integration system.
 
         This method uses the console's AI integration which includes:
         - DeepSeek API for AI responses
-        - Web search capabilities
+        - Web search capabilities (PRIMARY PURPOSE - this is for SEARCH queries)
         - Query classification and routing
         - Fallback handling
+
+        NOTE: This is for SEARCH queries only. For BUILD/CODE queries, use _handle_basic_query_fixed().
         """
         try:
             self.logger.info(f"Processing enhanced AI query: {query}")
@@ -173,13 +206,14 @@ class WebUIAIFixes:
             except Exception as e:
                 self.logger.warning(f"Fallback integration failed: {e}")
 
-            # Method 5: Ultimate fallback - route through enhanced AI
-            self.logger.info("Routing Prince command through enhanced AI as fallback")
+            # Method 5: Ultimate fallback - route through basic handler for BUILD MODE
+            self.logger.info("Routing Prince command through basic handler for BUILD MODE (not search)")
             query = command
             if command.lower().startswith('prince '):
                 query = command[7:].strip()
 
-            return await WebUIAIFixes._handle_enhanced_ai_query_fixed(self, query, context_matches)
+            # Route to build handler, not search handler
+            return await WebUIAIFixes._handle_basic_query_fixed(self, query, context_matches)
 
         except Exception as e:
             self.logger.error(f"Error in Prince command handling: {e}")
@@ -188,14 +222,47 @@ class WebUIAIFixes:
     @staticmethod
     async def _handle_basic_query_fixed(self, query: str, context_matches: Optional[List] = None) -> str:
         """
-        FIXED: Handle basic queries with enhanced fallback.
+        FIXED: Handle basic queries - BUILD MODE (not search).
 
-        This method provides a basic response when enhanced AI is not available.
+        This method processes build/code requests through the AI system.
+        Uses Claude Sonnet 4.5 directly for code generation (bypasses Prince Flowers research mode).
         """
         try:
-            self.logger.info(f"Processing basic query: {query}")
+            self.logger.info(f"Processing basic query (BUILD MODE): {query}")
 
-            # Try console's generate_response method
+            # PRIORITY 1: Try Claude provider directly for code generation
+            # This bypasses Prince Flowers' research mode and uses Claude's code generation
+            if hasattr(self.console, 'llm_manager') and self.console.llm_manager:
+                try:
+                    # Get Claude provider
+                    providers = self.console.llm_manager.providers
+                    claude = providers.get('claude') if hasattr(providers, 'get') else None
+
+                    if claude and hasattr(claude, 'is_configured') and claude.is_configured():
+                        self.logger.info("Using Claude Sonnet 4.5 for direct code generation")
+
+                        # Detect language from query
+                        query_lower = query.lower()
+                        if 'next' in query_lower or 'react' in query_lower:
+                            language = 'typescript'
+                        elif 'python' in query_lower:
+                            language = 'python'
+                        else:
+                            language = 'typescript'  # Default for modern web apps
+
+                        # Use Claude's code_generation method
+                        response = await claude.code_generation(
+                            task_description=query,
+                            language=language,
+                            context='Build a complete, production-ready application with all necessary files and proper structure',
+                            temperature=0.3,
+                            max_tokens=8000
+                        )
+                        return response
+                except Exception as e:
+                    self.logger.warning(f"Claude direct code generation failed: {e}")
+
+            # PRIORITY 2: Try console's generate_response method
             if hasattr(self.console, 'generate_response'):
                 try:
                     result = await self.console.generate_response(query, context_matches)
@@ -203,47 +270,57 @@ class WebUIAIFixes:
                 except Exception as e:
                     self.logger.warning(f"Console generate_response failed: {e}")
 
-            # Enhanced fallback response
-            query_lower = query.lower()
+            # PRIORITY 3: Try AI integration for code/build requests
+            if hasattr(self.console, 'ai_integration') and self.console.ai_integration:
+                try:
+                    context = {
+                        'web_interface': True,
+                        'context_matches': context_matches or [],
+                        'timestamp': datetime.now().isoformat(),
+                        'mode': 'build'  # Explicitly set build mode
+                    }
 
-            if any(keyword in query_lower for keyword in ['search', 'find', 'latest', 'news', 'current']):
-                return f"""I understand you're looking for information about: "{query}"
+                    response = await self.console.ai_integration.generate_response(query, context)
 
-I don't have access to real-time search capabilities at the moment, but I can suggest some ways to find current information:
+                    if response.get('success', True):
+                        return response.get('content', response.get('response', 'Build request processed.'))
+                    else:
+                        return response.get('content', f"Error: {response.get('error', 'Unknown error')}")
+                except Exception as e:
+                    self.logger.error(f"AI integration failed: {e}")
 
-**For General Searches:**
-• Use search engines like Google, Bing, or DuckDuckGo
-• Check relevant official websites and documentation
-• Look for recent news articles and press releases
+            # PRIORITY 4: Try LLM manager generate_response
+            if hasattr(self.console, 'llm_manager') and self.console.llm_manager:
+                try:
+                    response = await self.console.llm_manager.generate_response(
+                        query,
+                        context={'mode': 'build', 'web_interface': True}
+                    )
+                    return response
+                except Exception as e:
+                    self.logger.error(f"LLM manager failed: {e}")
 
-**For AI-Related Information:**
-• TechCrunch AI section for industry news
-• MIT Technology Review for in-depth analysis
-• Official AI company blogs (OpenAI, Google, Anthropic, etc.)
-• arXiv.org for research papers
+            # Last resort - inform user the system needs configuration
+            return f"""I received your request to build:
 
-**For Breaking News:**
-• Reuters, Associated Press, BBC News
-• Industry-specific news sources
-• Social media accounts of relevant organizations
+"{query[:200]}..."
 
-Would you like me to help you formulate a more specific search strategy for "{query}"?"""
+However, I'm unable to process build requests at the moment because the AI backend is not properly configured.
 
-            else:
-                return f"""Thank you for your question: "{query}"
+**To fix this, you need:**
+1. Ensure DeepSeek or Claude API keys are configured
+2. Restart the TORQ Console server
+3. Try your request again
 
-I'm currently operating in basic mode, which means I have limited capabilities. While I can provide general assistance and guidance, I recommend:
+**For immediate help:**
+- Check if the server logs show any API connection errors
+- Verify your API keys in the .env file
 
-1. **For complex queries**: Try using the full TORQ Console interface
-2. **For search-related questions**: Use "prince search <your query>"
-3. **For AI assistance**: Connect with external AI services directly
-4. **For current information**: Check recent online sources
-
-How else can I help you today?"""
+I apologize for the inconvenience!"""
 
         except Exception as e:
             self.logger.error(f"Error in basic query handling: {e}")
-            return f"I'm available to help, but encountered an error: {str(e)}. Please try again."
+            return f"I encountered an error processing your build request: {str(e)}. Please check the server logs."
 
     @staticmethod
     async def direct_chat_fixed(self, request) -> Dict[str, Any]:
@@ -257,7 +334,10 @@ How else can I help you today?"""
             self.logger.info(f"Direct chat request: {request.message}")
 
             # Route all queries through the enhanced AI system
-            response_content = await WebUIAIFixes._generate_ai_response_fixed(self, request.message, None)
+            # Pass the tools parameter to respect user's tool selection
+            response_content = await WebUIAIFixes._generate_ai_response_fixed(
+                self, request.message, None, tools=getattr(request, 'tools', None)
+            )
 
             return {
                 "success": True,
