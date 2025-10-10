@@ -97,6 +97,9 @@ class TORQPrinceFlowers:
         self.config = config or {}
         self.logger = logging.getLogger(f"TORQPrinceFlowers.{self.agent_id}")
 
+        # Combined System Prompt: Prince Flowers Code CLI + AI Assistant Control Interface v2.0
+        self.system_prompt = self._build_combined_system_prompt()
+
         # Core agentic RL components
         self._init_rl_systems()
         self._init_tool_ecosystem()
@@ -111,6 +114,124 @@ class TORQPrinceFlowers:
         self.trajectory_history: List[ReasoningTrajectory] = []
 
         self.logger.info(f"TORQ Prince Flowers Enhanced v{self.version} initialized")
+
+    def _build_combined_system_prompt(self) -> str:
+        """
+        Build combined system prompt integrating:
+        1. Prince Flowers Code CLI instructions
+        2. AI Assistant Control Interface v2.0
+        """
+        return """You are Prince Flowers Code, an advanced AI assistant integrated with TORQ Console.
+
+# CORE IDENTITY & CAPABILITIES
+
+You are a highly capable AI assistant with expertise in:
+- Software development, architecture, and best practices
+- Web search, research, and information synthesis
+- Analysis, problem-solving, and strategic thinking
+- Task management and project planning
+- Code generation with security and quality focus
+
+# OPERATIONAL GUIDELINES
+
+## 1. Communication Style
+- Be direct, concise, and task-focused
+- Provide clear, actionable responses
+- Use technical precision when appropriate
+- Adapt communication to user's expertise level
+
+## 2. Security & Safety
+- NEVER execute potentially harmful operations without explicit confirmation
+- Validate all inputs and outputs for security implications
+- Follow secure coding practices in all generated code
+- Refuse malicious requests politely but firmly
+
+## 3. Task Execution
+- Break complex tasks into manageable steps
+- Provide progress updates for long-running operations
+- Handle errors gracefully with clear explanations
+- Suggest alternatives when primary approach fails
+
+## 4. Quality Standards
+- Generate production-ready code with proper error handling
+- Include relevant documentation and comments
+- Follow language-specific best practices and conventions
+- Optimize for readability, maintainability, and performance
+
+## 5. Research & Analysis
+- Synthesize information from multiple sources
+- Provide citations and source reliability assessment
+- Distinguish between facts, opinions, and speculation
+- Update knowledge with latest information when requested
+
+# ROLE-BASED CONFIGURATIONS
+
+You operate in multiple modes depending on the task:
+
+**Research Mode**: Web search → Content analysis → Synthesis
+- Multi-source information gathering
+- Quality assessment and validation
+- Comprehensive response generation
+
+**Analysis Mode**: Problem analysis → Pattern recognition → Recommendations
+- Deep technical analysis
+- Comparative evaluation
+- Strategic recommendations
+
+**Composition Mode**: Planning → Multi-step execution → Integration
+- Complex task orchestration
+- Tool chaining and coordination
+- Adaptive error recovery
+
+**Direct Mode**: Immediate response generation
+- Quick queries and simple tasks
+- Conversational interactions
+- Status and help requests
+
+# INTERACTION PATTERNS
+
+## Command Formats
+- Direct queries: Process immediately
+- "prince search [query]": Research mode with web search
+- "prince analyze [topic]": Deep analysis mode
+- "prince help": System capabilities and guidance
+
+## Response Structure
+1. **Acknowledge**: Confirm understanding of request
+2. **Execute**: Perform required operations
+3. **Report**: Provide results with context
+4. **Suggest**: Offer next steps or improvements
+
+## Error Handling
+- Identify error cause clearly
+- Suggest specific corrective actions
+- Provide workarounds when available
+- Escalate to user when intervention needed
+
+# LEARNING & ADAPTATION
+
+- Track performance metrics for continuous improvement
+- Learn from user feedback and corrections
+- Adapt strategies based on success patterns
+- Maintain context across conversation
+
+# INTEGRATION WITH TORQ CONSOLE
+
+- Seamless integration with MCP (Model Context Protocol)
+- Access to TORQ Console's enhanced features
+- Coordination with other AI providers when beneficial
+- Full context awareness of development environment
+
+# RESPONSE QUALITY CHECKLIST
+
+Before providing any response, ensure:
+✓ Accuracy: Information is correct and up-to-date
+✓ Completeness: All aspects of query addressed
+✓ Clarity: Response is easy to understand
+✓ Actionability: User knows what to do next
+✓ Safety: No security risks or harmful guidance
+
+Remember: Your goal is to be maximally helpful while maintaining the highest standards of quality, security, and user satisfaction."""
 
     def _init_rl_systems(self):
         """Initialize the agentic RL systems."""
@@ -816,31 +937,76 @@ class TORQPrinceFlowers:
         }
 
     async def _execute_advanced_synthesis(self, query: str, results: Dict, steps: List[str]) -> Dict[str, Any]:
-        """Execute advanced synthesis with all available data."""
-        await asyncio.sleep(0.25)
+        """Execute advanced synthesis with all available data using LLM."""
+        start_time = time.time()
 
-        # Create comprehensive response using all available data
-        response_parts = []
+        try:
+            # Build comprehensive context for LLM
+            context_parts = []
 
-        # Add introduction
-        response_parts.append(f"Based on comprehensive analysis using {len(steps)} composition steps, here's what I found about '{query}':")
+            if 'memory_context' in results and results['memory_context']:
+                context_parts.append(f"Memory Context: {len(results['memory_context'])} relevant items from conversation history")
 
-        # Add memory context if available
-        if 'memory_context' in results and results['memory_context']:
-            response_parts.append(f"\n**Context from Previous Conversations:**\nI found {len(results['memory_context'])} relevant items from our conversation history that inform this response.")
+            if 'search_results' in results:
+                context_parts.append(f"Search Results: {len(results['search_results'])} current sources")
 
-        # Add search results synthesis
-        if 'search_results' in results:
-            response_parts.append(f"\n**Current Information:**\nResearched {len(results['search_results'])} current sources to provide up-to-date information.")
+            if 'content_analysis' in results:
+                analysis = results['content_analysis']
+                context_parts.append(f"Quality: {analysis.get('source_quality', 'medium')}, Density: {analysis.get('information_density', 'moderate')}")
 
-        # Add analysis insights
-        if 'content_analysis' in results:
-            analysis = results['content_analysis']
-            response_parts.append(f"\n**Quality Assessment:**\nSource quality: {analysis.get('source_quality', 'medium').title()}")
-            response_parts.append(f"Information density: {analysis.get('information_density', 'moderate').title()}")
+            if 'meta_plan' in results:
+                context_parts.append(f"Meta-planning: Strategic response plan generated")
 
-            if 'key_themes' in analysis:
-                response_parts.append(f"Key themes identified: {', '.join(analysis['key_themes'][:5])}")
+            # Use LLM for advanced composition synthesis
+            llm_response = await self._call_llm(
+                user_message=query,
+                mode='composition',
+                context={
+                    'search_results': results.get('search_results', []),
+                    'analysis': results.get('content_analysis', {}),
+                    'memory_items': results.get('memory_context', []),
+                    'meta_plan': results.get('meta_plan', {}),
+                    'composition_steps': steps,
+                    'context_summary': ' | '.join(context_parts)
+                }
+            )
+
+            synthesis_time = time.time() - start_time
+
+            return {
+                'success': True,
+                'response': llm_response,
+                'confidence': 0.85,
+                'synthesis_time': synthesis_time,
+                'composition_steps': len(steps),
+                'llm_generated': True
+            }
+
+        except Exception as e:
+            self.logger.error(f"LLM advanced synthesis failed, using fallback: {e}")
+
+            # Fallback to template-based response
+            response_parts = []
+
+            # Add introduction
+            response_parts.append(f"Based on comprehensive analysis using {len(steps)} composition steps, here's what I found about '{query}':")
+
+            # Add memory context if available
+            if 'memory_context' in results and results['memory_context']:
+                response_parts.append(f"\n**Context from Previous Conversations:**\nI found {len(results['memory_context'])} relevant items from our conversation history that inform this response.")
+
+            # Add search results synthesis
+            if 'search_results' in results:
+                response_parts.append(f"\n**Current Information:**\nResearched {len(results['search_results'])} current sources to provide up-to-date information.")
+
+            # Add analysis insights
+            if 'content_analysis' in results:
+                analysis = results['content_analysis']
+                response_parts.append(f"\n**Quality Assessment:**\nSource quality: {analysis.get('source_quality', 'medium').title()}")
+                response_parts.append(f"Information density: {analysis.get('information_density', 'moderate').title()}")
+
+                if 'key_themes' in analysis:
+                    response_parts.append(f"Key themes identified: {', '.join(analysis['key_themes'][:5])}")
 
         # Add main content based on query type
         query_lower = query.lower()
@@ -875,18 +1041,21 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
         else:
             response_parts.append(f"\n**Comprehensive Analysis:**\nBased on multi-source research and analysis, the information reveals comprehensive insights about your query topic.")
 
-        # Add composition summary
-        response_parts.append(f"\n**Research Methodology:**\nThis response was generated using advanced composition reasoning with {len(steps)} analytical steps: {', '.join(steps[:3])}{'...' if len(steps) > 3 else ''}.")
+            # Add composition summary
+            response_parts.append(f"\n**Research Methodology:**\nThis response was generated using advanced composition reasoning with {len(steps)} analytical steps: {', '.join(steps[:3])}{'...' if len(steps) > 3 else ''}.")
 
-        final_response = '\n'.join(response_parts)
+            final_response = '\n'.join(response_parts)
+            synthesis_time = time.time() - start_time
 
-        return {
-            'success': True,
-            'response': final_response,
-            'confidence': 0.85,
-            'synthesis_time': 0.25,
-            'composition_steps': len(steps)
-        }
+            return {
+                'success': True,
+                'response': final_response,
+                'confidence': 0.85,
+                'synthesis_time': synthesis_time,
+                'composition_steps': len(steps),
+                'llm_generated': False,
+                'fallback': True
+            }
 
     async def _execute_research_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
         """Execute research-oriented reasoning with web search and synthesis."""
@@ -989,92 +1158,203 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
                 'method': 'research_error'
             }
 
+    async def _call_llm(self, user_message: str, mode: str, context: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Call LLM provider with system prompt and user message.
+
+        Args:
+            user_message: The user's query or request
+            mode: The reasoning mode (research, analysis, composition, direct)
+            context: Optional context including search results, analysis data, etc.
+
+        Returns:
+            LLM-generated response as string
+        """
+        if not self.llm_provider:
+            self.logger.warning("LLM provider not configured, using fallback")
+            return f"[LLM not configured] Processed request in {mode} mode: {user_message[:100]}..."
+
+        try:
+            # Build context-aware prompt
+            mode_instructions = {
+                'research': "\n\nYou are in RESEARCH MODE. Use the search results provided to create a comprehensive, well-cited response.",
+                'analysis': "\n\nYou are in ANALYSIS MODE. Provide deep technical analysis with clear reasoning.",
+                'composition': "\n\nYou are in COMPOSITION MODE. Orchestrate a multi-step solution with clear planning.",
+                'direct': "\n\nYou are in DIRECT MODE. Provide a concise, immediate response."
+            }
+
+            # Build full system prompt with mode context
+            full_system_prompt = self.system_prompt + mode_instructions.get(mode, "")
+
+            # Add context information if provided
+            context_text = ""
+            if context:
+                if context.get('search_results'):
+                    results = context['search_results'][:3]  # Top 3 results
+                    context_text += "\n\n**Search Results:**\n"
+                    for i, result in enumerate(results, 1):
+                        context_text += f"{i}. {result.get('title', 'No title')}\n"
+                        context_text += f"   {result.get('snippet', 'No snippet')}\n"
+                        context_text += f"   Source: {result.get('url', 'No URL')}\n\n"
+
+                if context.get('analysis'):
+                    analysis = context['analysis']
+                    context_text += "\n\n**Analysis Context:**\n"
+                    context_text += f"Key Themes: {', '.join(analysis.get('key_themes', [])[:5])}\n"
+                    context_text += f"Source Quality: {analysis.get('source_quality', 'medium')}\n"
+                    context_text += f"Relevance: {analysis.get('relevance_score', 0.7):.0%}\n"
+
+            # Combine user message with context
+            full_user_message = user_message
+            if context_text:
+                full_user_message = f"{context_text}\n\n**User Query:** {user_message}"
+
+            # Check if this is LLMManager (has get_provider method) or direct provider
+            if hasattr(self.llm_provider, 'get_provider'):
+                # This is LLMManager - need to specify provider_name
+                self.logger.info("Using LLMManager for LLM call")
+
+                # Get available providers and select best one
+                available_providers = getattr(self.llm_provider, 'providers', {})
+
+                # Prefer DeepSeek, fallback to Claude, then any available
+                if 'deepseek' in available_providers:
+                    provider_name = 'deepseek'
+                elif 'claude' in available_providers:
+                    provider_name = 'claude'
+                else:
+                    # Get first available provider
+                    provider_name = list(available_providers.keys())[0] if available_providers else None
+
+                if not provider_name:
+                    self.logger.error("No LLM providers available in LLMManager")
+                    return f"[No LLM providers available] {user_message[:100]}..."
+
+                self.logger.info(f"Selected provider: {provider_name}")
+
+                # Call LLMManager.chat() with provider_name as first argument
+                response = await self.llm_provider.chat(
+                    provider_name=provider_name,
+                    messages=[
+                        {"role": "system", "content": full_system_prompt},
+                        {"role": "user", "content": full_user_message}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2048
+                )
+
+                # LLMManager.chat() returns a string directly
+                return response if isinstance(response, str) else str(response)
+
+            elif hasattr(self.llm_provider, 'chat'):
+                # Direct provider with chat method (e.g., Claude provider)
+                self.logger.info("Using direct provider chat method")
+                response = await self.llm_provider.chat(
+                    messages=[
+                        {"role": "system", "content": full_system_prompt},
+                        {"role": "user", "content": full_user_message}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2048
+                )
+                return response.get('content', response.get('response', str(response)))
+
+            elif hasattr(self.llm_provider, 'generate_response'):
+                # Direct provider with generate_response method (e.g., DeepSeek provider)
+                self.logger.info("Using direct provider generate_response method")
+                response = await self.llm_provider.generate_response(
+                    prompt=full_user_message,
+                    system_prompt=full_system_prompt,
+                    temperature=0.7,
+                    max_tokens=2048
+                )
+                return response.get('content', response.get('response', str(response)))
+
+            else:
+                self.logger.error(f"LLM provider missing required methods (get_provider, chat, or generate_response)")
+                return f"[LLM provider not compatible] {user_message[:100]}..."
+
+        except Exception as e:
+            self.logger.error(f"LLM call failed in {mode} mode: {e}")
+            return f"[LLM Error: {str(e)}] Fallback response for: {user_message[:100]}..."
+
     async def _execute_web_search(self, query: str) -> Dict[str, Any]:
-        """Execute web search with realistic simulation and MCP integration."""
-        await asyncio.sleep(0.4)  # Realistic search delay
+        """Execute REAL web search using WebSearchProvider."""
+        import time
+        start_time = time.time()
 
         # Update tool performance
         self.tool_performance['web_search']['usage_count'] += 1
 
-        # Simulate realistic search results based on query content
-        query_lower = query.lower()
+        try:
+            from ..llm.providers.websearch import WebSearchProvider
 
-        if any(term in query_lower for term in ['prince flowers', 'agentic rl', 'torq console']):
-            results = [
-                {
-                    'title': 'Prince Flowers Enhanced: Advanced Agentic RL Architecture',
-                    'url': 'https://github.com/prince-flowers/enhanced-rl',
-                    'snippet': 'Prince Flowers Enhanced implements cutting-edge agentic RL with meta-planning, tool composition, and self-correction capabilities for autonomous AI systems.',
-                    'relevance_score': 0.95
-                },
-                {
-                    'title': 'TORQ Console: Next-Generation AI Development Platform',
-                    'url': 'https://torq-console.ai/documentation',
-                    'snippet': 'TORQ Console bridges Aider functionality with Claude Code capabilities through MCP integration, providing enhanced AI pair programming with agentic workflows.',
-                    'relevance_score': 0.92
-                },
-                {
-                    'title': 'Agentic Reinforcement Learning: From Theory to Practice',
-                    'url': 'https://arxiv.org/abs/2509.agentic-rl',
-                    'snippet': 'Comprehensive survey of agentic RL approaches, covering planning, tool use, memory systems, and autonomous decision-making in dynamic environments.',
-                    'relevance_score': 0.88
-                }
-            ]
-        elif any(term in query_lower for term in ['ai', 'artificial intelligence', 'machine learning']):
-            results = [
-                {
-                    'title': 'Latest AI Research Breakthroughs and Developments',
-                    'url': 'https://ai-research.com/latest-breakthroughs',
-                    'snippet': 'Recent advances in AI include improved reasoning capabilities, multi-modal understanding, and more efficient training methods for large language models.',
-                    'relevance_score': 0.87
-                },
-                {
-                    'title': 'Enterprise AI Adoption: Trends and Best Practices',
-                    'url': 'https://enterprise-ai.com/adoption-trends',
-                    'snippet': 'Organizations are increasingly adopting AI for automation, decision support, and customer experience enhancement, with focus on responsible deployment.',
-                    'relevance_score': 0.84
-                },
-                {
-                    'title': 'AI Safety and Alignment Research Progress',
-                    'url': 'https://ai-safety.org/research-updates',
-                    'snippet': 'Ongoing research in AI safety focuses on alignment techniques, interpretability methods, and ensuring AI systems remain beneficial and controllable.',
-                    'relevance_score': 0.81
-                }
-            ]
-        else:
-            # Generic results
-            results = [
-                {
-                    'title': f'Comprehensive Guide to {query[:40]}...',
-                    'url': f'https://knowledge-base.com/{"-".join(query.lower().split()[:4])}',
-                    'snippet': f'Detailed information and expert analysis about {query[:60]}... covering key concepts, latest developments, and practical applications.',
-                    'relevance_score': 0.78
-                },
-                {
-                    'title': f'Latest Updates and News: {query[:35]}...',
-                    'url': f'https://news-hub.com/{"-".join(query.lower().split()[:3])}',
-                    'snippet': f'Recent developments and breaking news related to {query[:50]}... with expert commentary and analysis from industry leaders.',
-                    'relevance_score': 0.75
-                },
-                {
-                    'title': f'Research and Analysis: {query[:35]}...',
-                    'url': f'https://research-portal.com/{"-".join(query.lower().split()[:3])}',
-                    'snippet': f'Academic research and professional analysis of {query[:45]}... including citations, methodologies, and peer-reviewed findings.',
-                    'relevance_score': 0.72
-                }
-            ]
+            self.logger.info(f"[REAL WEB SEARCH] Executing real web search for: {query}")
 
-        # Update success stats
-        self.tool_performance['web_search']['success_count'] += 1
-        self.tool_performance['web_search']['total_time'] += 0.4
+            # Initialize web search provider
+            web_search = WebSearchProvider()
 
-        return {
-            'success': True,
-            'results': results,
-            'query': query,
-            'search_time': 0.4,
-            'total_results': len(results)
-        }
+            # Perform REAL web search
+            search_response = await web_search.search(query, max_results=5, search_type="general")
+
+            if search_response.get('success', False):
+                # Format real results
+                raw_results = search_response.get('results', [])
+                formatted_results = []
+
+                for result in raw_results:
+                    formatted_results.append({
+                        'title': result.get('title', result.get('name', 'No title')),
+                        'url': result.get('url', result.get('link', '#')),
+                        'snippet': result.get('snippet', result.get('description', ''))[:300],
+                        'relevance_score': result.get('score', 0.8)
+                    })
+
+                search_time = time.time() - start_time
+
+                # Update success stats
+                self.tool_performance['web_search']['success_count'] += 1
+                self.tool_performance['web_search']['total_time'] += search_time
+
+                self.logger.info(
+                    f"[REAL WEB SEARCH] ✓ SUCCESS - Found {len(formatted_results)} real results "
+                    f"in {search_time:.2f}s using {search_response.get('method', 'unknown')}"
+                )
+
+                return {
+                    'success': True,
+                    'results': formatted_results,
+                    'query': query,
+                    'search_time': search_time,
+                    'total_results': len(formatted_results),
+                    'method': search_response.get('method', 'unknown')
+                }
+            else:
+                # Search failed - return error
+                error_msg = search_response.get('error', 'Unknown error')
+                self.logger.error(f"[REAL WEB SEARCH] ✗ FAILED: {error_msg}")
+
+                return {
+                    'success': False,
+                    'results': [],
+                    'query': query,
+                    'search_time': time.time() - start_time,
+                    'total_results': 0,
+                    'error': error_msg
+                }
+
+        except Exception as e:
+            search_time = time.time() - start_time
+            self.logger.error(f"[REAL WEB SEARCH] ✗ ERROR: {e}")
+
+            return {
+                'success': False,
+                'results': [],
+                'query': query,
+                'search_time': search_time,
+                'total_results': 0,
+                'error': f"Web search failed: {str(e)}"
+            }
 
     async def _execute_content_analysis(self, search_results: List[Dict], query: str) -> Dict[str, Any]:
         """Execute content analysis on search results."""
@@ -1135,8 +1415,8 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
         }
 
     async def _execute_response_synthesis(self, query: str, search_results: List[Dict], analysis: Dict) -> Dict[str, Any]:
-        """Synthesize comprehensive response from analysis results."""
-        await asyncio.sleep(0.15)
+        """Synthesize comprehensive response from analysis results using LLM."""
+        start_time = time.time()
 
         # Update tool performance
         self.tool_performance['synthesis_engine']['usage_count'] += 1
@@ -1145,11 +1425,40 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
         source_quality = analysis.get('source_quality', 'medium')
         relevance_score = analysis.get('relevance_score', 0.7)
 
-        # Generate response based on query type and analysis
-        query_lower = query.lower()
+        # Use LLM to synthesize response from search results and analysis
+        try:
+            # Call LLM with research context
+            llm_response = await self._call_llm(
+                user_message=query,
+                mode='research',
+                context={
+                    'search_results': search_results,
+                    'analysis': analysis
+                }
+            )
 
-        if any(term in query_lower for term in ['prince flowers', 'agentic rl', 'torq console']):
-            response = f"""Based on my comprehensive research across {len(search_results)} high-quality sources, here's what I found about {query}:
+            synthesis_time = time.time() - start_time
+
+            # Update tool performance
+            self.tool_performance['synthesis_engine']['success_count'] += 1
+            self.tool_performance['synthesis_engine']['total_time'] += synthesis_time
+
+            return {
+                'success': True,
+                'response': llm_response,
+                'confidence': min(relevance_score + 0.15, 1.0),
+                'synthesis_time': synthesis_time,
+                'sources_integrated': len(search_results),
+                'llm_generated': True
+            }
+
+        except Exception as e:
+            self.logger.error(f"LLM synthesis failed, using fallback: {e}")
+            # Fallback to template-based response if LLM fails
+            query_lower = query.lower()
+
+            if any(term in query_lower for term in ['prince flowers', 'agentic rl', 'torq console']):
+                response = f"""Based on my comprehensive research across {len(search_results)} high-quality sources, here's what I found about {query}:
 
 **Prince Flowers Enhanced: Advanced Agentic RL System**
 
@@ -1180,8 +1489,8 @@ This implementation bridges the gap between traditional language models and trul
 
 The system continuously learns from interactions, improving its strategy selection, tool usage, and response quality over time through sophisticated reinforcement learning mechanisms."""
 
-        elif any(term in query_lower for term in ['latest', 'recent', 'ai news']):
-            response = f"""Based on my analysis of {len(search_results)} current sources with {source_quality} reliability, here are the latest AI developments relevant to your query:
+            elif any(term in query_lower for term in ['latest', 'recent', 'ai news']):
+                response = f"""Based on my analysis of {len(search_results)} current sources with {source_quality} reliability, here are the latest AI developments relevant to your query:
 
 **Current AI Landscape:**
 Key themes identified: {', '.join(key_themes[:5])}
@@ -1199,8 +1508,8 @@ The analysis reveals {analysis.get('information_density', 'substantial')} covera
 **Quality Assessment:**
 Information gathered from {source_quality} quality sources provides reliable insights into current AI developments. The research spans academic, industry, and news sources for comprehensive coverage."""
 
-        else:
-            response = f"""Based on comprehensive research across {len(search_results)} sources, I've analyzed your query about {query}:
+            else:
+                response = f"""Based on comprehensive research across {len(search_results)} sources, I've analyzed your query about {query}:
 
 **Key Findings:**
 The research identified these main themes: {', '.join(key_themes[:5])}
@@ -1216,17 +1525,20 @@ The research reveals substantial information about your query topic. Sources pro
 **Recommendations:**
 For the most current information, I recommend checking the latest sources as this field continues to evolve. The analysis shows strong alignment between your query and available authoritative information."""
 
-        # Update tool performance
-        self.tool_performance['synthesis_engine']['success_count'] += 1
-        self.tool_performance['synthesis_engine']['total_time'] += 0.15
+            # Fallback return
+            synthesis_time = time.time() - start_time
+            self.tool_performance['synthesis_engine']['success_count'] += 1
+            self.tool_performance['synthesis_engine']['total_time'] += synthesis_time
 
-        return {
-            'success': True,
-            'response': response,
-            'confidence': min(relevance_score + 0.15, 1.0),
-            'synthesis_time': 0.15,
-            'sources_integrated': len(search_results)
-        }
+            return {
+                'success': True,
+                'response': response,
+                'confidence': min(relevance_score + 0.15, 1.0),
+                'synthesis_time': synthesis_time,
+                'sources_integrated': len(search_results),
+                'llm_generated': False,
+                'fallback': True
+            }
 
     async def _execute_analysis_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
         """Execute deep analysis reasoning with multi-source evaluation."""
@@ -1371,37 +1683,66 @@ For the most current information, I recommend checking the latest sources as thi
             }
 
     async def _execute_analytical_synthesis(self, query: str, search_results: List[Dict], content_analysis: Dict, memory_items: List[Dict]) -> Dict[str, Any]:
-        """Execute analytical synthesis with comparative evaluation."""
-        await asyncio.sleep(0.2)
+        """Execute analytical synthesis with comparative evaluation using LLM."""
+        start_time = time.time()
 
-        response_parts = []
-        response_parts.append(f"**Analytical Assessment of '{query}'**")
+        try:
+            # Use LLM for analytical synthesis
+            llm_response = await self._call_llm(
+                user_message=query,
+                mode='analysis',
+                context={
+                    'search_results': search_results,
+                    'analysis': content_analysis,
+                    'memory_items': memory_items
+                }
+            )
 
-        # Add analytical context
-        response_parts.append(f"\n**Multi-Source Analysis:**")
-        response_parts.append(f"- Web Sources: {len(search_results)} current references")
-        response_parts.append(f"- Memory Context: {len(memory_items)} relevant historical items")
-        response_parts.append(f"- Content Quality: {content_analysis.get('source_quality', 'medium').title()}")
+            synthesis_time = time.time() - start_time
 
-        # Add detailed analysis based on content
-        if content_analysis.get('key_themes'):
-            response_parts.append(f"\n**Key Analytical Themes:**")
-            for i, theme in enumerate(content_analysis['key_themes'][:5], 1):
-                response_parts.append(f"{i}. {theme.title()}")
+            return {
+                'success': True,
+                'response': llm_response,
+                'confidence': content_analysis.get('confidence', 0.7),
+                'synthesis_time': synthesis_time,
+                'llm_generated': True
+            }
 
-        # Add comparative evaluation
-        response_parts.append(f"\n**Comparative Evaluation:**")
-        response_parts.append(f"The analysis reveals {content_analysis.get('information_density', 'moderate')} information density across sources.")
-        response_parts.append(f"Confidence level: {content_analysis.get('confidence', 0.7)*100:.0f}% based on source reliability and consistency.")
+        except Exception as e:
+            self.logger.error(f"LLM analytical synthesis failed, using fallback: {e}")
 
-        final_response = '\n'.join(response_parts)
+            # Fallback to template-based response
+            response_parts = []
+            response_parts.append(f"**Analytical Assessment of '{query}'**")
 
-        return {
-            'success': True,
-            'response': final_response,
-            'confidence': content_analysis.get('confidence', 0.7),
-            'synthesis_time': 0.2
-        }
+            # Add analytical context
+            response_parts.append(f"\n**Multi-Source Analysis:**")
+            response_parts.append(f"- Web Sources: {len(search_results)} current references")
+            response_parts.append(f"- Memory Context: {len(memory_items)} relevant historical items")
+            response_parts.append(f"- Content Quality: {content_analysis.get('source_quality', 'medium').title()}")
+
+            # Add detailed analysis based on content
+            if content_analysis.get('key_themes'):
+                response_parts.append(f"\n**Key Analytical Themes:**")
+                for i, theme in enumerate(content_analysis['key_themes'][:5], 1):
+                    response_parts.append(f"{i}. {theme.title()}")
+
+            # Add comparative evaluation
+            response_parts.append(f"\n**Comparative Evaluation:**")
+            response_parts.append(f"The analysis reveals {content_analysis.get('information_density', 'moderate')} information density across sources.")
+            response_parts.append(f"Confidence level: {content_analysis.get('confidence', 0.7)*100:.0f}% based on source reliability and consistency.")
+
+            final_response = '\n'.join(response_parts)
+            synthesis_time = time.time() - start_time
+
+            return {
+                'success': True,
+                'response': final_response,
+                'confidence': content_analysis.get('confidence', 0.7),
+                'synthesis_time': synthesis_time,
+                'llm_generated': False,
+                'fallback': True
+            }
 
     async def _execute_fallback_response(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
         """Execute fallback response when primary methods fail."""
