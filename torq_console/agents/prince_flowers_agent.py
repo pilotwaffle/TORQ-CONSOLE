@@ -376,80 +376,73 @@ class PrinceFlowersAgent:
             }
 
     async def _perform_web_search(self, query: str) -> Dict[str, Any]:
-        """Perform web search using available search capabilities."""
-        await asyncio.sleep(0.3)  # Simulate search time
+        """Perform REAL web search using the WebSearchProvider."""
+        import time
+        start_time = time.time()
 
         # Update tool stats
         self.tool_usage_stats['web_search']['count'] += 1
 
-        # Simulate realistic search results based on query
-        query_lower = query.lower()
+        try:
+            # Import and use the REAL WebSearchProvider
+            from ..llm.providers.websearch import WebSearchProvider
 
-        if 'prince flowers' in query_lower or 'agentic rl' in query_lower:
-            results = [
-                {
-                    'title': 'Advanced Agentic RL: From Theory to Practice',
-                    'url': 'https://arxiv.org/abs/2509.02547',
-                    'snippet': 'Comprehensive survey of agentic reinforcement learning approaches, covering planning, tool use, memory systems, and autonomous decision-making capabilities.'
-                },
-                {
-                    'title': 'RL101: Building Autonomous AI Agents',
-                    'url': 'https://github.com/davidkimai/RL101',
-                    'snippet': 'Complete framework for developing agentic RL systems with meta-planning, tool composition, and self-improvement mechanisms.'
-                },
-                {
-                    'title': 'Prince Flowers: Next-Generation Agentic AI',
-                    'url': 'https://example.com/prince-flowers',
-                    'snippet': 'Prince Flowers demonstrates the evolution from passive LLMs to autonomous agents with full tool integration and learning capabilities.'
-                }
-            ]
-        elif 'ai' in query_lower or 'artificial intelligence' in query_lower:
-            results = [
-                {
-                    'title': 'Latest AI Developments and Breakthroughs',
-                    'url': 'https://ai-news.com/latest',
-                    'snippet': 'Recent advances in large language models, multimodal AI, and autonomous systems showing remarkable capabilities in various domains.'
-                },
-                {
-                    'title': 'AI Safety and Alignment Research',
-                    'url': 'https://alignment.org/research',
-                    'snippet': 'Current research focuses on ensuring AI systems remain safe, beneficial, and aligned with human values and intentions.'
-                },
-                {
-                    'title': 'Enterprise AI Adoption Trends',
-                    'url': 'https://business-ai.com/trends',
-                    'snippet': 'Growing adoption of AI in business applications, including automation, decision support, and customer service enhancement.'
-                }
-            ]
-        else:
-            # Generic results based on query
-            results = [
-                {
-                    'title': f'Comprehensive Information about {query[:30]}...',
-                    'url': f'https://example.com/{query[:10].replace(" ", "-")}',
-                    'snippet': f'Detailed information and analysis about {query[:50]}... from authoritative sources.'
-                },
-                {
-                    'title': f'Latest Updates on {query[:25]}...',
-                    'url': f'https://news.com/{query[:10].replace(" ", "-")}',
-                    'snippet': f'Recent developments and news related to {query[:40]}... with expert commentary.'
-                },
-                {
-                    'title': f'Research and Analysis: {query[:30]}...',
-                    'url': f'https://research.com/{query[:10].replace(" ", "-")}',
-                    'snippet': f'Academic research and professional analysis of {query[:45]}... with citations.'
-                }
-            ]
+            self.logger.info(f"[REAL WEB SEARCH] Executing real web search for: {query}")
 
-        # Update success stats
-        self.tool_usage_stats['web_search']['success'] += 1
+            # Create web search provider
+            web_search = WebSearchProvider()
 
-        return {
-            'success': True,
-            'results': results,
-            'query': query,
-            'search_time': 0.3
-        }
+            # Perform REAL web search
+            search_response = await web_search.search(query, max_results=5, search_type="general")
+
+            # Extract results from the response
+            if search_response.get('success', False):
+                results = search_response.get('results', [])
+
+                # Convert to expected format if needed
+                formatted_results = []
+                for result in results:
+                    formatted_results.append({
+                        'title': result.get('title', result.get('name', 'No title')),
+                        'url': result.get('url', result.get('link', '#')),
+                        'snippet': result.get('snippet', result.get('description', result.get('content', '')))[:300]
+                    })
+
+                # Update success stats
+                self.tool_usage_stats['web_search']['success'] += 1
+
+                search_time = time.time() - start_time
+                self.logger.info(f"[REAL WEB SEARCH] ✓ SUCCESS - Found {len(formatted_results)} real results in {search_time:.2f}s")
+
+                return {
+                    'success': True,
+                    'results': formatted_results,
+                    'query': query,
+                    'search_time': search_time,
+                    'method': search_response.get('method', 'unknown')
+                }
+            else:
+                # Search failed but didn't throw exception
+                error_msg = search_response.get('error', 'Unknown error')
+                self.logger.warning(f"[REAL WEB SEARCH] Search failed: {error_msg}")
+                return {
+                    'success': False,
+                    'results': [],
+                    'query': query,
+                    'search_time': time.time() - start_time,
+                    'error': error_msg
+                }
+
+        except Exception as e:
+            self.logger.error(f"[REAL WEB SEARCH] ✗ ERROR: {e}")
+            # Return error response instead of fake results
+            return {
+                'success': False,
+                'results': [],
+                'query': query,
+                'search_time': time.time() - start_time,
+                'error': f"Web search failed: {str(e)}"
+            }
 
     async def _perform_analysis(self, input_data: Dict) -> Dict[str, Any]:
         """Perform content analysis."""

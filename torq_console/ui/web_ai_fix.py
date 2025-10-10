@@ -2,13 +2,29 @@
 AI Integration Fixes for TORQ CONSOLE Web Interface.
 
 This module contains the fixed methods for proper AI integration routing
-in the web interface. These methods should replace the existing ones in web.py.
+in the web interface with self-correcting intent detection.
 """
 
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pathlib import Path
+
+# Import the self-correcting intent detector
+try:
+    from .intent_detector import get_intent_detector
+    INTENT_DETECTOR_AVAILABLE = True
+except ImportError:
+    INTENT_DETECTOR_AVAILABLE = False
+    logging.warning("Intent detector not available, using fallback routing")
+
+# Import the advanced learning system
+try:
+    from .learning_system import get_learning_system
+    LEARNING_SYSTEM_AVAILABLE = True
+except ImportError:
+    LEARNING_SYSTEM_AVAILABLE = False
+    logging.warning("Learning system not available")
 
 
 class WebUIAIFixes:
@@ -29,58 +45,81 @@ class WebUIAIFixes:
         """
         try:
             self.logger.info(f"Processing AI query: {user_content} (tools: {tools})")
+            start_time = datetime.now()
 
-            # Check if this is a Prince Flowers command
-            content_lower = user_content.lower().strip()
+            # Use self-correcting intent detector if available
+            if INTENT_DETECTOR_AVAILABLE:
+                detector = get_intent_detector()
+                decision = detector.detect_intent(user_content, tools)
 
-            # Enhanced detection for Prince Flowers commands
-            # CRITICAL: Only treat as Prince command if it's a SEARCH/RESEARCH request
-            # NOT if it's a BUILD/CREATE request!
-            is_prince_search = (
-                content_lower.startswith("prince search") or
-                content_lower.startswith("prince help") or
-                content_lower.startswith("prince status") or
-                ("prince" in content_lower and any(keyword in content_lower for keyword in [
-                    "search", "find", "research", "help", "status"
-                ]))
-            )
+                self.logger.info(
+                    f"[INTENT DETECTOR] {decision.intent_type} (confidence: {decision.confidence:.2f}) "
+                    f"- {decision.reasoning}"
+                )
 
-            # Detect BUILD/CODE requests (even with "prince" prefix)
-            is_build_request = any(keyword in content_lower for keyword in [
-                "create", "build", "generate", "make", "develop", "implement", "code"
-            ])
+                # Route based on detected intent
+                response = None
+                if decision.intent_type == 'research':
+                    # RESEARCH MODE: Use Prince Flowers for search/research
+                    self.logger.info(f"→ Routing to Prince Flowers (RESEARCH mode)")
+                    response = await WebUIAIFixes._handle_prince_command_fixed(self, user_content, context_matches)
 
-            # Check if web_search tool is explicitly requested
-            is_web_search_requested = tools and 'web_search' in tools
+                elif decision.intent_type == 'content_creation':
+                    # CONTENT CREATION MODE: Use Claude to process/create content
+                    self.logger.info(f"→ Routing to Claude Sonnet 4.5 (CONTENT CREATION mode)")
+                    response = await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
-            # Only treat as search query if:
-            # 1. web_search tool is explicitly requested, OR
-            # 2. User explicitly asks for search with keywords like "search web for"
-            is_explicit_search = is_web_search_requested or any(phrase in content_lower for phrase in [
-                "search web for", "search the web", "web search", "find online", "search for information about"
-            ])
+                elif decision.intent_type == 'code_generation':
+                    # CODE GENERATION MODE: Use Claude directly for code
+                    self.logger.info(f"→ Routing to Claude Sonnet 4.5 (CODE GENERATION mode)")
+                    response = await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
-            # CRITICAL ROUTING LOGIC:
-            # 1. Build requests (even with "prince" prefix) -> Direct Claude code generation
-            # 2. Prince search/research -> Prince Flowers
-            # 3. Explicit web search -> Enhanced AI with search
-            # 4. Everything else -> Basic query (Claude)
+                else:
+                    # GENERAL MODE: Default handling
+                    self.logger.info(f"→ Routing to basic query handler (GENERAL mode)")
+                    response = await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
-            if is_build_request:
-                # BUILD MODE: Use Claude directly, bypass Prince Flowers entirely
-                self.logger.info(f"Detected BUILD request, using Claude Sonnet 4.5 directly")
-                return await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
-            elif is_prince_search:
-                # RESEARCH MODE: Use Prince Flowers for search/research
-                self.logger.info(f"Detected Prince SEARCH request, using Prince Flowers")
-                return await WebUIAIFixes._handle_prince_command_fixed(self, user_content, context_matches)
-            elif is_explicit_search:
-                # WEB SEARCH MODE: Use enhanced AI integration
-                self.logger.info(f"Detected WEB SEARCH request, using enhanced AI")
-                return await WebUIAIFixes._handle_enhanced_ai_query_fixed(self, user_content, context_matches)
+                # LEARNING SYSTEM: Record interaction for continuous improvement
+                if LEARNING_SYSTEM_AVAILABLE and response:
+                    try:
+                        learning_system = get_learning_system()
+                        response_time = (datetime.now() - start_time).total_seconds()
+
+                        # Determine if response was successful (no error indicators)
+                        success = not any(phrase in response.lower() for phrase in [
+                            'error', 'apologize', 'failed', 'unable to', 'cannot'
+                        ])
+
+                        learning_system.record_interaction(
+                            query=user_content,
+                            detected_intent=decision.intent_type,
+                            confidence=decision.confidence,
+                            success=success,
+                            response_time=response_time,
+                            tokens_used=len(response.split())  # Rough estimate
+                        )
+
+                        self.logger.info(
+                            f"[LEARNING] Recorded interaction: {decision.intent_type} "
+                            f"(success={success}, time={response_time:.2f}s)"
+                        )
+                    except Exception as e:
+                        self.logger.warning(f"Learning system recording failed: {e}")
+
+                return response
+
             else:
-                # DEFAULT: Basic query mode
-                return await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
+                # FALLBACK: Use legacy intent detection if new system unavailable
+                self.logger.warning("Intent detector unavailable, using legacy routing")
+                content_lower = user_content.lower().strip()
+
+                # Simple fallback routing
+                if tools and 'web_search' in tools:
+                    return await WebUIAIFixes._handle_prince_command_fixed(self, user_content, context_matches)
+                elif content_lower.startswith('prince '):
+                    return await WebUIAIFixes._handle_prince_command_fixed(self, user_content, context_matches)
+                else:
+                    return await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
         except Exception as e:
             self.logger.error(f"Error generating AI response: {e}")
@@ -143,14 +182,17 @@ class WebUIAIFixes:
         integration layers with comprehensive fallback handling.
         """
         try:
-            self.logger.info(f"Processing Prince Flowers command: {command}")
+            self.logger.info(f"[PRINCE ROUTING] Processing Prince Flowers command: {command}")
 
             # Ensure command starts with 'prince' for proper routing
             if not command.lower().startswith('prince'):
                 command = f"prince {command}"
+                self.logger.info(f"[PRINCE ROUTING] Added 'prince' prefix: {command}")
 
             # Method 1: Try enhanced integration wrapper
+            self.logger.info("[PRINCE ROUTING] Trying Method 1: Enhanced integration wrapper")
             if hasattr(self.console, 'prince_flowers_integration') and self.console.prince_flowers_integration:
+                self.logger.info("[PRINCE ROUTING] prince_flowers_integration found, attempting query")
                 integration = self.console.prince_flowers_integration
 
                 enhanced_context = {
@@ -162,61 +204,122 @@ class WebUIAIFixes:
                 response = await integration.query(command, enhanced_context, show_performance=True)
 
                 if response.success:
+                    self.logger.info("[PRINCE ROUTING] ✓ Method 1 SUCCESS")
                     result = response.content
                     if response.execution_time and response.confidence:
                         result += f"\n\n*Processed in {response.execution_time:.2f}s with {response.confidence:.1%} confidence*"
                     return result
                 else:
-                    self.logger.warning(f"Prince Flowers integration failed: {response.error}")
+                    self.logger.warning(f"[PRINCE ROUTING] ✗ Method 1 FAILED: {response.error}")
+            else:
+                self.logger.info("[PRINCE ROUTING] Method 1 not available (no prince_flowers_integration)")
 
             # Method 2: Try console's prince command handler
+            self.logger.info("[PRINCE ROUTING] Trying Method 2: Console's handle_prince_command")
             if hasattr(self.console, 'handle_prince_command'):
                 try:
+                    self.logger.info("[PRINCE ROUTING] handle_prince_command found, attempting call")
                     result = await self.console.handle_prince_command(command, {'web_interface': True})
-                    return result
+                    if result:
+                        self.logger.info("[PRINCE ROUTING] ✓ Method 2 SUCCESS")
+                        return result
+                    else:
+                        self.logger.warning("[PRINCE ROUTING] ✗ Method 2 returned empty result")
                 except Exception as e:
-                    self.logger.warning(f"Console prince handler failed: {e}")
+                    self.logger.warning(f"[PRINCE ROUTING] ✗ Method 2 FAILED: {e}")
+            else:
+                self.logger.info("[PRINCE ROUTING] Method 2 not available (no handle_prince_command)")
 
             # Method 3: Try direct Prince Flowers agent
+            self.logger.info("[PRINCE ROUTING] Trying Method 3: Direct Prince Flowers agent")
             if hasattr(self.console, 'prince_flowers'):
+                self.logger.info("[PRINCE ROUTING] prince_flowers attribute found")
                 try:
+                    # Check if prince_flowers has handle_prince_command method
                     if hasattr(self.console.prince_flowers, 'handle_prince_command'):
+                        self.logger.info("[PRINCE ROUTING] Method 3a: Using prince_flowers.handle_prince_command")
                         result = await self.console.prince_flowers.handle_prince_command(command, {'web_interface': True})
-                        return result
+                        if result:
+                            self.logger.info("[PRINCE ROUTING] ✓ Method 3a SUCCESS")
+                            return result
+                        else:
+                            self.logger.warning("[PRINCE ROUTING] ✗ Method 3a returned empty result")
+
+                    # Check if prince_flowers IS the agent (direct agent object)
+                    elif hasattr(self.console.prince_flowers, 'execute_agentic_task'):
+                        self.logger.info("[PRINCE ROUTING] Method 3b: Using prince_flowers.execute_agentic_task (direct agent)")
+                        query = command
+                        if command.lower().startswith('prince '):
+                            query = command[7:].strip()
+
+                        result = await self.console.prince_flowers.execute_agentic_task(query)
+                        if isinstance(result, dict):
+                            answer = result.get('answer', result.get('response', 'Prince Flowers processed your request.'))
+                            self.logger.info("[PRINCE ROUTING] ✓ Method 3b SUCCESS")
+                            return answer
+                        self.logger.info("[PRINCE ROUTING] ✓ Method 3b SUCCESS (string result)")
+                        return str(result)
+
+                    # Check if prince_flowers has an agent attribute
                     elif hasattr(self.console.prince_flowers, 'agent'):
-                        # Extract query from command
+                        self.logger.info("[PRINCE ROUTING] Method 3c: Using prince_flowers.agent.execute_agentic_task")
                         query = command
                         if command.lower().startswith('prince '):
                             query = command[7:].strip()
 
                         result = await self.console.prince_flowers.agent.execute_agentic_task(query)
-                        return result.get('answer', 'Prince Flowers processed your request.')
+                        if isinstance(result, dict):
+                            answer = result.get('answer', result.get('response', 'Prince Flowers processed your request.'))
+                            self.logger.info("[PRINCE ROUTING] ✓ Method 3c SUCCESS")
+                            return answer
+                        self.logger.info("[PRINCE ROUTING] ✓ Method 3c SUCCESS (string result)")
+                        return str(result)
+
+                    else:
+                        self.logger.warning("[PRINCE ROUTING] ✗ Method 3 FAILED: prince_flowers object found but no known methods available")
                 except Exception as e:
-                    self.logger.warning(f"Direct Prince Flowers failed: {e}")
+                    self.logger.warning(f"[PRINCE ROUTING] ✗ Method 3 EXCEPTION: {e}")
+            else:
+                self.logger.info("[PRINCE ROUTING] Method 3 not available (no prince_flowers attribute)")
 
             # Method 4: Fallback to torq_integration
+            self.logger.info("[PRINCE ROUTING] Trying Method 4: torq_integration fallback")
             try:
                 import sys
                 sys.path.append(str(Path(__file__).parent.parent.parent))
                 from torq_integration import PrinceFlowersIntegrationWrapper
 
+                self.logger.info("[PRINCE ROUTING] Creating PrinceFlowersIntegrationWrapper")
                 integration = PrinceFlowersIntegrationWrapper(self.console)
                 response = await integration.query(command, {'web_interface_fallback': True})
-                return response.content
+                if response and hasattr(response, 'content'):
+                    self.logger.info("[PRINCE ROUTING] ✓ Method 4 SUCCESS")
+                    return response.content
+                else:
+                    self.logger.warning("[PRINCE ROUTING] ✗ Method 4 returned invalid response")
             except Exception as e:
-                self.logger.warning(f"Fallback integration failed: {e}")
+                self.logger.warning(f"[PRINCE ROUTING] ✗ Method 4 EXCEPTION: {e}")
 
-            # Method 5: Ultimate fallback - route through basic handler for BUILD MODE
-            self.logger.info("Routing Prince command through basic handler for BUILD MODE (not search)")
+            # Method 5: Ultimate fallback - Route to enhanced AI query (RESEARCH MODE)
+            # This is critical: When all Prince Flowers integration attempts fail,
+            # we should route to RESEARCH mode (enhanced AI query) NOT build mode
+            self.logger.warning(
+                "[PRINCE ROUTING] ⚠️  ALL METHODS FAILED - Falling back to enhanced AI query (RESEARCH mode)"
+            )
             query = command
             if command.lower().startswith('prince '):
                 query = command[7:].strip()
 
-            # Route to build handler, not search handler
-            return await WebUIAIFixes._handle_basic_query_fixed(self, query, context_matches)
+            self.logger.info(f"[PRINCE ROUTING] Method 5: Routing to enhanced AI query with query: {query}")
+            # Route to enhanced AI query handler (research/search mode)
+            result = await WebUIAIFixes._handle_enhanced_ai_query_fixed(self, query, context_matches)
+            self.logger.info("[PRINCE ROUTING] ✓ Method 5 (fallback) completed")
+            return result
 
         except Exception as e:
-            self.logger.error(f"Error in Prince command handling: {e}")
+            self.logger.error(f"[PRINCE ROUTING] ✗✗✗ CRITICAL ERROR in Prince command handling: {e}")
+            import traceback
+            self.logger.error(f"[PRINCE ROUTING] Traceback: {traceback.format_exc()}")
             return f"Error processing Prince Flowers command: {str(e)}"
 
     @staticmethod

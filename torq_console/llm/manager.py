@@ -56,7 +56,8 @@ class LLMManager:
             api_key = os.getenv('ANTHROPIC_API_KEY')
             model = self.config.get('claude_model', 'claude-sonnet-4-20250514')
 
-            provider = ClaudeProvider(api_key=api_key, model=model)
+            # Pass config dict instead of individual parameters
+            provider = ClaudeProvider(config={'api_key': api_key, 'model': model})
             self.providers['claude'] = provider
 
             if provider.is_configured():
