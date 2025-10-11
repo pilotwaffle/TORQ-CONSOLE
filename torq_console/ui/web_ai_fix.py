@@ -62,22 +62,22 @@ class WebUIAIFixes:
                 response = None
                 if decision.intent_type == 'research':
                     # RESEARCH MODE: Use Prince Flowers for search/research
-                    self.logger.info(f"→ Routing to Prince Flowers (RESEARCH mode)")
+                    self.logger.info(f"-> Routing to Prince Flowers (RESEARCH mode)")
                     response = await WebUIAIFixes._handle_prince_command_fixed(self, user_content, context_matches)
 
                 elif decision.intent_type == 'content_creation':
                     # CONTENT CREATION MODE: Use Claude to process/create content
-                    self.logger.info(f"→ Routing to Claude Sonnet 4.5 (CONTENT CREATION mode)")
+                    self.logger.info(f"-> Routing to Claude Sonnet 4.5 (CONTENT CREATION mode)")
                     response = await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
                 elif decision.intent_type == 'code_generation':
                     # CODE GENERATION MODE: Use Claude directly for code
-                    self.logger.info(f"→ Routing to Claude Sonnet 4.5 (CODE GENERATION mode)")
+                    self.logger.info(f"-> Routing to Claude Sonnet 4.5 (CODE GENERATION mode)")
                     response = await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
                 else:
                     # GENERAL MODE: Default handling
-                    self.logger.info(f"→ Routing to basic query handler (GENERAL mode)")
+                    self.logger.info(f"-> Routing to basic query handler (GENERAL mode)")
                     response = await WebUIAIFixes._handle_basic_query_fixed(self, user_content, context_matches)
 
                 # LEARNING SYSTEM: Record interaction for continuous improvement
@@ -217,15 +217,15 @@ class WebUIAIFixes:
                     )
 
                     if response.success:
-                        self.logger.info("[PRINCE ROUTING] ✓ Method 1 SUCCESS")
+                        self.logger.info("[PRINCE ROUTING] [OK] Method 1 SUCCESS")
                         result = response.content
                         if response.execution_time and response.confidence:
                             result += f"\n\n*Processed in {response.execution_time:.2f}s with {response.confidence:.1%} confidence*"
                         return result
                     else:
-                        self.logger.warning(f"[PRINCE ROUTING] ✗ Method 1 FAILED: {response.error}")
+                        self.logger.warning(f"[PRINCE ROUTING] [X] Method 1 FAILED: {response.error}")
                 except asyncio.TimeoutError:
-                    self.logger.warning("[PRINCE ROUTING] ✗ Method 1 TIMEOUT (>180s)")
+                    self.logger.warning("[PRINCE ROUTING] [X] Method 1 TIMEOUT (>180s)")
             else:
                 self.logger.info("[PRINCE ROUTING] Method 1 not available (no prince_flowers_integration)")
 
@@ -236,12 +236,12 @@ class WebUIAIFixes:
                     self.logger.info("[PRINCE ROUTING] handle_prince_command found, attempting call")
                     result = await self.console.handle_prince_command(command, {'web_interface': True})
                     if result:
-                        self.logger.info("[PRINCE ROUTING] ✓ Method 2 SUCCESS")
+                        self.logger.info("[PRINCE ROUTING] [OK] Method 2 SUCCESS")
                         return result
                     else:
-                        self.logger.warning("[PRINCE ROUTING] ✗ Method 2 returned empty result")
+                        self.logger.warning("[PRINCE ROUTING] [X] Method 2 returned empty result")
                 except Exception as e:
-                    self.logger.warning(f"[PRINCE ROUTING] ✗ Method 2 FAILED: {e}")
+                    self.logger.warning(f"[PRINCE ROUTING] [X] Method 2 FAILED: {e}")
             else:
                 self.logger.info("[PRINCE ROUTING] Method 2 not available (no handle_prince_command)")
 
@@ -255,10 +255,10 @@ class WebUIAIFixes:
                         self.logger.info("[PRINCE ROUTING] Method 3a: Using prince_flowers.handle_prince_command")
                         result = await self.console.prince_flowers.handle_prince_command(command, {'web_interface': True})
                         if result:
-                            self.logger.info("[PRINCE ROUTING] ✓ Method 3a SUCCESS")
+                            self.logger.info("[PRINCE ROUTING] [OK] Method 3a SUCCESS")
                             return result
                         else:
-                            self.logger.warning("[PRINCE ROUTING] ✗ Method 3a returned empty result")
+                            self.logger.warning("[PRINCE ROUTING] [X] Method 3a returned empty result")
 
                     # Check if prince_flowers IS the agent (direct agent object)
                     elif hasattr(self.console.prince_flowers, 'execute_agentic_task'):
@@ -270,9 +270,9 @@ class WebUIAIFixes:
                         result = await self.console.prince_flowers.execute_agentic_task(query)
                         if isinstance(result, dict):
                             answer = result.get('answer', result.get('response', 'Prince Flowers processed your request.'))
-                            self.logger.info("[PRINCE ROUTING] ✓ Method 3b SUCCESS")
+                            self.logger.info("[PRINCE ROUTING] [OK] Method 3b SUCCESS")
                             return answer
-                        self.logger.info("[PRINCE ROUTING] ✓ Method 3b SUCCESS (string result)")
+                        self.logger.info("[PRINCE ROUTING] [OK] Method 3b SUCCESS (string result)")
                         return str(result)
 
                     # Check if prince_flowers has an agent attribute
@@ -285,15 +285,15 @@ class WebUIAIFixes:
                         result = await self.console.prince_flowers.agent.execute_agentic_task(query)
                         if isinstance(result, dict):
                             answer = result.get('answer', result.get('response', 'Prince Flowers processed your request.'))
-                            self.logger.info("[PRINCE ROUTING] ✓ Method 3c SUCCESS")
+                            self.logger.info("[PRINCE ROUTING] [OK] Method 3c SUCCESS")
                             return answer
-                        self.logger.info("[PRINCE ROUTING] ✓ Method 3c SUCCESS (string result)")
+                        self.logger.info("[PRINCE ROUTING] [OK] Method 3c SUCCESS (string result)")
                         return str(result)
 
                     else:
-                        self.logger.warning("[PRINCE ROUTING] ✗ Method 3 FAILED: prince_flowers object found but no known methods available")
+                        self.logger.warning("[PRINCE ROUTING] [X] Method 3 FAILED: prince_flowers object found but no known methods available")
                 except Exception as e:
-                    self.logger.warning(f"[PRINCE ROUTING] ✗ Method 3 EXCEPTION: {e}")
+                    self.logger.warning(f"[PRINCE ROUTING] [X] Method 3 EXCEPTION: {e}")
             else:
                 self.logger.info("[PRINCE ROUTING] Method 3 not available (no prince_flowers attribute)")
 
@@ -308,12 +308,12 @@ class WebUIAIFixes:
                 integration = PrinceFlowersIntegrationWrapper(self.console)
                 response = await integration.query(command, {'web_interface_fallback': True})
                 if response and hasattr(response, 'content'):
-                    self.logger.info("[PRINCE ROUTING] ✓ Method 4 SUCCESS")
+                    self.logger.info("[PRINCE ROUTING] [OK] Method 4 SUCCESS")
                     return response.content
                 else:
-                    self.logger.warning("[PRINCE ROUTING] ✗ Method 4 returned invalid response")
+                    self.logger.warning("[PRINCE ROUTING] [X] Method 4 returned invalid response")
             except Exception as e:
-                self.logger.warning(f"[PRINCE ROUTING] ✗ Method 4 EXCEPTION: {e}")
+                self.logger.warning(f"[PRINCE ROUTING] [X] Method 4 EXCEPTION: {e}")
 
             # Method 5: Ultimate fallback - Route to enhanced AI query (RESEARCH MODE)
             # This is critical: When all Prince Flowers integration attempts fail,
@@ -328,11 +328,11 @@ class WebUIAIFixes:
             self.logger.info(f"[PRINCE ROUTING] Method 5: Routing to enhanced AI query with query: {query}")
             # Route to enhanced AI query handler (research/search mode)
             result = await WebUIAIFixes._handle_enhanced_ai_query_fixed(self, query, context_matches)
-            self.logger.info("[PRINCE ROUTING] ✓ Method 5 (fallback) completed")
+            self.logger.info("[PRINCE ROUTING] [OK] Method 5 (fallback) completed")
             return result
 
         except Exception as e:
-            self.logger.error(f"[PRINCE ROUTING] ✗✗✗ CRITICAL ERROR in Prince command handling: {e}")
+            self.logger.error(f"[PRINCE ROUTING] [X][X][X] CRITICAL ERROR in Prince command handling: {e}")
             import traceback
             self.logger.error(f"[PRINCE ROUTING] Traceback: {traceback.format_exc()}")
             return f"Error processing Prince Flowers command: {str(e)}"
