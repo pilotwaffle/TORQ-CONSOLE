@@ -17,6 +17,7 @@ import time
 import json
 import random
 import math
+import os
 from typing import Dict, List, Any, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -112,6 +113,14 @@ class TORQPrinceFlowers:
         self.total_queries = 0
         self.successful_responses = 0
         self.trajectory_history: List[ReasoningTrajectory] = []
+
+        # Learning persistence
+        self.learning_data_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            ".torq-data", "prince_learning.json"
+        )
+        self._ensure_data_directory()
+        self.load_learning_state()
 
         self.logger.info(f"TORQ Prince Flowers Enhanced v{self.version} initialized")
 
@@ -521,6 +530,11 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             if len(self.trajectory_history) > self.max_buffer_size:
                 self.trajectory_history = self.trajectory_history[-self.max_buffer_size:]
 
+            # Auto-save learning state periodically
+            if self.total_queries % 10 == 0 and self.total_queries > 0:
+                self.save_learning_state()
+                self.logger.info(f"[PERSISTENCE] Auto-saved after {self.total_queries} queries")
+
             # Create comprehensive result
             result = TORQAgentResult(
                 success=success,
@@ -588,6 +602,9 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             trajectory.success = False
             trajectory.execution_time = execution_time
             trajectory.final_result = f"Error: {str(e)}"
+
+            # Deep failure analysis for learning
+            await self._analyze_failure(trajectory, e)
 
             return TORQAgentResult(
                 success=False,
@@ -1232,6 +1249,28 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
 
                 self.logger.info(f"Selected provider: {provider_name}")
 
+                # Adaptive max_tokens based on task complexity
+                user_msg_lower = user_message.lower()
+
+                # Detect task type for appropriate token allocation
+                is_web_analysis = any(kw in user_msg_lower for kw in ['analyze', 'website', 'webpage', 'url', 'http', 'landing page', 'design'])
+                is_research = any(kw in user_msg_lower for kw in ['research', 'search', 'find', 'investigate', 'explore'])
+                is_creation = any(kw in user_msg_lower for kw in ['create', 'generate', 'build', 'make', 'write'])
+
+                # Set adaptive token limits and temperature
+                if is_web_analysis or is_creation:
+                    max_tokens = 4000  # Complex tasks need more tokens
+                    temperature = 0.5  # Balanced creativity
+                    self.logger.info(f"Using complex task mode: max_tokens=4000")
+                elif is_research:
+                    max_tokens = 2500  # Research needs comprehensive responses
+                    temperature = 0.3  # More focused
+                    self.logger.info(f"Using research mode: max_tokens=2500")
+                else:
+                    max_tokens = 1500  # Standard queries
+                    temperature = 0.7  # More creative
+                    self.logger.info(f"Using standard mode: max_tokens=1500")
+
                 # Call LLMManager.chat() with provider_name as first argument
                 response = await self.llm_provider.chat(
                     provider_name=provider_name,
@@ -1239,8 +1278,8 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
                         {"role": "system", "content": full_system_prompt},
                         {"role": "user", "content": full_user_message}
                     ],
-                    temperature=0.7,
-                    max_tokens=2048
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
 
                 # LLMManager.chat() returns a string directly
@@ -1249,24 +1288,58 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
             elif hasattr(self.llm_provider, 'chat'):
                 # Direct provider with chat method (e.g., Claude provider)
                 self.logger.info("Using direct provider chat method")
+
+                # Adaptive max_tokens (same logic as above)
+                user_msg_lower = user_message.lower()
+                is_web_analysis = any(kw in user_msg_lower for kw in ['analyze', 'website', 'webpage', 'url', 'http', 'landing page', 'design'])
+                is_research = any(kw in user_msg_lower for kw in ['research', 'search', 'find', 'investigate', 'explore'])
+                is_creation = any(kw in user_msg_lower for kw in ['create', 'generate', 'build', 'make', 'write'])
+
+                if is_web_analysis or is_creation:
+                    max_tokens = 4000
+                    temperature = 0.5
+                elif is_research:
+                    max_tokens = 2500
+                    temperature = 0.3
+                else:
+                    max_tokens = 1500
+                    temperature = 0.7
+
                 response = await self.llm_provider.chat(
                     messages=[
                         {"role": "system", "content": full_system_prompt},
                         {"role": "user", "content": full_user_message}
                     ],
-                    temperature=0.7,
-                    max_tokens=2048
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
                 return response.get('content', response.get('response', str(response)))
 
             elif hasattr(self.llm_provider, 'generate_response'):
                 # Direct provider with generate_response method (e.g., DeepSeek provider)
                 self.logger.info("Using direct provider generate_response method")
+
+                # Adaptive max_tokens (same logic as above)
+                user_msg_lower = user_message.lower()
+                is_web_analysis = any(kw in user_msg_lower for kw in ['analyze', 'website', 'webpage', 'url', 'http', 'landing page', 'design'])
+                is_research = any(kw in user_msg_lower for kw in ['research', 'search', 'find', 'investigate', 'explore'])
+                is_creation = any(kw in user_msg_lower for kw in ['create', 'generate', 'build', 'make', 'write'])
+
+                if is_web_analysis or is_creation:
+                    max_tokens = 4000
+                    temperature = 0.5
+                elif is_research:
+                    max_tokens = 2500
+                    temperature = 0.3
+                else:
+                    max_tokens = 1500
+                    temperature = 0.7
+
                 response = await self.llm_provider.generate_response(
                     prompt=full_user_message,
                     system_prompt=full_system_prompt,
-                    temperature=0.7,
-                    max_tokens=2048
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
                 return response.get('content', response.get('response', str(response)))
 
@@ -2242,6 +2315,226 @@ with ARTIST-style capabilities, fully integrated into your TORQ Console environm
 I continuously learn and adapt from our interactions, improving my ability to help
 you with research, analysis, and complex problem-solving tasks through the TORQ Console.
 """
+
+    # ==================== LEARNING PERSISTENCE METHODS ====================
+
+    def _ensure_data_directory(self):
+        """Ensure the data directory exists for persistence."""
+        data_dir = os.path.dirname(self.learning_data_path)
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+            self.logger.info(f"[PERSISTENCE] Created data directory: {data_dir}")
+
+    def save_learning_state(self, filepath: str = None):
+        """
+        Persist learning state to disk for continuous learning across sessions.
+
+        Saves:
+        - Strategy weights and performance metrics
+        - Q-table for action selection
+        - Pattern recognition data
+        - Recent trajectory history (last 100)
+        - Tool performance statistics
+        """
+        filepath = filepath or self.learning_data_path
+
+        try:
+            # Prepare serializable learning state
+            learning_state = {
+                'version': self.version,
+                'metadata': {
+                    'last_saved': time.time(),
+                    'total_queries': self.total_queries,
+                    'successful_responses': self.successful_responses,
+                    'uptime_hours': (time.time() - self.active_since) / 3600
+                },
+                'strategy_weights': {
+                    mode.value: weight for mode, weight in self.strategy_weights.items()
+                },
+                'q_table': self.q_table,
+                'pattern_recognition': {
+                    'success_patterns': self.pattern_recognition.get('success_patterns', {}),
+                    'failure_patterns': self.pattern_recognition.get('failure_patterns', {}),
+                    'tool_combination_patterns': self.pattern_recognition.get('tool_combination_patterns', {})
+                },
+                'tool_performance': self.tool_performance,
+                'action_policy': self.action_policy,
+                'learning_rate': self.learning_rate,
+                'trajectory_summary': {
+                    'count': len(self.trajectory_history),
+                    'recent_100': [
+                        {
+                            'id': t.trajectory_id,
+                            'query': t.query[:100],  # Truncate for space
+                            'mode': t.reasoning_mode.value,
+                            'success': t.success,
+                            'reward': t.total_reward,
+                            'execution_time': t.execution_time,
+                            'tools_used': [a.tool_name for a in t.actions]
+                        }
+                        for t in self.trajectory_history[-100:]
+                    ]
+                }
+            }
+
+            # Write to file
+            with open(filepath, 'w') as f:
+                json.dump(learning_state, f, indent=2)
+
+            self.logger.info(
+                f"[PERSISTENCE] ✓ Learning state saved: "
+                f"{self.total_queries} queries, {len(self.trajectory_history)} trajectories"
+            )
+
+        except Exception as e:
+            self.logger.error(f"[PERSISTENCE] ✗ Failed to save learning state: {e}")
+
+    def load_learning_state(self, filepath: str = None):
+        """
+        Load persisted learning state from disk.
+
+        Restores agent's learned knowledge from previous sessions,
+        enabling continuous improvement across restarts.
+        """
+        filepath = filepath or self.learning_data_path
+
+        if not os.path.exists(filepath):
+            self.logger.info("[PERSISTENCE] No saved learning state found, starting fresh")
+            return
+
+        try:
+            with open(filepath, 'r') as f:
+                learning_state = json.load(f)
+
+            # Validate version compatibility
+            saved_version = learning_state.get('version', 'unknown')
+            if saved_version != self.version:
+                self.logger.warning(
+                    f"[PERSISTENCE] Version mismatch: saved={saved_version}, current={self.version}"
+                )
+
+            # Restore metadata
+            metadata = learning_state.get('metadata', {})
+            self.total_queries = metadata.get('total_queries', 0)
+            self.successful_responses = metadata.get('successful_responses', 0)
+
+            # Restore strategy weights
+            saved_weights = learning_state.get('strategy_weights', {})
+            for mode_str, weight in saved_weights.items():
+                try:
+                    mode = ReasoningMode(mode_str)
+                    self.strategy_weights[mode] = weight
+                except ValueError:
+                    self.logger.warning(f"[PERSISTENCE] Unknown mode in saved state: {mode_str}")
+
+            # Restore Q-table
+            self.q_table = learning_state.get('q_table', {})
+
+            # Restore pattern recognition
+            patterns = learning_state.get('pattern_recognition', {})
+            self.pattern_recognition['success_patterns'] = patterns.get('success_patterns', {})
+            self.pattern_recognition['failure_patterns'] = patterns.get('failure_patterns', {})
+            self.pattern_recognition['tool_combination_patterns'] = patterns.get('tool_combination_patterns', {})
+
+            # Restore tool performance
+            saved_tool_perf = learning_state.get('tool_performance', {})
+            for tool, stats in saved_tool_perf.items():
+                if tool in self.tool_performance:
+                    self.tool_performance[tool] = stats
+
+            # Restore action policy
+            saved_policy = learning_state.get('action_policy', {})
+            self.action_policy.update(saved_policy)
+
+            # Restore learning rate
+            self.learning_rate = learning_state.get('learning_rate', 0.1)
+
+            # Restore trajectory history (summary only, not full trajectories)
+            trajectory_summary = learning_state.get('trajectory_summary', {})
+            restored_count = len(trajectory_summary.get('recent_100', []))
+
+            self.logger.info(
+                f"[PERSISTENCE] ✓ Learning state loaded: "
+                f"{self.total_queries} historical queries, "
+                f"{restored_count} trajectory summaries restored"
+            )
+
+            # Log key learnings
+            best_strategy = max(self.strategy_weights.items(), key=lambda x: x[1])
+            self.logger.info(
+                f"[PERSISTENCE] Best learned strategy: {best_strategy[0].value} "
+                f"(weight: {best_strategy[1]:.2f})"
+            )
+
+        except Exception as e:
+            self.logger.error(f"[PERSISTENCE] ✗ Failed to load learning state: {e}")
+            self.logger.info("[PERSISTENCE] Starting with fresh learning state")
+
+    async def _analyze_failure(self, trajectory: ReasoningTrajectory, error: Exception):
+        """
+        Deep analysis of failure to learn and prevent recurrence.
+
+        This method enables the agent to learn from errors and adjust its
+        strategies to avoid similar failures in the future.
+        """
+        failure_analysis = {
+            'trajectory_id': trajectory.trajectory_id,
+            'query': trajectory.query[:200],  # Truncate
+            'error_type': type(error).__name__,
+            'error_message': str(error)[:500],
+            'reasoning_mode': trajectory.reasoning_mode.value,
+            'tools_attempted': [a.tool_name for a in trajectory.actions],
+            'execution_time': trajectory.execution_time,
+            'timestamp': time.time()
+        }
+
+        # Classify failure type
+        error_str = str(error).lower()
+        if 'timeout' in error_str:
+            failure_type = 'TIMEOUT'
+            self.logger.warning(
+                f"[LEARNING] TIMEOUT failure detected for {trajectory.reasoning_mode.value} mode"
+            )
+
+            # Learn: Reduce confidence in current mode for this query type
+            if trajectory.reasoning_mode in self.strategy_weights:
+                self.strategy_weights[trajectory.reasoning_mode] *= 0.85
+                self.logger.info(
+                    f"[LEARNING] Reduced {trajectory.reasoning_mode.value} weight to "
+                    f"{self.strategy_weights[trajectory.reasoning_mode]:.2f}"
+                )
+
+            # Boost simpler alternatives
+            if trajectory.reasoning_mode == ReasoningMode.COMPOSITION:
+                self.strategy_weights[ReasoningMode.RESEARCH] *= 1.15
+                self.logger.info("[LEARNING] Boosted RESEARCH mode as alternative")
+
+        elif 'http' in error_str or 'connection' in error_str or 'network' in error_str:
+            failure_type = 'NETWORK'
+            self.logger.warning("[LEARNING] NETWORK failure detected")
+
+        elif 'llm' in error_str or 'provider' in error_str or 'model' in error_str:
+            failure_type = 'LLM_ERROR'
+            self.logger.warning("[LEARNING] LLM provider failure detected")
+
+        else:
+            failure_type = 'OTHER'
+
+        # Store failure pattern
+        if failure_type not in self.pattern_recognition['failure_patterns']:
+            self.pattern_recognition['failure_patterns'][failure_type] = []
+
+        self.pattern_recognition['failure_patterns'][failure_type].append(failure_analysis)
+
+        # Limit failure history size (keep last 50 per type)
+        if len(self.pattern_recognition['failure_patterns'][failure_type]) > 50:
+            self.pattern_recognition['failure_patterns'][failure_type] = \
+                self.pattern_recognition['failure_patterns'][failure_type][-50:]
+
+        self.logger.info(
+            f"[LEARNING] Failure analyzed and stored: {failure_type} "
+            f"({len(self.pattern_recognition['failure_patterns'][failure_type])} total)"
+        )
 
 
 class TORQPrinceFlowersInterface:
