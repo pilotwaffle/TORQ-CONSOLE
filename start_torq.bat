@@ -14,12 +14,12 @@ cls
 echo Starting TORQ-CONSOLE with Prince Flowers agent...
 echo.
 
-REM Start TORQ-CONSOLE Enhanced with Prince Flowers
-python torq_console_enhanced.py
+REM Start TORQ-CONSOLE Web UI with Prince Flowers
+python -m torq_console.ui.main
 
-REM If the above fails, try alternative launcher
+REM If the above fails, try direct launcher
 if errorlevel 1 (
     echo.
-    echo Trying alternative launcher...
-    python torq_prince_flowers.py
+    echo Trying direct launcher...
+    python torq_console\ui\main.py
 )
