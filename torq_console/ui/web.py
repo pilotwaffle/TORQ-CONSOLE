@@ -1757,7 +1757,10 @@ How else can I assist you with "{query}"?"""
                 host=host,
                 port=port,
                 log_level="info",
-                reload=False
+                reload=False,
+                timeout_keep_alive=300,  # 5 minutes (above master timeout of 360s)
+                timeout_graceful_shutdown=60,  # 1 minute for cleanup
+                limit_max_requests=1000  # Prevent memory leaks from long-running workers
             )
 
             server = uvicorn.Server(config)

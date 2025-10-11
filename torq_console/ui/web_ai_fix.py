@@ -479,14 +479,14 @@ I apologize for the inconvenience!"""
                     WebUIAIFixes._generate_ai_response_fixed(
                         self, request.message, None, tools=getattr(request, 'tools', None)
                     ),
-                    timeout=240.0  # 240-second timeout for entire request chain (4 minutes for complex queries)
+                    timeout=360.0  # 360-second timeout for entire request chain (6 minutes for complex queries)
                 )
             except asyncio.TimeoutError:
-                self.logger.error(f"[TIMEOUT] Request exceeded 240s: {request.message[:100]}")
+                self.logger.error(f"[TIMEOUT] Request exceeded 360s: {request.message[:100]}")
                 return {
                     "success": False,
                     "error": "Request timeout",
-                    "response": "I apologize, but your request took too long to process (>4 minutes). This might be due to:\n\n"
+                    "response": "I apologize, but your request took too long to process (>6 minutes). This might be due to:\n\n"
                                "1. Extremely complex queries requiring extensive processing\n2. LLM API service delays\n3. Network connectivity issues\n\n"
                                "Please try:\n- Simplifying your query\n- Breaking it into smaller parts\n- Trying again in a moment",
                     "timestamp": datetime.now().isoformat(),
