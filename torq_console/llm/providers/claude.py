@@ -16,16 +16,21 @@ from .base import BaseLLMProvider
 class ClaudeProvider(BaseLLMProvider):
     """Provider for Anthropic Claude models."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "claude-sonnet-4-20250514"):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
         Initialize Claude provider.
 
         Args:
-            api_key: Anthropic API key (or uses ANTHROPIC_API_KEY env var)
-            model: Claude model to use (default: claude-sonnet-4-20250514)
+            config: Configuration dict with 'api_key' and 'model' keys
         """
-        self.api_key = api_key or os.getenv('ANTHROPIC_API_KEY')
-        self.model = model
+        super().__init__(config)
+
+        # Extract parameters from config or environment
+        self.api_key = self.config.get('api_key') if self.config else os.getenv('ANTHROPIC_API_KEY')
+        if not self.api_key:
+            self.api_key = os.getenv('ANTHROPIC_API_KEY')
+
+        self.model = self.config.get('model', 'claude-sonnet-4-20250514') if self.config else 'claude-sonnet-4-20250514'
         self.logger = logging.getLogger(__name__)
 
         # Initialize Anthropic client

@@ -87,11 +87,22 @@ class AIIntegration:
             query: The user query
 
         Returns:
-            Query classification ('search', 'ai_news', 'analysis', 'general')
+            Query classification ('content_creation', 'search', 'ai_news', 'analysis', 'general')
         """
         query_lower = query.lower().strip()
 
-        # Prioritize explicit web search intent
+        # HIGHEST PRIORITY: Check for content creation/generation intent
+        # This must be checked BEFORE search detection to avoid false positives
+        content_creation_indicators = [
+            "create a post", "create an x.com post", "create a tweet", "write a post",
+            "use this information to create", "use this to create", "turn this into",
+            "make a post", "format this as", "summarize this", "based on this information",
+            "based on search results", "based on the above", "use the above"
+        ]
+        if any(indicator in query_lower for indicator in content_creation_indicators):
+            return 'content_creation'
+
+        # Prioritize explicit web search intent (but not if creating content from search)
         web_search_indicators = ['search web', 'search the web', 'web search', 'google', 'find online']
         if any(indicator in query_lower for indicator in web_search_indicators):
             return 'search'
@@ -172,7 +183,11 @@ class AIIntegration:
         self.logger.info(f"Query classified as: {query_type}")
 
         # Route to appropriate handler
-        if query_type == 'search':
+        if query_type == 'content_creation':
+            # HIGHEST PRIORITY: Route content creation to general handler (Claude)
+            # This bypasses search entirely and uses Claude for content generation
+            response = await self._handle_general_query(query, context)
+        elif query_type == 'search':
             response = await self._handle_search_query(query, context)
         elif query_type == 'ai_news':
             response = await self._handle_ai_news_query(query, context)
@@ -275,11 +290,12 @@ For complex queries, I recommend using the full TORQ Console interface or connec
                         else:
                             response_parts.append(f"\n{i}. {snippet}")
 
-                    # Add helpful suggestions
-                    response_parts.append(f"\n\nFor the most current information about '{query}', I recommend:")
-                    response_parts.append("• Checking recent news sources and official websites")
-                    response_parts.append("• Using search engines like Google or Bing directly")
-                    response_parts.append("• Looking for updates on social media platforms")
+                    # Only add helpful suggestions if results are limited
+                    if len(search_results.get('results', [])) < 3:
+                        response_parts.append(f"\n\n📌 **Need more information?** Try searching directly on:")
+                        response_parts.append("• Google or Bing for latest updates")
+                        response_parts.append("• Official news sources")
+                        response_parts.append("• Social media platforms")
 
                     return ''.join(response_parts)
 
@@ -335,10 +351,14 @@ For complex queries, I recommend using the full TORQ Console interface or connec
             self.logger.info(f"Processing analysis query: {query}")
 
             if self.llm_manager:
-                # Use DeepSeek for analysis
-                response = await self.llm_manager.query('deepseek', query,
-                                                      temperature=0.7,
-                                                      max_tokens=2048)
+                # Use Claude for analysis (faster and more efficient)
+                # Adaptive max_tokens based on query length
+                query_words = len(query.split())
+                max_tokens = 800 if query_words < 20 else 1500
+
+                response = await self.llm_manager.query('claude', query,
+                                                      temperature=0.3,  # Reduced for faster generation
+                                                      max_tokens=max_tokens)
 
                 return response or "I apologize, but I couldn't generate an analysis for your query."
             else:
@@ -354,10 +374,15 @@ For complex queries, I recommend using the full TORQ Console interface or connec
             self.logger.info(f"Processing general query: {query}")
 
             if self.llm_manager:
-                # Use DeepSeek for general queries
-                response = await self.llm_manager.query('deepseek', query,
-                                                      temperature=0.7,
-                                                      max_tokens=1024)
+                # Use Claude for general queries (faster response time)
+                # Adaptive tokens for short vs long queries
+                short_keywords = ['x.com', 'post', 'tweet', 'short', 'brief', 'quick']
+                is_short = any(kw in query.lower() for kw in short_keywords)
+                max_tokens = 500 if is_short else 1000
+
+                response = await self.llm_manager.query('claude', query,
+                                                      temperature=0.3,  # Reduced for faster generation
+                                                      max_tokens=max_tokens)
 
                 return response or "I processed your query but couldn't generate a specific response."
             else:
