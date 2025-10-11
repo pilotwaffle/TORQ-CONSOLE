@@ -223,8 +223,14 @@ class TORQSearchMaster:
             confidence = 1.0
 
         # Set recency filter (default 7 days for news)
-        if recency_days is None and query_type == 'news':
+        # BUT: If query has explicit date requirement (like "since 10/01"), disable auto-filter
+        has_explicit_date = any(keyword in query.lower() for keyword in [' since ', ' from ', ' after ', ' before '])
+
+        if recency_days is None and query_type == 'news' and not has_explicit_date:
             recency_days = self.default_recency_days
+            self.logger.info(f"Applying default {recency_days}-day recency filter for news query")
+        elif has_explicit_date:
+            self.logger.info("Query has explicit date requirement - skipping auto-recency filter")
 
         # Select optimal search sources for query type
         search_tasks = self._build_search_tasks(query, query_type, max_results)
