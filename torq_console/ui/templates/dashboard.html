@@ -6,14 +6,15 @@
     <title>TORQ CONSOLE - Enhanced AI Pair Programming with MCP</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         .panel-transition { transition: all 0.3s ease-in-out; }
-        .mcp-panel { min-width: 300px; max-width: 400px; }
-        .chat-panel { min-width: 400px; }
-        .diff-panel { min-width: 350px; }
+        .mcp-panel { min-width: 280px; max-width: 320px; }
+        .chat-panel { min-width: 600px; flex: 2; }
+        .diff-panel { min-width: 300px; max-width: 350px; }
         .monaco-editor { border-radius: 8px; }
         .diff-viewer { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; }
         .guided-prompt {
@@ -596,9 +597,9 @@
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white h-screen overflow-hidden" x-data="torqConsole()">
+<body class="bg-gray-900 text-white h-screen overflow-hidden flex flex-col" x-data="torqConsole()">
     <!-- Header with TORQ Logo and Model Selector -->
-    <header class="bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between">
+    <header class="bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center space-x-4">
             <!-- TORQ Logo -->
             <div class="w-12 h-12">
@@ -651,18 +652,18 @@
     </header>
 
     <!-- Main 3-Panel Layout: MCP | Chat | Diffs -->
-    <div class="flex h-full">
+    <div class="flex flex-1 overflow-hidden">
         <!-- Left Panel: MCP Tools & Integration -->
         <div class="mcp-panel bg-gray-800 border-r border-gray-700 flex flex-col panel-transition">
             <!-- MCP Panel Header -->
             <div class="p-4 border-b border-gray-700">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-green-400">MCP Tools</h2>
+                    <h2 class="text-lg font-semibold text-green-400">🔧 Tools & Integrations</h2>
                     <button @click="connectMCP()" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm">
                         Connect
                     </button>
                 </div>
-                <p class="text-xs text-gray-400 mt-1">Model Context Protocol Integration</p>
+                <p class="text-xs text-gray-400 mt-1">AI Models, Connections & Capabilities</p>
             </div>
 
             <!-- MCP Server Status -->
@@ -687,7 +688,7 @@
             <!-- Available MCP Tools - Enhanced with Categories -->
             <div class="p-4 border-b border-gray-700">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-medium text-gray-300">MCP Tools</h3>
+                    <h3 class="text-sm font-medium text-gray-300">Available Tools</h3>
                     <span class="text-xs text-gray-500" x-text="mcpTools.length + ' tools'"></span>
                 </div>
 
@@ -781,21 +782,21 @@
                             :class="activeTools.includes('web_search') ?
                                 'w-full bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm ring-2 ring-green-400' :
                                 'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
-                        🌐 Web Research
+                        🔍 Research Assistant
                         <span v-if="activeTools.includes('web_search')" class="ml-1">✓</span>
                     </button>
                     <button @click="startIdeation('github')"
                             :class="activeTools.includes('github_examples') ?
                                 'w-full bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm ring-2 ring-purple-400' :
                                 'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
-                        📚 GitHub Examples
+                        📚 Code Library
                         <span v-if="activeTools.includes('github_examples')" class="ml-1">✓</span>
                     </button>
                     <button @click="startPrototyping()"
                             :class="planningMode ?
                                 'w-full bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm ring-2 ring-blue-400' :
                                 'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
-                        🏗️ Multi-File Prototype
+                        🏗️ App Builder
                         <span v-if="planningMode" class="ml-1">✓</span>
                     </button>
                     <button @click="startCodeWriting()"
@@ -804,6 +805,38 @@
                                 'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
                         ✍️ Write/Update Code
                         <span v-if="codeWritingMode" class="ml-1">✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Creative Tools -->
+            <div class="p-4 border-b border-gray-700">
+                <h3 class="text-sm font-medium text-purple-400 mb-2">🎨 Creative Tools</h3>
+                <div class="space-y-2">
+                    <button @click="startImageGeneration()"
+                            :class="imageGenerationMode ?
+                                'w-full bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm ring-2 ring-purple-400' :
+                                'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
+                        🎨 Create Image
+                        <span v-if="imageGenerationMode" class="ml-1">✓</span>
+                    </button>
+                    <button @click="startVideoGeneration()"
+                            :class="videoGenerationMode ?
+                                'w-full bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm ring-2 ring-purple-400' :
+                                'w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm'">
+                        🎬 Create Video
+                        <span v-if="videoGenerationMode" class="ml-1">✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Development Tools -->
+            <div class="p-4 border-b border-gray-700">
+                <h3 class="text-sm font-medium text-green-400 mb-2">🚀 Development Tools</h3>
+                <div class="space-y-2">
+                    <button @click="pushToGitHub()"
+                            class="w-full bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm">
+                        🚀 Push to GitHub
                     </button>
                 </div>
             </div>
@@ -1332,7 +1365,11 @@
                 ideationMode: false,
                 planningMode: false,
                 codeWritingMode: false,
+                imageGenerationMode: false,
+                videoGenerationMode: false,
                 voiceEnabled: false,
+                showGitHubPushDialog: false,
+                showCommandPalette: false,
 
                 // MCP State
                 mcpServers: [],
@@ -1625,6 +1662,91 @@
                     } else {
                         this.currentMessage = '';
                     }
+                },
+
+                startImageGeneration() {
+                    this.imageGenerationMode = !this.imageGenerationMode;
+                    if (this.imageGenerationMode) {
+                        this.currentMessage = 'Generate an image of: ';
+                        this.$nextTick(() => {
+                            const input = document.querySelector('textarea[x-model="currentMessage"]');
+                            if (input) {
+                                input.focus();
+                                input.setSelectionRange(input.value.length, input.value.length);
+                            }
+                        });
+                    } else {
+                        this.currentMessage = '';
+                    }
+                },
+
+                startVideoGeneration() {
+                    this.videoGenerationMode = !this.videoGenerationMode;
+                    if (this.videoGenerationMode) {
+                        this.currentMessage = 'Create a video showing: ';
+                        this.$nextTick(() => {
+                            const input = document.querySelector('textarea[x-model="currentMessage"]');
+                            if (input) {
+                                input.focus();
+                                input.setSelectionRange(input.value.length, input.value.length);
+                            }
+                        });
+                    } else {
+                        this.currentMessage = '';
+                    }
+                },
+
+                pushToGitHub() {
+                    this.showGitHubPushDialog = true;
+                },
+
+                closePushDialog() {
+                    this.showGitHubPushDialog = false;
+                },
+
+                async executePushToGitHub(repoName, branch, commitMessage, isPrivate, createIfMissing) {
+                    try {
+                        const response = await fetch('/api/github/push', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                repo_name: repoName,
+                                branch: branch || 'main',
+                                commit_message: commitMessage || 'Initial commit via TORQ Console',
+                                private: isPrivate || false,
+                                create_if_missing: createIfMissing || true
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.showNotification('✅ Successfully pushed to GitHub! ' + data.url, 'success');
+                            this.closePushDialog();
+                        } else {
+                            this.showNotification('❌ Error: ' + data.error, 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('❌ Failed to push to GitHub: ' + error.message, 'error');
+                    }
+                },
+
+                showNotification(message, type = 'info') {
+                    // Simple notification system
+                    const notification = document.createElement('div');
+                    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                        type === 'success' ? 'bg-green-600' :
+                        type === 'error' ? 'bg-red-600' :
+                        'bg-blue-600'
+                    } text-white`;
+                    notification.textContent = message;
+                    document.body.appendChild(notification);
+
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 5000);
                 },
 
                 toggleVoice() {
@@ -2549,5 +2671,165 @@
             }
         }
     </script>
+
+    <!-- GitHub Push Dialog Modal -->
+    <div x-show="showGitHubPushDialog"
+         x-cloak
+         @click.self="closePushDialog()"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         style="display: none;">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold text-white mb-4">🚀 Push to GitHub</h3>
+
+            <form @submit.prevent="executePushToGitHub(
+                $refs.repoName.value,
+                $refs.branch.value,
+                $refs.commitMessage.value,
+                $refs.isPrivate.checked,
+                $refs.createIfMissing.checked
+            )">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Repository Name</label>
+                        <input x-ref="repoName"
+                               type="text"
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                               placeholder="my-awesome-project"
+                               required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Branch</label>
+                        <input x-ref="branch"
+                               type="text"
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                               value="main"
+                               placeholder="main">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Commit Message</label>
+                        <textarea x-ref="commitMessage"
+                                  class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                  rows="2"
+                                  placeholder="Initial commit via TORQ Console"></textarea>
+                    </div>
+
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center text-sm text-gray-300">
+                            <input x-ref="isPrivate" type="radio" name="visibility" value="private" class="mr-2">
+                            Private
+                        </label>
+                        <label class="flex items-center text-sm text-gray-300">
+                            <input type="radio" name="visibility" value="public" checked class="mr-2">
+                            Public
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center text-sm text-gray-300">
+                            <input x-ref="createIfMissing" type="checkbox" checked class="mr-2">
+                            Create repository if it doesn't exist
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button"
+                            @click="closePushDialog()"
+                            class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-white">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white">
+                        Push to GitHub →
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Command Palette -->
+    <div x-show="showCommandPalette"
+         x-cloak
+         @click.self="showCommandPalette = false"
+         @keydown.escape="showCommandPalette = false"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-20 z-50"
+         style="display: none;">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl">
+            <div class="p-4 border-b border-gray-700">
+                <input type="text"
+                       x-ref="commandPaletteInput"
+                       @input="filterCommands($event.target.value)"
+                       class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                       placeholder="🔍 Search commands... (Ctrl+Shift+P)"
+                       autofocus>
+            </div>
+            <div class="max-h-96 overflow-y-auto">
+                <div class="p-2">
+                    <button @click="startIdeation('web'); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-green-400">🔍</span> Research Assistant
+                    </button>
+                    <button @click="startIdeation('github'); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-purple-400">📚</span> Code Library
+                    </button>
+                    <button @click="startPrototyping(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-blue-400">🏗️</span> App Builder
+                    </button>
+                    <button @click="startCodeWriting(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-red-400">✍️</span> Write/Update Code
+                    </button>
+                    <button @click="startImageGeneration(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-purple-400">🎨</span> Create Image
+                    </button>
+                    <button @click="startVideoGeneration(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-purple-400">🎬</span> Create Video
+                    </button>
+                    <button @click="pushToGitHub(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-green-400">🚀</span> Push to GitHub
+                    </button>
+                    <button @click="newSession(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-blue-400">➕</span> New Session
+                    </button>
+                    <button @click="toggleVoice(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-green-400">🎤</span> Voice Mode
+                    </button>
+                    <button @click="exportWorkflow(); showCommandPalette = false"
+                            class="w-full text-left px-4 py-2 hover:bg-gray-700 rounded text-gray-300">
+                        <span class="text-gray-400">📤</span> Export Workflow
+                    </button>
+                </div>
+            </div>
+            <div class="p-3 border-t border-gray-700 text-xs text-gray-500 text-center">
+                Press <kbd class="px-2 py-1 bg-gray-700 rounded">Esc</kbd> to close
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard shortcut for Command Palette -->
+    <script>
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Shift+P or Cmd+Shift+P
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                Alpine.store('app').showCommandPalette = !Alpine.store('app').showCommandPalette;
+                if (Alpine.store('app').showCommandPalette) {
+                    setTimeout(() => {
+                        document.querySelector('[x-ref="commandPaletteInput"]')?.focus();
+                    }, 100);
+                }
+            }
+        });
+    </script>
+
 </body>
 </html>
