@@ -1351,6 +1351,47 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
             self.logger.error(f"LLM call failed in {mode} mode: {e}")
             return f"[LLM Error: {str(e)}] Fallback response for: {user_message[:100]}..."
 
+    def _extract_search_query(self, raw_query: str) -> tuple:
+        """
+        Extract clean search query from user's raw query.
+
+        Args:
+            raw_query: The raw user query with commands and instructions
+
+        Returns:
+            tuple: (cleaned_query, search_type)
+        """
+        import re
+
+        # Remove command prefixes
+        query = raw_query.lower()
+        query = re.sub(r'^(prince\s+)?(search|find|look up|research)\s+(for\s+)?', '', query)
+
+        # Remove action instructions (everything after "and create/write/make/compose")
+        query = re.sub(r'\s+and\s+(create|write|make|compose|draft).*$', '', query)
+
+        # Detect search type based on keywords
+        search_type = "general"
+        if any(term in query for term in ['news', 'recent', 'latest', 'update', 'development']):
+            search_type = "news"
+        elif any(term in query for term in ['since', 'from', 'after']):
+            # Check for date patterns
+            if any(month in query for month in ['january', 'february', 'march', 'april', 'may', 'june',
+                                                 'july', 'august', 'september', 'october', 'november', 'december']):
+                search_type = "news"
+
+        # Extract date context if present to help time-bound searches
+        date_match = re.search(r'since\s+([a-z]+\s+\d+(?:st|nd|rd|th)?,?\s+\d{4})', query)
+        if date_match:
+            # Add temporal context
+            query = query.replace(date_match.group(0), '').strip()
+            query += f" recent {date_match.group(1)}"
+
+        # Clean up multiple spaces
+        query = re.sub(r'\s+', ' ', query).strip()
+
+        return query, search_type
+
     async def _execute_web_search(self, query: str) -> Dict[str, Any]:
         """Execute REAL web search using WebSearchProvider."""
         import time
@@ -1362,13 +1403,18 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
         try:
             from ..llm.providers.websearch import WebSearchProvider
 
-            self.logger.info(f"[REAL WEB SEARCH] Executing real web search for: {query}")
+            # Extract clean search query and determine optimal search type
+            cleaned_query, search_type = self._extract_search_query(query)
+
+            self.logger.info(f"[REAL WEB SEARCH] Original query: {query[:100]}...")
+            self.logger.info(f"[REAL WEB SEARCH] Cleaned query: {cleaned_query}")
+            self.logger.info(f"[REAL WEB SEARCH] Search type: {search_type}")
 
             # Initialize web search provider
             web_search = WebSearchProvider()
 
-            # Perform REAL web search
-            search_response = await web_search.search(query, max_results=5, search_type="general")
+            # Perform REAL web search with cleaned query
+            search_response = await web_search.search(cleaned_query, max_results=5, search_type=search_type)
 
             if search_response.get('success', False):
                 # Format real results
@@ -1500,13 +1546,22 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
 
         # Use LLM to synthesize response from search results and analysis
         try:
-            # Call LLM with research context
+            # Log search results for debugging
+            self.logger.info(f"[SYNTHESIS] Processing {len(search_results)} search results")
+            for i, result in enumerate(search_results[:3]):
+                title = result.get('title', 'No title')[:100]
+                snippet_len = len(result.get('snippet', ''))
+                is_ai = result.get('is_ai_synthesis', False)
+                self.logger.info(f"[SYNTHESIS] Result {i+1}: {title} ({'AI synthesis' if is_ai else 'standard'}, {snippet_len} chars)")
+
+            # Call LLM with research context and explicit instruction
             llm_response = await self._call_llm(
                 user_message=query,
                 mode='research',
                 context={
                     'search_results': search_results,
-                    'analysis': analysis
+                    'analysis': analysis,
+                    'instruction': 'Synthesize a comprehensive response using ALL available search result information. Focus on concrete facts, developments, and data points. If AI-synthesized content is available, integrate it fully.'
                 }
             )
 

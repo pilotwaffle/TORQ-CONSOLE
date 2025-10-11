@@ -117,6 +117,7 @@ class WebSearchProvider:
                 if method_results and method_results.get('results'):
                     results.update(method_results)
                     results['method_used'] = method
+                    results['success'] = True
                     self.logger.info(f"Search successful using method: {method}")
                     return results
             except Exception as e:
@@ -125,6 +126,7 @@ class WebSearchProvider:
 
         # If all methods failed, return error response
         results['error'] = "All search methods failed"
+        results['success'] = False
         results['method_used'] = 'error'
         results['results'] = [{
             'title': 'Search Unavailable',
@@ -198,15 +200,18 @@ class WebSearchProvider:
             # Format results for WebSearchProvider
             formatted_results = []
             if result.content:
-                # Split content into snippets and create pseudo-results
-                # Since Perplexity provides comprehensive answers rather than individual results
+                # Include full Perplexity synthesis as primary result
+                # Perplexity provides comprehensive AI-synthesized answers that should be fully utilized
                 formatted_results.append({
-                    'title': f'Perplexity AI Search: {query}',
-                    'snippet': result.content[:500] + ('...' if len(result.content) > 500 else ''),
+                    'title': f'Perplexity AI Analysis: {query}',
+                    'snippet': result.content,  # Keep full content for synthesis (was [:500])
+                    'full_content': result.content,  # Store full version explicitly
                     'url': 'https://www.perplexity.ai',
                     'source': 'Perplexity AI',
                     'model': result.model,
-                    'sources': result.sources[:5]  # Limit to first 5 sources
+                    'sources': result.sources[:5],  # Limit to first 5 sources
+                    'is_ai_synthesis': True,  # Flag to indicate this is AI-generated content
+                    'relevance_score': 0.95  # High relevance for AI synthesis
                 })
 
                 # Add individual sources as separate results if available
