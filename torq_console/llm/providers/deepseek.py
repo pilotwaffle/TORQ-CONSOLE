@@ -36,10 +36,13 @@ class DeepSeekProvider:
         self.max_requests_per_minute = 60
         self.request_timestamps = []
 
-        # Default configuration
+        # Default configuration (optimized for speed)
         self.default_model = "deepseek-chat"
-        self.default_max_tokens = 4096
+        self.default_max_tokens = 512  # Reduced from 4096 for faster responses
         self.default_temperature = 0.7
+
+        # Connection pooling session (reuse for better performance)
+        self.session = None
 
         # Validate API key
         if not self.api_key:
@@ -62,6 +65,18 @@ class DeepSeekProvider:
         self.request_timestamps.append(now)
         return True
 
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """Get or create persistent session for connection pooling."""
+        if self.session is None or self.session.closed:
+            # Create persistent session with optimized timeouts
+            timeout = aiohttp.ClientTimeout(
+                total=30,      # Total timeout
+                connect=10,    # Connection timeout
+                sock_read=20   # Socket read timeout
+            )
+            self.session = aiohttp.ClientSession(timeout=timeout)
+        return self.session
+
     async def _make_request(
         self,
         endpoint: str,
@@ -69,7 +84,8 @@ class DeepSeekProvider:
         timeout: int = 30,
         max_retries: int = 3
     ) -> Dict[str, Any]:
-        """Make an HTTP request to DeepSeek API with retries."""
+        """Make an HTTP request to DeepSeek API with retries and performance monitoring."""
+        import time
 
         if not self.api_key:
             raise ValueError("DeepSeek API key not configured")
@@ -87,28 +103,36 @@ class DeepSeekProvider:
 
         for attempt in range(max_retries):
             try:
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-                    async with session.post(url, json=data, headers=headers) as response:
-                        response_data = await response.json()
+                # Add timing diagnostics
+                start_time = time.time()
 
-                        if response.status == 200:
-                            return response_data
-                        elif response.status == 429:
-                            # Rate limited, wait and retry
-                            wait_time = 2 ** attempt
-                            self.logger.warning(f"Rate limited, waiting {wait_time}s before retry")
-                            await asyncio.sleep(wait_time)
-                            continue
-                        elif response.status in [500, 502, 503, 504]:
-                            # Server error, retry
-                            wait_time = 2 ** attempt
-                            self.logger.warning(f"Server error {response.status}, retrying in {wait_time}s")
-                            await asyncio.sleep(wait_time)
-                            continue
-                        else:
-                            # Client error, don't retry
-                            error_msg = response_data.get('error', {}).get('message', f'HTTP {response.status}')
-                            raise Exception(f"DeepSeek API error: {error_msg}")
+                # Use persistent session for connection pooling
+                session = await self._get_session()
+                async with session.post(url, json=data, headers=headers) as response:
+                    response_data = await response.json()
+
+                    end_time = time.time()
+                    response_time = end_time - start_time
+
+                    if response.status == 200:
+                        self.logger.info(f"DeepSeek API response time: {response_time:.2f}s")
+                        return response_data
+                    elif response.status == 429:
+                        # Rate limited, wait and retry with exponential backoff
+                        wait_time = 2 ** attempt
+                        self.logger.warning(f"Rate limited, waiting {wait_time}s before retry (attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    elif response.status in [500, 502, 503, 504]:
+                        # Server error, retry
+                        wait_time = 2 ** attempt
+                        self.logger.warning(f"Server error {response.status}, retrying in {wait_time}s")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        # Client error, don't retry
+                        error_msg = response_data.get('error', {}).get('message', f'HTTP {response.status}')
+                        raise Exception(f"DeepSeek API error: {error_msg}")
 
             except aiohttp.ClientError as e:
                 if attempt == max_retries - 1:

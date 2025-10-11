@@ -25,6 +25,13 @@ import uuid
 
 from ..llm.providers.base import BaseLLMProvider
 
+# Import SearchMaster for comprehensive multi-source search
+try:
+    from .torq_search_master import create_search_master
+    SEARCHMASTER_AVAILABLE = True
+except ImportError:
+    SEARCHMASTER_AVAILABLE = False
+
 
 class ReasoningMode(Enum):
     """Different reasoning strategies for the agent."""
@@ -1393,22 +1400,96 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
         return query, search_type
 
     async def _execute_web_search(self, query: str) -> Dict[str, Any]:
-        """Execute REAL web search using WebSearchProvider."""
+        """
+        Execute web search using SearchMaster for comprehensive multi-source results.
+
+        Uses SearchMaster agent which provides:
+        - Multi-API search (CoinGecko, Tavily, Perplexity, Brave, Google)
+        - Query type detection (crypto, news, general)
+        - Structured data prioritization
+        - Result deduplication and ranking
+
+        Falls back to legacy WebSearchProvider if SearchMaster unavailable.
+        """
         import time
         start_time = time.time()
 
         # Update tool performance
         self.tool_performance['web_search']['usage_count'] += 1
 
+        # Try SearchMaster first (comprehensive multi-source search)
+        if SEARCHMASTER_AVAILABLE:
+            try:
+                self.logger.info(f"[SEARCHMASTER] Delegating search to SearchMaster: {query[:100]}...")
+
+                # Create SearchMaster agent
+                search_master = create_search_master()
+
+                # Perform comprehensive search
+                search_report = await search_master.search(
+                    query=query,
+                    max_results=10,
+                    include_summary=False
+                )
+
+                # Log search performance
+                self.logger.info(
+                    f"[SEARCHMASTER] ✓ SUCCESS - {search_report.total_results} results "
+                    f"from {len(search_report.sources_used)} sources in {search_report.search_duration:.2f}s"
+                )
+
+                # Convert SearchReport to format expected by synthesis
+                formatted_results = []
+                for result in search_report.results:
+                    formatted_results.append({
+                        'title': result.title,
+                        'url': result.url,
+                        'snippet': result.snippet,
+                        'relevance_score': result.relevance_score,
+                        'source': result.source,
+                        'is_structured_data': result.is_structured_data,
+                        'is_ai_synthesis': result.is_ai_synthesis,
+                        'metadata': result.metadata or {},
+                        'published_date': result.published_date
+                    })
+
+                # Log result details for debugging (first 3 results)
+                for i, result in enumerate(formatted_results[:3], 1):
+                    self.logger.info(f"[SEARCHMASTER] Result {i}: {result['title'][:80]}")
+                    self.logger.info(f"              Source: {result['source']} | Score: {result['relevance_score']:.2f}")
+
+                search_time = time.time() - start_time
+
+                # Update success stats
+                self.tool_performance['web_search']['success_count'] += 1
+                self.tool_performance['web_search']['total_time'] += search_time
+
+                return {
+                    'success': True,
+                    'results': formatted_results,
+                    'query': query,
+                    'search_time': search_time,
+                    'total_results': len(formatted_results),
+                    'method': 'searchmaster',
+                    'query_type': search_report.query_type,
+                    'sources_used': search_report.sources_used
+                }
+
+            except Exception as e:
+                self.logger.error(f"[SEARCHMASTER] ✗ FAILED: {e}")
+                self.logger.info("[SEARCHMASTER] Falling back to legacy WebSearchProvider")
+                # Fall through to legacy search
+
+        # Legacy search (fallback when SearchMaster unavailable or failed)
         try:
             from ..llm.providers.websearch import WebSearchProvider
 
             # Extract clean search query and determine optimal search type
             cleaned_query, search_type = self._extract_search_query(query)
 
-            self.logger.info(f"[REAL WEB SEARCH] Original query: {query[:100]}...")
-            self.logger.info(f"[REAL WEB SEARCH] Cleaned query: {cleaned_query}")
-            self.logger.info(f"[REAL WEB SEARCH] Search type: {search_type}")
+            self.logger.info(f"[LEGACY SEARCH] Original query: {query[:100]}...")
+            self.logger.info(f"[LEGACY SEARCH] Cleaned query: {cleaned_query}")
+            self.logger.info(f"[LEGACY SEARCH] Search type: {search_type}")
 
             # Initialize web search provider
             web_search = WebSearchProvider()
@@ -1436,7 +1517,7 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
                 self.tool_performance['web_search']['total_time'] += search_time
 
                 self.logger.info(
-                    f"[REAL WEB SEARCH] ✓ SUCCESS - Found {len(formatted_results)} real results "
+                    f"[LEGACY SEARCH] ✓ SUCCESS - Found {len(formatted_results)} results "
                     f"in {search_time:.2f}s using {search_response.get('method', 'unknown')}"
                 )
 
@@ -1451,7 +1532,7 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
             else:
                 # Search failed - return error
                 error_msg = search_response.get('error', 'Unknown error')
-                self.logger.error(f"[REAL WEB SEARCH] ✗ FAILED: {error_msg}")
+                self.logger.error(f"[LEGACY SEARCH] ✗ FAILED: {error_msg}")
 
                 return {
                     'success': False,
@@ -1464,7 +1545,7 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
 
         except Exception as e:
             search_time = time.time() - start_time
-            self.logger.error(f"[REAL WEB SEARCH] ✗ ERROR: {e}")
+            self.logger.error(f"[LEGACY SEARCH] ✗ ERROR: {e}")
 
             return {
                 'success': False,
