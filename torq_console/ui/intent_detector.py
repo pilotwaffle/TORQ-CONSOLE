@@ -142,7 +142,7 @@ class SelfCorrectingIntentDetector:
 
         # PRIORITY 1: Explicit tool requests override all other detection
         if tools and 'web_search' in tools:
-            self.logger.info("[INTENT] Explicit web_search tool requested → RESEARCH mode")
+            self.logger.info("[INTENT] Explicit web_search tool requested -> RESEARCH mode")
             return IntentDecision(
                 intent_type='research',
                 confidence=1.0,
@@ -157,7 +157,7 @@ class SelfCorrectingIntentDetector:
             # PRIORITY 2.5: Explicit Prince search/research commands
             if command_part.startswith('search') or command_part.startswith('research') or \
                command_part.startswith('find') or command_part.startswith('look up'):
-                self.logger.info("[INTENT] Explicit Prince search/research command → RESEARCH mode")
+                self.logger.info("[INTENT] Explicit Prince search/research command -> RESEARCH mode")
                 return IntentDecision(
                     intent_type='research',
                     confidence=0.98,
@@ -170,7 +170,7 @@ class SelfCorrectingIntentDetector:
                               'create post', 'write post', 'draft a post', 'draft post',
                               'create a tweet', 'write a tweet', 'compose a tweet']
             if any(trigger in command_part for trigger in content_triggers):
-                self.logger.info("[INTENT] Explicit Prince content creation command → CONTENT_CREATION mode")
+                self.logger.info("[INTENT] Explicit Prince content creation command -> CONTENT_CREATION mode")
                 return IntentDecision(
                     intent_type='content_creation',
                     confidence=0.98,
@@ -180,7 +180,7 @@ class SelfCorrectingIntentDetector:
 
             # PRIORITY 2.7: General Prince search intent (fallback for less explicit commands)
             if any(keyword in command_part for keyword in ['search', 'find', 'research', 'look up']):
-                self.logger.info("[INTENT] Prince search command → RESEARCH mode")
+                self.logger.info("[INTENT] Prince search command -> RESEARCH mode")
                 return IntentDecision(
                     intent_type='research',
                     confidence=0.95,
