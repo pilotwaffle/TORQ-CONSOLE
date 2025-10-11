@@ -2,9 +2,10 @@
 AI Integration Fixes for TORQ CONSOLE Web Interface.
 
 This module contains the fixed methods for proper AI integration routing
-in the web interface with self-correcting intent detection.
+in the web interface with self-correcting intent detection and timeout handling.
 """
 
+import asyncio
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -141,7 +142,7 @@ class WebUIAIFixes:
         try:
             self.logger.info(f"Processing enhanced AI query: {query}")
 
-            # Use console's AI integration if available
+            # Use console's AI integration if available (WITH TIMEOUT)
             if hasattr(self.console, 'ai_integration') and self.console.ai_integration:
                 # Prepare context for AI integration
                 context = {
@@ -150,21 +151,29 @@ class WebUIAIFixes:
                     'timestamp': datetime.now().isoformat()
                 }
 
-                # Generate response using enhanced AI integration
-                response = await self.console.ai_integration.generate_response(query, context)
+                # Generate response using enhanced AI integration WITH TIMEOUT
+                try:
+                    response = await asyncio.wait_for(
+                        self.console.ai_integration.generate_response(query, context),
+                        timeout=180.0  # 180s timeout for AI integration (3 minutes for complex queries)
+                    )
 
-                if response.get('success', True):
-                    content = response.get('content', response.get('response', ''))
+                    if response.get('success', True):
+                        content = response.get('content', response.get('response', ''))
 
-                    # Add metadata if available
-                    if response.get('metadata'):
-                        metadata = response['metadata']
-                        if metadata.get('execution_time') and metadata.get('query_type'):
-                            content += f"\n\n*{metadata['query_type'].title()} query processed in {metadata['execution_time']:.2f}s*"
+                        # Add metadata if available
+                        if response.get('metadata'):
+                            metadata = response['metadata']
+                            if metadata.get('execution_time') and metadata.get('query_type'):
+                                content += f"\n\n*{metadata['query_type'].title()} query processed in {metadata['execution_time']:.2f}s*"
 
-                    return content or "I processed your query successfully."
-                else:
-                    return response.get('content', f"I encountered an issue: {response.get('error', 'Unknown error')}")
+                        return content or "I processed your query successfully."
+                    else:
+                        return response.get('content', f"I encountered an issue: {response.get('error', 'Unknown error')}")
+
+                except asyncio.TimeoutError:
+                    self.logger.error(f"[TIMEOUT] AI integration query exceeded 180s: {query[:100]}")
+                    return "I apologize, but your search query took too long to process (>3 minutes). Please try a more specific query."
 
             else:
                 return await WebUIAIFixes._handle_basic_query_fixed(self, query, context_matches)
@@ -189,7 +198,7 @@ class WebUIAIFixes:
                 command = f"prince {command}"
                 self.logger.info(f"[PRINCE ROUTING] Added 'prince' prefix: {command}")
 
-            # Method 1: Try enhanced integration wrapper
+            # Method 1: Try enhanced integration wrapper (WITH TIMEOUT)
             self.logger.info("[PRINCE ROUTING] Trying Method 1: Enhanced integration wrapper")
             if hasattr(self.console, 'prince_flowers_integration') and self.console.prince_flowers_integration:
                 self.logger.info("[PRINCE ROUTING] prince_flowers_integration found, attempting query")
@@ -201,16 +210,22 @@ class WebUIAIFixes:
                     'timestamp': datetime.now().isoformat()
                 }
 
-                response = await integration.query(command, enhanced_context, show_performance=True)
+                try:
+                    response = await asyncio.wait_for(
+                        integration.query(command, enhanced_context, show_performance=True),
+                        timeout=180.0  # 180s timeout for Prince Flowers integration (3 minutes for research queries)
+                    )
 
-                if response.success:
-                    self.logger.info("[PRINCE ROUTING] ✓ Method 1 SUCCESS")
-                    result = response.content
-                    if response.execution_time and response.confidence:
-                        result += f"\n\n*Processed in {response.execution_time:.2f}s with {response.confidence:.1%} confidence*"
-                    return result
-                else:
-                    self.logger.warning(f"[PRINCE ROUTING] ✗ Method 1 FAILED: {response.error}")
+                    if response.success:
+                        self.logger.info("[PRINCE ROUTING] ✓ Method 1 SUCCESS")
+                        result = response.content
+                        if response.execution_time and response.confidence:
+                            result += f"\n\n*Processed in {response.execution_time:.2f}s with {response.confidence:.1%} confidence*"
+                        return result
+                    else:
+                        self.logger.warning(f"[PRINCE ROUTING] ✗ Method 1 FAILED: {response.error}")
+                except asyncio.TimeoutError:
+                    self.logger.warning("[PRINCE ROUTING] ✗ Method 1 TIMEOUT (>180s)")
             else:
                 self.logger.info("[PRINCE ROUTING] Method 1 not available (no prince_flowers_integration)")
 
@@ -333,7 +348,7 @@ class WebUIAIFixes:
         try:
             self.logger.info(f"Processing basic query (BUILD MODE): {query}")
 
-            # PRIORITY 1: Try Claude provider directly for code generation
+            # PRIORITY 1: Try Claude provider directly for code generation (WITH TIMEOUT)
             # This bypasses Prince Flowers' research mode and uses Claude's code generation
             if hasattr(self.console, 'llm_manager') and self.console.llm_manager:
                 try:
@@ -353,15 +368,36 @@ class WebUIAIFixes:
                         else:
                             language = 'typescript'  # Default for modern web apps
 
-                        # Use Claude's code_generation method
-                        response = await claude.code_generation(
-                            task_description=query,
-                            language=language,
-                            context='Build a complete, production-ready application with all necessary files and proper structure',
-                            temperature=0.3,
-                            max_tokens=8000
+                        # Adaptive max_tokens based on query complexity
+                        # Short content keywords: x.com, post, tweet, short, brief
+                        short_keywords = ['x.com', 'post', 'tweet', 'short', 'brief', 'quick', 'simple']
+                        is_short_request = any(kw in query_lower for kw in short_keywords)
+
+                        # Set adaptive token limits
+                        if is_short_request:
+                            max_tokens = 800  # Short content (x.com posts, brief responses)
+                            self.logger.info("Using short content mode: max_tokens=800")
+                        elif len(query.split()) < 20:
+                            max_tokens = 2000  # Medium complexity
+                            self.logger.info("Using medium content mode: max_tokens=2000")
+                        else:
+                            max_tokens = 4000  # Complex requests (reduced from 8000)
+                            self.logger.info("Using full content mode: max_tokens=4000")
+
+                        # Use Claude's code_generation method WITH TIMEOUT
+                        response = await asyncio.wait_for(
+                            claude.code_generation(
+                                task_description=query,
+                                language=language,
+                                context='Build a complete, production-ready application with all necessary files and proper structure',
+                                temperature=0.3,
+                                max_tokens=max_tokens
+                            ),
+                            timeout=180.0  # 180s timeout for code generation (3 minutes for complex builds)
                         )
                         return response
+                except asyncio.TimeoutError:
+                    self.logger.warning("Claude code generation timeout (>180s)")
                 except Exception as e:
                     self.logger.warning(f"Claude direct code generation failed: {e}")
 
@@ -428,19 +464,34 @@ I apologize for the inconvenience!"""
     @staticmethod
     async def direct_chat_fixed(self, request) -> Dict[str, Any]:
         """
-        FIXED: Direct chat endpoint with proper AI routing.
+        FIXED: Direct chat endpoint with proper AI routing and timeout handling.
 
         This endpoint properly routes all queries through the enhanced AI system
-        with comprehensive error handling and response formatting.
+        with comprehensive error handling, response formatting, and 30s timeout.
         """
         try:
             self.logger.info(f"Direct chat request: {request.message}")
 
-            # Route all queries through the enhanced AI system
+            # Route all queries through the enhanced AI system WITH TIMEOUT
             # Pass the tools parameter to respect user's tool selection
-            response_content = await WebUIAIFixes._generate_ai_response_fixed(
-                self, request.message, None, tools=getattr(request, 'tools', None)
-            )
+            try:
+                response_content = await asyncio.wait_for(
+                    WebUIAIFixes._generate_ai_response_fixed(
+                        self, request.message, None, tools=getattr(request, 'tools', None)
+                    ),
+                    timeout=240.0  # 240-second timeout for entire request chain (4 minutes for complex queries)
+                )
+            except asyncio.TimeoutError:
+                self.logger.error(f"[TIMEOUT] Request exceeded 240s: {request.message[:100]}")
+                return {
+                    "success": False,
+                    "error": "Request timeout",
+                    "response": "I apologize, but your request took too long to process (>4 minutes). This might be due to:\n\n"
+                               "1. Extremely complex queries requiring extensive processing\n2. LLM API service delays\n3. Network connectivity issues\n\n"
+                               "Please try:\n- Simplifying your query\n- Breaking it into smaller parts\n- Trying again in a moment",
+                    "timestamp": datetime.now().isoformat(),
+                    "timeout": True
+                }
 
             return {
                 "success": True,
