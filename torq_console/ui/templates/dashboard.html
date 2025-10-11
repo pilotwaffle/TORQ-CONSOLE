@@ -6,6 +6,7 @@
     <title>TORQ CONSOLE - Enhanced AI Pair Programming with MCP</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -1392,8 +1393,8 @@
                 modifiedFiles: [],
                 currentDiff: '',
 
-                // WebSocket
-                ws: null,
+                // Socket.IO
+                socket: null,
 
                 init() {
                     this.connectWebSocket();
@@ -1428,23 +1429,32 @@
                 },
 
                 connectWebSocket() {
-                    const wsUrl = `ws://${window.location.host}/ws/${Math.random().toString(36).substr(2, 9)}`;
-                    this.ws = new WebSocket(wsUrl);
+                    // Use Socket.IO instead of raw WebSocket
+                    this.socket = io({
+                        transports: ['polling', 'websocket'],
+                        reconnection: true,
+                        reconnectionDelay: 3000,
+                        reconnectionAttempts: 10
+                    });
 
-                    this.ws.onopen = () => {
+                    this.socket.on('connect', () => {
                         this.connected = true;
-                        if (this.debug) console.log('WebSocket connected');
-                    };
+                        if (this.debug) console.log('Socket.IO connected');
+                    });
 
-                    this.ws.onmessage = (event) => {
-                        const data = JSON.parse(event.data);
+                    this.socket.on('message', (data) => {
                         this.handleWebSocketMessage(data);
-                    };
+                    });
 
-                    this.ws.onclose = () => {
+                    this.socket.on('disconnect', () => {
                         this.connected = false;
-                        setTimeout(() => this.connectWebSocket(), 3000);
-                    };
+                        if (this.debug) console.log('Socket.IO disconnected');
+                    });
+
+                    this.socket.on('connect_error', (error) => {
+                        this.connected = false;
+                        if (this.debug) console.error('Socket.IO connection error:', error);
+                    });
                 },
 
                 async loadInitialData() {
