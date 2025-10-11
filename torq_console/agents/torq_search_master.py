@@ -353,16 +353,14 @@ class TORQSearchMaster:
             if self.search_sources['brave']:
                 tasks.append(self._search_brave(query, 'news'))
 
-        # General queries - use best available
+        # General queries - use multiple sources for better coverage
         else:
             if self.search_sources['tavily']:
                 tasks.append(self._search_tavily(query, 'general'))
-            elif self.search_sources['perplexity']:
+            if self.search_sources['perplexity']:
                 tasks.append(self._search_perplexity(query, 'general'))
-            elif self.search_sources['brave']:
+            if self.search_sources['brave']:
                 tasks.append(self._search_brave(query, 'general'))
-            elif self.search_sources['google']:
-                tasks.append(self._search_google(query))
 
         return tasks
 
