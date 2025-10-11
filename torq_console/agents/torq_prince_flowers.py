@@ -1420,14 +1420,31 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
         # Try SearchMaster first (comprehensive multi-source search)
         if SEARCHMASTER_AVAILABLE:
             try:
-                self.logger.info(f"[SEARCHMASTER] Delegating search to SearchMaster: {query[:100]}...")
+                # Clean query: remove "Prince search", "Prince search for", "search for", etc.
+                import re
+                cleaned_query = query
+
+                # Remove Prince-specific prefixes
+                patterns = [
+                    r'^prince\s+search\s+(for\s+)?(the\s+)?(web\s+for\s+)?(information\s+on\s+)?',
+                    r'^search\s+(for\s+)?(the\s+)?(web\s+for\s+)?(information\s+on\s+)?',
+                ]
+
+                for pattern in patterns:
+                    cleaned_query = re.sub(pattern, '', cleaned_query, flags=re.IGNORECASE)
+
+                cleaned_query = cleaned_query.strip()
+
+                self.logger.info(f"[SEARCHMASTER] Original query: {query[:100]}")
+                if cleaned_query != query:
+                    self.logger.info(f"[SEARCHMASTER] Cleaned query: {cleaned_query[:100]}")
 
                 # Create SearchMaster agent
                 search_master = create_search_master()
 
-                # Perform comprehensive search
+                # Perform comprehensive search with cleaned query
                 search_report = await search_master.search(
-                    query=query,
+                    query=cleaned_query,
                     max_results=10,
                     include_summary=False
                 )
