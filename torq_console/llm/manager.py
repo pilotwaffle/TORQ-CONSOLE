@@ -12,6 +12,7 @@ import logging
 
 from .providers.deepseek import DeepSeekProvider
 from .providers.claude import ClaudeProvider
+from .providers.ollama import OllamaProvider
 
 
 class LLMManager:
@@ -31,10 +32,12 @@ class LLMManager:
         self.providers = {}
         self.default_provider = 'claude'  # Use Claude as default for best quality
         self.search_provider = 'deepseek'  # Use DeepSeek for fast searches
+        self.local_provider = 'ollama'  # Use Ollama for local inference
 
         # Initialize providers
         self._init_claude()
         self._init_deepseek()
+        self._init_ollama()
 
         # Provider aliases for backward compatibility
         self.provider_aliases = {
@@ -43,9 +46,13 @@ class LLMManager:
             'sonnet': 'claude',
             'deepseek': 'deepseek',
             'deepseek-chat': 'deepseek',
-            'llama': 'deepseek',
+            'ollama': 'ollama',
+            'local': 'ollama',
+            'llama': 'ollama',
+            'mistral': 'ollama',
             'default': self.default_provider,
-            'search': self.search_provider
+            'search': self.search_provider,
+            'local_llm': self.local_provider
         }
 
         self.logger.info(f"LLM Manager initialized with providers: {list(self.providers.keys())}")
@@ -85,6 +92,26 @@ class LLMManager:
 
         except Exception as e:
             self.logger.error(f"Failed to initialize DeepSeek provider: {e}")
+
+    def _init_ollama(self):
+        """Initialize Ollama local LLM provider."""
+        try:
+            # Get configuration from config or use defaults
+            base_url = self.config.get('ollama_base_url', 'http://localhost:11434')
+            default_model = self.config.get('ollama_model', 'deepseek-r1:7b')
+
+            self.logger.debug(f"Initializing Ollama provider with base_url={base_url}, model={default_model}")
+
+            provider = OllamaProvider(base_url=base_url, default_model=default_model)
+            self.providers['ollama'] = provider
+
+            # Ollama is always "configured" as it's local - it will fail gracefully if not running
+            self.logger.info(f"Ollama provider initialized successfully (endpoint: {base_url}, model: {default_model})")
+
+        except ImportError as e:
+            self.logger.error(f"Failed to import Ollama provider module: {e}")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Ollama provider: {e}", exc_info=True)
 
     def get_provider(self, name: str) -> Optional[Any]:
         """Get a provider by name or alias."""

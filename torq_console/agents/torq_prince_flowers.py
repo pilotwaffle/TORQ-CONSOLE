@@ -1241,21 +1241,6 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
                 # Get available providers and select best one
                 available_providers = getattr(self.llm_provider, 'providers', {})
 
-                # Prefer DeepSeek, fallback to Claude, then any available
-                if 'deepseek' in available_providers:
-                    provider_name = 'deepseek'
-                elif 'claude' in available_providers:
-                    provider_name = 'claude'
-                else:
-                    # Get first available provider
-                    provider_name = list(available_providers.keys())[0] if available_providers else None
-
-                if not provider_name:
-                    self.logger.error("No LLM providers available in LLMManager")
-                    return f"[No LLM providers available] {user_message[:100]}..."
-
-                self.logger.info(f"Selected provider: {provider_name}")
-
                 # Adaptive max_tokens based on task complexity
                 user_msg_lower = user_message.lower()
 
@@ -1278,16 +1263,66 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
                     temperature = 0.7  # More creative
                     self.logger.info(f"Using standard mode: max_tokens=1500")
 
-                # Call LLMManager.chat() with provider_name as first argument
-                response = await self.llm_provider.chat(
-                    provider_name=provider_name,
-                    messages=[
-                        {"role": "system", "content": full_system_prompt},
-                        {"role": "user", "content": full_user_message}
-                    ],
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
+                # Try providers in order: DeepSeek (fast cloud) -> Ollama (fast local) -> Claude (reliable fallback)
+                provider_order = []
+                if 'deepseek' in available_providers:
+                    provider_order.append('deepseek')
+                if 'ollama' in available_providers:
+                    provider_order.append('ollama')
+                if 'claude' in available_providers:
+                    provider_order.append('claude')
+
+                # Add any remaining providers
+                for p in available_providers:
+                    if p not in provider_order:
+                        provider_order.append(p)
+
+                if not provider_order:
+                    self.logger.error("No LLM providers available in LLMManager")
+                    return f"[No LLM providers available] {user_message[:100]}..."
+
+                # Try each provider with fallback on timeout
+                response = None
+                last_error = None
+
+                for provider_name in provider_order:
+                    try:
+                        self.logger.info(f"Attempting synthesis with provider: {provider_name}")
+
+                        # Set timeout based on provider (Ollama is local, should be faster)
+                        timeout_seconds = 45 if provider_name == 'ollama' else 60
+
+                        # Call with timeout wrapper
+                        response = await asyncio.wait_for(
+                            self.llm_provider.chat(
+                                provider_name=provider_name,
+                                messages=[
+                                    {"role": "system", "content": full_system_prompt},
+                                    {"role": "user", "content": full_user_message}
+                                ],
+                                temperature=temperature,
+                                max_tokens=max_tokens
+                            ),
+                            timeout=timeout_seconds
+                        )
+
+                        self.logger.info(f"Successfully synthesized with {provider_name}")
+                        break  # Success! Exit loop
+
+                    except asyncio.TimeoutError:
+                        last_error = f"Timeout after {timeout_seconds}s"
+                        self.logger.warning(f"{provider_name} timed out after {timeout_seconds}s, trying next provider...")
+                        continue
+
+                    except Exception as e:
+                        last_error = str(e)
+                        self.logger.warning(f"{provider_name} failed: {e}, trying next provider...")
+                        continue
+
+                # If all providers failed, return error
+                if response is None:
+                    self.logger.error(f"All providers failed. Last error: {last_error}")
+                    return f"[LLM synthesis failed - all providers exhausted] {user_message[:100]}..."
 
                 # LLMManager.chat() returns a string directly
                 return response if isinstance(response, str) else str(response)
