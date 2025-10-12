@@ -13,6 +13,7 @@ import logging
 from .providers.deepseek import DeepSeekProvider
 from .providers.claude import ClaudeProvider
 from .providers.ollama import OllamaProvider
+from .providers.llama_cpp_provider import LlamaCppProvider
 
 
 class LLMManager:
@@ -38,6 +39,7 @@ class LLMManager:
         self._init_claude()
         self._init_deepseek()
         self._init_ollama()
+        self._init_llama_cpp()
 
         # Provider aliases for backward compatibility
         self.provider_aliases = {
@@ -50,6 +52,11 @@ class LLMManager:
             'local': 'ollama',
             'llama': 'ollama',
             'mistral': 'ollama',
+            'llama_cpp': 'llama_cpp_quality',
+            'llama_cpp_fast': 'llama_cpp_fast',
+            'llama_cpp_quality': 'llama_cpp_quality',
+            'fast': 'llama_cpp_fast',
+            'quality': 'llama_cpp_quality',
             'default': self.default_provider,
             'search': self.search_provider,
             'local_llm': self.local_provider
@@ -112,6 +119,47 @@ class LLMManager:
             self.logger.error(f"Failed to import Ollama provider module: {e}")
         except Exception as e:
             self.logger.error(f"Failed to initialize Ollama provider: {e}", exc_info=True)
+
+    def _init_llama_cpp(self):
+        """Initialize llama.cpp local LLM provider for fast inference."""
+        try:
+            # Get model path from config or environment
+            model_path = self.config.get('llama_cpp_model_path', os.getenv('LLAMA_CPP_MODEL_PATH'))
+
+            if not model_path:
+                self.logger.warning("llama.cpp model path not configured - skipping initialization")
+                self.logger.info("To enable llama.cpp, set LLAMA_CPP_MODEL_PATH in .env or config")
+                return
+
+            # Get configuration parameters
+            n_ctx = self.config.get('llama_cpp_n_ctx', int(os.getenv('LLAMA_CPP_N_CTX', '2048')))
+            n_gpu_layers = self.config.get('llama_cpp_n_gpu_layers', int(os.getenv('LLAMA_CPP_N_GPU_LAYERS', '0')))
+            n_threads = self.config.get('llama_cpp_n_threads', os.getenv('LLAMA_CPP_N_THREADS'))
+
+            if n_threads:
+                n_threads = int(n_threads)
+
+            self.logger.debug(f"Initializing llama.cpp provider with model={model_path}, n_ctx={n_ctx}, n_gpu_layers={n_gpu_layers}")
+
+            provider = LlamaCppProvider(
+                model_path=model_path,
+                n_ctx=n_ctx,
+                n_gpu_layers=n_gpu_layers,
+                n_threads=n_threads,
+                verbose=False
+            )
+
+            # Register two tiers: fast and quality (same instance, different method calls)
+            self.providers['llama_cpp_fast'] = provider
+            self.providers['llama_cpp_quality'] = provider
+
+            self.logger.info(f"llama.cpp provider initialized (model: {model_path}, ctx: {n_ctx}, GPU layers: {n_gpu_layers})")
+
+        except ImportError as e:
+            self.logger.warning(f"llama-cpp-python not installed: {e}")
+            self.logger.info("Install with: pip install llama-cpp-python")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize llama.cpp provider: {e}", exc_info=True)
 
     def get_provider(self, name: str) -> Optional[Any]:
         """Get a provider by name or alias."""
@@ -339,3 +387,111 @@ Please provide:
         else:
             self.logger.warning(f"Cannot switch to provider '{provider_name}' - not available")
             return False
+
+    def _should_use_fast_tier(self, messages: List[Dict]) -> bool:
+        """
+        Determine if query should use fast llama.cpp tier.
+
+        Criteria:
+        - Total message content < 200 tokens
+        - Simple query patterns (search, find, list, classify, yes/no)
+        - No complex reasoning required
+
+        Args:
+            messages: List of message dicts
+
+        Returns:
+            True if fast tier should be used
+        """
+        # Calculate approximate token count
+        total_chars = sum(len(str(msg.get('content', ''))) for msg in messages)
+        approx_tokens = total_chars / 4  # Rough estimate: 1 token = 4 chars
+
+        if approx_tokens > 200:
+            return False
+
+        # Check for simple query patterns
+        last_message = messages[-1].get('content', '').lower() if messages else ''
+        simple_patterns = ['search', 'find', 'list', 'classify', 'is ', 'does ', 'can ', 'what is', 'who is']
+
+        if any(pattern in last_message for pattern in simple_patterns):
+            return True
+
+        return False
+
+    def _should_use_balanced_tier(self, messages: List[Dict]) -> bool:
+        """
+        Determine if query should use balanced llama.cpp tier.
+
+        Criteria:
+        - Total message content 200-1000 tokens
+        - Medium complexity (synthesis, summarization)
+        - Not mission-critical
+
+        Args:
+            messages: List of message dicts
+
+        Returns:
+            True if balanced tier should be used
+        """
+        total_chars = sum(len(str(msg.get('content', ''))) for msg in messages)
+        approx_tokens = total_chars / 4
+
+        if 200 <= approx_tokens <= 1000:
+            return True
+
+        return False
+
+    async def chat_with_routing(
+        self,
+        messages: List[Dict[str, str]],
+        **kwargs
+    ) -> str:
+        """
+        Intelligent routing based on query complexity.
+
+        Routing Logic:
+        1. Fast tier (llama.cpp): Simple queries <200 tokens (target: 1-3s)
+        2. Balanced tier (llama.cpp): Medium queries 200-1000 tokens (target: 8-15s)
+        3. Standard tier (Ollama/DeepSeek): Complex queries >1000 tokens (20-40s)
+        4. Premium tier (Claude): Mission-critical or fallback
+
+        Args:
+            messages: List of message dicts with 'role' and 'content'
+            **kwargs: Additional parameters
+
+        Returns:
+            Response string
+        """
+        # Check if fast tier available and appropriate
+        if 'llama_cpp_fast' in self.providers and self._should_use_fast_tier(messages):
+            try:
+                self.logger.info("Routing to fast tier (llama.cpp)")
+                provider = self.providers['llama_cpp_fast']
+                return await provider.complete_fast(messages, **kwargs)
+            except Exception as e:
+                self.logger.warning(f"Fast tier failed: {e}, falling back...")
+
+        # Check if balanced tier available and appropriate
+        if 'llama_cpp_quality' in self.providers and self._should_use_balanced_tier(messages):
+            try:
+                self.logger.info("Routing to balanced tier (llama.cpp)")
+                provider = self.providers['llama_cpp_quality']
+                return await provider.complete_quality(messages, **kwargs)
+            except Exception as e:
+                self.logger.warning(f"Balanced tier failed: {e}, falling back...")
+
+        # Fall back to existing chat method (Ollama/DeepSeek/Claude)
+        self.logger.info("Routing to standard tier (Ollama/DeepSeek/Claude)")
+
+        # Use existing provider selection logic
+        if 'deepseek' in self.providers:
+            provider_name = 'deepseek'
+        elif 'ollama' in self.providers:
+            provider_name = 'ollama'
+        elif 'claude' in self.providers:
+            provider_name = 'claude'
+        else:
+            raise ValueError("No LLM providers available")
+
+        return await self.chat(provider_name=provider_name, messages=messages, **kwargs)
