@@ -137,7 +137,7 @@ class TORQSearchMaster:
         }
 
         # Enhanced validation configuration
-        self.default_recency_days = self.config.get('recency_days', 7)  # 7-day default for news
+        self.default_recency_days = self.config.get('recency_days', 30)  # 30-day default (expanded from 7 to reduce false negatives)
         self.require_corroboration = self.config.get('require_corroboration', True)
         self.min_sources_for_verification = self.config.get('min_sources', 2)
 
@@ -147,7 +147,7 @@ class TORQSearchMaster:
 
         self.logger.info(f"SearchMaster initialized with {len(self.search_sources)} sources")
         self.logger.info(f"Corroboration required: {self.require_corroboration} (min {self.min_sources_for_verification} sources)")
-        self.logger.info(f"Default recency window: {self.default_recency_days} days for news")
+        self.logger.info(f"Default recency window: {self.default_recency_days} days (auto-disabled for ambiguous/technical queries)")
 
     def _initialize_search_sources(self) -> Dict[str, bool]:
         """Check which search sources are available"""
@@ -222,16 +222,23 @@ class TORQSearchMaster:
         else:
             confidence = 1.0
 
-        # Set recency filter (default 7 days for news)
-        # BUT: If query has explicit date requirement OR uses "latest", disable auto-filter
-        # "latest" implies user wants recent content but not artificially limited to 7 days
-        has_explicit_date = any(keyword in query.lower() for keyword in [' since ', ' from ', ' after ', ' before ', 'latest'])
+        # Set recency filter (default 30 days for news - expanded from 7 to reduce false negatives)
+        # DISABLE auto-filter if:
+        # 1. Query has explicit date requirement ('since', 'from', 'after', 'before')
+        # 2. Query uses ambiguous date terms ('latest', 'recent', 'news') - let APIs handle it
+        # 3. Query is technical/docs (not time-sensitive)
+        has_explicit_date = any(keyword in query.lower() for keyword in [' since ', ' from ', ' after ', ' before '])
+        has_ambiguous_date = any(keyword in query.lower() for keyword in ['latest', 'recent', 'news', 'update'])
+        is_technical_query = any(keyword in query.lower() for keyword in ['api', 'docs', 'documentation', 'tutorial', '.cpp', '.py', '.js'])
 
-        if recency_days is None and query_type == 'news' and not has_explicit_date:
-            recency_days = self.default_recency_days
+        # Only apply auto-recency if query type is news AND no ambiguous date terms AND not technical
+        if recency_days is None and query_type == 'news' and not has_explicit_date and not has_ambiguous_date and not is_technical_query:
+            recency_days = 30  # Expanded from 7 days to 30 days to reduce false negatives
             self.logger.info(f"Applying default {recency_days}-day recency filter for news query")
         elif has_explicit_date:
             self.logger.info("Query has explicit date requirement - skipping auto-recency filter")
+        elif has_ambiguous_date or is_technical_query:
+            self.logger.info(f"Query has ambiguous date terms or is technical - skipping auto-recency filter")
 
         # Select optimal search sources for query type
         search_tasks = self._build_search_tasks(query, query_type, max_results)
