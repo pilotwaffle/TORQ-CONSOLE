@@ -68,11 +68,11 @@ class DeepSeekProvider:
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create persistent session for connection pooling."""
         if self.session is None or self.session.closed:
-            # Create persistent session with optimized timeouts
+            # Create persistent session with extended timeouts for complex synthesis
             timeout = aiohttp.ClientTimeout(
-                total=30,      # Total timeout
+                total=120,     # Total timeout - increased for complex tasks
                 connect=10,    # Connection timeout
-                sock_read=20   # Socket read timeout
+                sock_read=90   # Socket read timeout - increased for LLM synthesis
             )
             self.session = aiohttp.ClientSession(timeout=timeout)
         return self.session

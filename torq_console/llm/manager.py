@@ -15,6 +15,9 @@ from .providers.claude import ClaudeProvider
 from .providers.ollama import OllamaProvider
 from .providers.llama_cpp_provider import LlamaCppProvider
 
+# Session 3: Semantic Search Integration
+from torq_console.indexer.semantic_search import SemanticSearch
+
 
 class LLMManager:
     """Central manager for all LLM providers and operations."""
@@ -40,6 +43,10 @@ class LLMManager:
         self._init_deepseek()
         self._init_ollama()
         self._init_llama_cpp()
+
+        # Session 3: Initialize codebase indexer (optional)
+        self.semantic_search = None
+        self._init_codebase_indexer()
 
         # Provider aliases for backward compatibility
         self.provider_aliases = {
@@ -160,6 +167,127 @@ class LLMManager:
             self.logger.info("Install with: pip install llama-cpp-python")
         except Exception as e:
             self.logger.error(f"Failed to initialize llama.cpp provider: {e}", exc_info=True)
+
+    def _init_codebase_indexer(self):
+        """
+        Initialize codebase semantic search indexer (Session 3).
+
+        This is optional and controlled by ENABLE_CODEBASE_INDEXING in .env.
+        """
+        try:
+            # Check if codebase indexing is enabled
+            enable_indexing = self.config.get('enable_codebase_indexing', False)
+
+            # Also check environment variable
+            if not enable_indexing:
+                enable_indexing = os.getenv('ENABLE_CODEBASE_INDEXING', 'false').lower() == 'true'
+
+            if not enable_indexing:
+                self.logger.debug("Codebase indexing disabled (set ENABLE_CODEBASE_INDEXING=true to enable)")
+                return
+
+            # Get codebase path from config or environment
+            codebase_path = self.config.get('codebase_path', os.getenv('CODEBASE_PATH', os.getcwd()))
+
+            self.logger.info(f"Initializing codebase indexer for: {codebase_path}")
+
+            # Initialize semantic search with auto-indexing disabled (will index on first search)
+            self.semantic_search = SemanticSearch(
+                codebase_path=codebase_path,
+                auto_index=False
+            )
+
+            self.logger.info(f"Codebase indexer initialized successfully for {codebase_path}")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize codebase indexer: {e}")
+            self.semantic_search = None
+
+    def search_codebase(self, query: str, k: int = 5) -> List[Dict]:
+        """
+        Search codebase for relevant code structures.
+
+        Args:
+            query: Natural language search query
+            k: Number of results to return (default: 5)
+
+        Returns:
+            List of matching code structures with relevance scores
+
+        Example:
+            >>> results = manager.search_codebase("user authentication function", k=5)
+            >>> for result in results:
+            ...     print(f"{result['name']} - {result['relevance_score']:.2f}")
+        """
+        if self.semantic_search is None:
+            self.logger.debug("Codebase indexer not available")
+            return []
+
+        try:
+            # Index on first search if not already indexed
+            if not self.semantic_search.indexed:
+                self.logger.info("Indexing codebase on first search...")
+                self.semantic_search.index_codebase()
+
+            results = self.semantic_search.search(query, k=k)
+            self.logger.debug(f"Codebase search returned {len(results)} results for query: {query}")
+            return results
+
+        except Exception as e:
+            self.logger.error(f"Codebase search failed: {e}")
+            return []
+
+    def enrich_with_codebase_context(self, query: str, max_context: int = 2000) -> str:
+        """
+        Enrich user query with relevant codebase context.
+
+        Searches the codebase for relevant code structures and prepends them
+        as context to the user's query. This enables the LLM to provide
+        more accurate, codebase-aware responses.
+
+        Args:
+            query: User's natural language query
+            max_context: Maximum context length in characters (default: 2000)
+
+        Returns:
+            Enhanced query with codebase context prepended, or original query
+            if indexer is unavailable
+
+        Example:
+            >>> enriched = manager.enrich_with_codebase_context(
+            ...     "How does authentication work?",
+            ...     max_context=2000
+            ... )
+            >>> response = await manager.query('claude', enriched)
+        """
+        if self.semantic_search is None:
+            self.logger.debug("Codebase indexer not available, returning original query")
+            return query
+
+        try:
+            # Search for relevant code
+            results = self.search_codebase(query, k=5)
+
+            if not results:
+                self.logger.debug("No codebase context found for query")
+                return query
+
+            # Format context for LLM
+            context = self.semantic_search.format_context_for_llm(results, max_context)
+
+            if context:
+                enriched_query = f"{context}\n\nUser Query: {query}"
+                self.logger.info(
+                    f"Enriched query with {len(results)} code snippets "
+                    f"({len(context)} chars of context)"
+                )
+                return enriched_query
+
+            return query
+
+        except Exception as e:
+            self.logger.error(f"Failed to enrich query with codebase context: {e}")
+            return query
 
     def get_provider(self, name: str) -> Optional[Any]:
         """Get a provider by name or alias."""
