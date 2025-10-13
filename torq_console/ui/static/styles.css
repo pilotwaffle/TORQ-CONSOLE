@@ -241,9 +241,18 @@ select:hover {
   transition: all 0.3s ease-in-out;
 }
 
+/* FIX 1: MCP Panel Layout - Proper overflow handling */
 .mcp-panel {
   min-width: 300px;
   max-width: 400px;
+  overflow-y: auto; /* Enable vertical scrolling */
+  max-height: calc(100vh - 64px); /* Account for header height */
+}
+
+/* FIX 2: Ensure Quick Actions section is visible */
+.mcp-panel > div:last-child {
+  flex-shrink: 0; /* Prevent Quick Actions from being compressed */
+  padding-bottom: 1rem; /* Extra padding at bottom */
 }
 
 .chat-panel {
@@ -365,6 +374,94 @@ select:hover {
   padding: 2px 6px;
   font-size: 11px;
   font-family: monospace;
+}
+
+/* FIX 3: Scrollbar styling for better visibility */
+.mcp-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mcp-panel::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+.mcp-panel::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+.mcp-panel::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* FIX 4: Socket.IO Connection Indicator - Ensure visibility */
+.connection-indicator {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999; /* Very high z-index to ensure visibility */
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: slide-up 0.3s ease-out;
+}
+
+.connection-indicator.connected {
+  background-color: #10b981;
+  color: white;
+}
+
+.connection-indicator.disconnected {
+  background-color: #ef4444;
+  color: white;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* FIX 5: Ensure MCP Connect button is clickable */
+.mcp-connect-btn {
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mcp-connect-btn:active {
+  transform: scale(0.98);
+}
+
+/* FIX 6: Responsive layout improvements */
+@media (max-height: 800px) {
+  .mcp-panel {
+    max-height: calc(100vh - 56px); /* Smaller header on short screens */
+  }
+}
+
+@media (max-height: 600px) {
+  .mcp-panel > div {
+    padding: 0.75rem; /* Reduce padding on very short screens */
+  }
+}
+
+/* FIX 7: Ensure tools list doesn't overflow */
+.mcp-tools-container {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #1f2937;
 }
 
 @keyframes voice-pulse {

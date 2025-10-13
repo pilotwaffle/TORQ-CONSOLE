@@ -13,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         .panel-transition { transition: all 0.3s ease-in-out; }
-        .mcp-panel { min-width: 280px; max-width: 320px; }
+        .mcp-panel { min-width: 280px; max-width: 320px; overflow-y: auto; max-height: calc(100vh - 64px); }
         .chat-panel { min-width: 600px; flex: 2; }
         .diff-panel { min-width: 300px; max-width: 350px; }
         .monaco-editor { border-radius: 8px; }
@@ -660,7 +660,7 @@
             <div class="p-4 border-b border-gray-700">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-green-400">🔧 Tools & Integrations</h2>
-                    <button @click="connectMCP()" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm">
+                    <button @click="connectMCP()" class="mcp-connect-btn bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm">
                         Connect
                     </button>
                 </div>
@@ -1319,7 +1319,7 @@
     </div>
 
     <!-- WebSocket Connection Indicator -->
-    <div x-show="!connected" class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow-lg">
+    <div x-show="!connected" class="connection-indicator disconnected fixed bottom-4 right-4 text-white px-4 py-2 rounded shadow-lg">
         Disconnected - Attempting to reconnect...
     </div>
 
