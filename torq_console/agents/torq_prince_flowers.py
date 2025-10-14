@@ -1,4 +1,4 @@
-"""
+﻿"""
 Enhanced Prince Flowers Agent with ARTIST-style Agentic RL for TORQ Console.
 
 Implements advanced agentic reinforcement learning with:
@@ -26,11 +26,99 @@ import uuid
 from ..llm.providers.base import BaseLLMProvider
 
 # Import SearchMaster for comprehensive multi-source search
+# HARDCODED: Always use SearchMaster for web searches
+from .torq_search_master import create_search_master
+
+# Import Intent Detector for semantic routing (replaces keyword matching)
+from .intent_detector import create_intent_detector
+SEARCHMASTER_AVAILABLE = True
+
+# Import Image Generation Tool
 try:
-    from .torq_search_master import create_search_master
-    SEARCHMASTER_AVAILABLE = True
+    from .tools.image_generation_tool import create_image_generation_tool
+    IMAGE_GENERATION_AVAILABLE = True
 except ImportError:
-    SEARCHMASTER_AVAILABLE = False
+    IMAGE_GENERATION_AVAILABLE = False
+    logging.warning("Image Generation Tool not available")
+
+# Import Social Media Posting Tools
+try:
+    from .tools.twitter_posting_tool import create_twitter_posting_tool
+    TWITTER_POSTING_AVAILABLE = True
+except ImportError:
+    TWITTER_POSTING_AVAILABLE = False
+    logging.warning("Twitter Posting Tool not available")
+
+try:
+    from .tools.linkedin_posting_tool import create_linkedin_posting_tool
+    LINKEDIN_POSTING_AVAILABLE = True
+except ImportError:
+    LINKEDIN_POSTING_AVAILABLE = False
+    logging.warning("LinkedIn Posting Tool not available")
+
+# Import Landing Page Generator Tool
+try:
+    from .tools.landing_page_generator import create_landing_page_generator
+    LANDING_PAGE_GENERATOR_AVAILABLE = True
+except ImportError:
+    LANDING_PAGE_GENERATOR_AVAILABLE = False
+    logging.warning("Landing Page Generator Tool not available")
+
+# Import File Operations Tool
+try:
+    from .tools.file_operations_tool import create_file_operations_tool
+    FILE_OPERATIONS_AVAILABLE = True
+except ImportError:
+    FILE_OPERATIONS_AVAILABLE = False
+    logging.warning("File Operations Tool not available")
+
+# Import Code Generation Tool
+try:
+    from .tools.code_generation_tool import create_code_generation_tool
+    CODE_GENERATION_AVAILABLE = True
+except ImportError:
+    CODE_GENERATION_AVAILABLE = False
+    logging.warning("Code Generation Tool not available")
+
+# Import N8N Workflow Tool
+try:
+    from .tools.n8n_workflow_tool import create_n8n_workflow_tool
+    N8N_WORKFLOW_AVAILABLE = True
+except ImportError:
+    N8N_WORKFLOW_AVAILABLE = False
+    logging.warning("N8N Workflow Tool not available")
+
+# Import Browser Automation Tool
+try:
+    from .tools.browser_automation_tool import create_browser_automation_tool
+    BROWSER_AUTOMATION_AVAILABLE = True
+except ImportError:
+    BROWSER_AUTOMATION_AVAILABLE = False
+    logging.warning("Browser Automation Tool not available")
+
+# Terminal Commands Tool - Phase 1.8
+try:
+    from .tools.terminal_commands_tool import create_terminal_commands_tool
+    TERMINAL_COMMANDS_AVAILABLE = True
+except ImportError:
+    TERMINAL_COMMANDS_AVAILABLE = False
+    logging.warning("Terminal Commands Tool not available")
+
+# MCP Client Tool - Phase 1.9
+try:
+    from .tools.mcp_client_tool import create_mcp_client_tool
+    MCP_CLIENT_AVAILABLE = True
+except ImportError:
+    MCP_CLIENT_AVAILABLE = False
+    logging.warning("MCP Client Tool not available")
+
+# Multi-Tool Composition Tool - Phase 1.10
+try:
+    from .tools.multi_tool_composition_tool import create_multi_tool_composition_tool
+    MULTI_TOOL_COMPOSITION_AVAILABLE = True
+except ImportError:
+    MULTI_TOOL_COMPOSITION_AVAILABLE = False
+    logging.warning("Multi-Tool Composition Tool not available")
 
 
 class ReasoningMode(Enum):
@@ -287,6 +375,118 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
                 'dependencies': [],
                 'composable': True
             },
+            'image_generation': {
+                'name': 'AI Image Generation',
+                'description': 'Generate images from text descriptions using DALL-E 3',
+                'cost': 0.4,
+                'success_rate': 0.90,
+                'avg_time': 3.0,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+            'twitter_posting': {
+                'name': 'Twitter/X Posting',
+                'description': 'Post tweets to Twitter/X using API v2',
+                'cost': 0.3,
+                'success_rate': 0.85,
+                'avg_time': 2.0,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': True
+            },
+            'linkedin_posting': {
+                'name': 'LinkedIn Posting',
+                'description': 'Post updates to LinkedIn using API',
+                'cost': 0.3,
+                'success_rate': 0.80,
+                'avg_time': 2.5,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': True
+            },
+            'landing_page_generator': {
+                'name': 'Landing Page Generator',
+                'description': 'Generate professional HTML landing pages from text descriptions',
+                'cost': 0.2,
+                'success_rate': 0.95,
+                'avg_time': 1.5,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+            'file_operations': {
+                'name': 'File Operations',
+                'description': 'Safe CRUD operations on files with undo/backup functionality',
+                'cost': 0.1,
+                'success_rate': 0.98,
+                'avg_time': 0.5,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': True
+            },
+            'code_generation': {
+                'name': 'Code Generation',
+                'description': 'Multi-language code generation with templates and best practices',
+                'cost': 0.3,
+                'success_rate': 0.95,
+                'avg_time': 1.0,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+            'n8n_workflow': {
+                'name': 'N8N Workflow Automation',
+                'description': 'Execute and manage n8n automation workflows',
+                'cost': 0.2,
+                'success_rate': 0.88,
+                'avg_time': 1.5,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+            'browser_automation': {
+                'name': 'Browser Automation',
+                'description': 'Automate web browser interactions using Playwright',
+                'cost': 0.4,
+                'success_rate': 0.85,
+                'avg_time': 2.5,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+            'terminal_commands': {
+                'name': 'Terminal Commands',
+                'description': 'Execute whitelisted terminal commands with security controls',
+                'cost': 0.2,
+                'success_rate': 0.95,
+                'avg_time': 1.0,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': True,
+                'security_level': 'high'
+            },
+            'mcp_client': {
+                'name': 'MCP Client Integration',
+                'description': 'Connect to MCP servers and invoke their tools and resources',
+                'cost': 0.3,
+                'success_rate': 0.90,
+                'avg_time': 2.0,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+            'multi_tool_composition': {
+                'name': 'Multi-Tool Composition',
+                'description': 'Orchestrate complex workflows with multiple tools',
+                'cost': 0.4,
+                'success_rate': 0.92,
+                'avg_time': 3.0,
+                'dependencies': [],
+                'composable': False,
+                'requires_approval': False,
+                'advanced': True
+            },
             'content_analyzer': {
                 'name': 'Content Analysis Engine',
                 'description': 'Deep content analysis with semantic understanding',
@@ -352,6 +552,14 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
                 'composition_success': {}
             } for tool in self.available_tools.keys()
         }
+
+        # Initialize semantic intent detector (replaces keyword matching)
+        try:
+            self.intent_detector = create_intent_detector(threshold=0.25)
+            self.logger.info("Semantic intent detection enabled (threshold=0.25)")
+        except Exception as e:
+            self.logger.warning(f"Intent detector unavailable, falling back to keywords: {e}")
+            self.intent_detector = None
 
     def _init_memory_systems(self):
         """Initialize multi-layered memory systems."""
@@ -649,7 +857,8 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             'analysis': ['analyze', 'compare', 'evaluate', 'explain', 'why', 'difference'],
             'factual': ['is', 'are', 'define', 'definition', 'meaning'],
             'creative': ['generate', 'create', 'write', 'design', 'brainstorm'],
-            'technical': ['code', 'programming', 'algorithm', 'implementation', 'debug']
+            'technical': ['code', 'programming', 'algorithm', 'implementation', 'debug'],
+            'image_generation': ['image', 'picture', 'photo', 'visual', 'draw', 'illustrate', 'artwork']
         }
 
         detected_intents = []
@@ -1608,6 +1817,1005 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
                 'error': f"Web search failed: {str(e)}"
             }
 
+    async def _execute_image_generation(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """
+        Execute image generation using DALL-E 3.
+
+        Args:
+            prompt: Text description of the image to generate
+            **kwargs: Additional parameters (size, quality, style, n, save_to_file, output_dir)
+
+        Returns:
+            Dict with success status, images, and metadata
+        """
+        import time
+        start_time = time.time()
+
+        # Update tool performance
+        self.tool_performance['image_generation']['usage_count'] += 1
+
+        # Try image generation tool
+        if IMAGE_GENERATION_AVAILABLE:
+            try:
+                # Clean prompt: remove "Prince generate", "generate an image of", etc.
+                import re
+                cleaned_prompt = prompt
+
+                # Remove Prince-specific prefixes
+                patterns = [
+                    r'^prince\s+(please\s+)?(generate|create|make|draw)\s+(an?\s+)?(image|picture|photo)\s+(of\s+|for\s+|showing\s+)?',
+                    r'^(please\s+)?(generate|create|make|draw)\s+(an?\s+)?(image|picture|photo)\s+(of\s+|for\s+|showing\s+)?',
+                ]
+
+                for pattern in patterns:
+                    cleaned_prompt = re.sub(pattern, '', cleaned_prompt, flags=re.IGNORECASE)
+
+                cleaned_prompt = cleaned_prompt.strip()
+
+                self.logger.info(f"[IMAGE_GEN] Original prompt: {prompt[:100]}")
+                if cleaned_prompt != prompt:
+                    self.logger.info(f"[IMAGE_GEN] Cleaned prompt: {cleaned_prompt[:100]}")
+
+                # Create image generation tool
+                image_tool = create_image_generation_tool()
+
+                # Check if tool is available
+                if not image_tool.is_available():
+                    error_msg = "Image generation not available. OpenAI API key not configured."
+                    self.logger.warning(f"[IMAGE_GEN] {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'prompt': prompt,
+                        'execution_time': time.time() - start_time
+                    }
+
+                # Extract parameters from kwargs
+                size = kwargs.get('size', '1024x1024')
+                quality = kwargs.get('quality', 'standard')
+                style = kwargs.get('style', 'vivid')
+                n = kwargs.get('n', 1)
+                save_to_file = kwargs.get('save_to_file', True)  # Default to saving
+                output_dir = kwargs.get('output_dir', None)
+
+                # Generate the image
+                result = await image_tool.execute(
+                    prompt=cleaned_prompt,
+                    size=size,
+                    quality=quality,
+                    style=style,
+                    n=n,
+                    save_to_file=save_to_file,
+                    output_dir=output_dir
+                )
+
+                execution_time = time.time() - start_time
+                result['execution_time'] = execution_time
+
+                # Update success stats
+                if result.get('success'):
+                    self.tool_performance['image_generation']['success_count'] += 1
+                    self.tool_performance['image_generation']['total_time'] += execution_time
+
+                    image_count = len(result.get('images', []))
+                    self.logger.info(
+                        f"[IMAGE_GEN] ✓ SUCCESS - Generated {image_count} image(s) in {execution_time:.2f}s"
+                    )
+
+                    # Log image URLs
+                    for i, url in enumerate(result.get('images', []), 1):
+                        self.logger.info(f"[IMAGE_GEN] Image {i}: {url[:80]}...")
+
+                    # Log output file if saved
+                    if result.get('output_file'):
+                        self.logger.info(f"[IMAGE_GEN] Saved to: {result['output_file']}")
+                else:
+                    self.logger.error(f"[IMAGE_GEN] ✗ FAILED: {result.get('error', 'Unknown error')}")
+
+                return result
+
+            except Exception as e:
+                execution_time = time.time() - start_time
+                error_msg = f"Image generation error: {str(e)}"
+                self.logger.error(f"[IMAGE_GEN] ✗ ERROR: {error_msg}")
+
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'prompt': prompt,
+                    'execution_time': execution_time
+                }
+        else:
+            # Image generation not available
+            error_msg = "Image generation tool not available. Install with: pip install openai"
+            self.logger.error(f"[IMAGE_GEN] {error_msg}")
+
+            return {
+                'success': False,
+                'error': error_msg,
+                'prompt': prompt,
+                'execution_time': time.time() - start_time
+            }
+
+    async def _execute_social_media_post(self, platform: str, text: str, **kwargs) -> Dict[str, Any]:
+        """
+        Execute social media posting (Twitter or LinkedIn).
+
+        Args:
+            platform: 'twitter' or 'linkedin'
+            text: Post content
+            **kwargs: Additional platform-specific parameters
+
+        Returns:
+            Dict with success status and post details
+        """
+        import time
+        start_time = time.time()
+
+        platform_lower = platform.lower()
+
+        # Update tool performance
+        tool_name = f'{platform_lower}_posting'
+        if tool_name in self.tool_performance:
+            self.tool_performance[tool_name]['usage_count'] += 1
+
+        # Twitter posting
+        if platform_lower == 'twitter':
+            if not TWITTER_POSTING_AVAILABLE:
+                error_msg = "Twitter posting not available. Install tweepy: pip install tweepy"
+                self.logger.error(f"[TWITTER] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'platform': 'twitter',
+                    'execution_time': time.time() - start_time
+                }
+
+            try:
+                self.logger.info(f"[TWITTER] Posting tweet: {text[:50]}...")
+
+                # Create Twitter tool
+                twitter_tool = create_twitter_posting_tool()
+
+                # Check availability
+                if not twitter_tool.is_available():
+                    error_msg = "Twitter API credentials not configured. Set environment variables."
+                    self.logger.warning(f"[TWITTER] {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'platform': 'twitter',
+                        'execution_time': time.time() - start_time
+                    }
+
+                # Post tweet
+                result = await twitter_tool.execute(text, **kwargs)
+
+                execution_time = time.time() - start_time
+                result['execution_time'] = execution_time
+
+                # Update success stats
+                if result.get('success'):
+                    self.tool_performance['twitter_posting']['success_count'] += 1
+                    self.tool_performance['twitter_posting']['total_time'] += execution_time
+                    self.logger.info(f"[TWITTER] ✓ SUCCESS - Tweet posted: {result.get('tweet_url')}")
+                else:
+                    self.logger.error(f"[TWITTER] ✗ FAILED: {result.get('error')}")
+
+                return result
+
+            except Exception as e:
+                execution_time = time.time() - start_time
+                error_msg = f"Twitter posting error: {str(e)}"
+                self.logger.error(f"[TWITTER] ✗ ERROR: {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'platform': 'twitter',
+                    'execution_time': execution_time
+                }
+
+        # LinkedIn posting
+        elif platform_lower == 'linkedin':
+            if not LINKEDIN_POSTING_AVAILABLE:
+                error_msg = "LinkedIn posting not available. Install requests: pip install requests"
+                self.logger.error(f"[LINKEDIN] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'platform': 'linkedin',
+                    'execution_time': time.time() - start_time
+                }
+
+            try:
+                self.logger.info(f"[LINKEDIN] Posting update: {text[:50]}...")
+
+                # Create LinkedIn tool
+                linkedin_tool = create_linkedin_posting_tool()
+
+                # Check availability
+                if not linkedin_tool.is_available():
+                    error_msg = "LinkedIn API credentials not configured. Set environment variables."
+                    self.logger.warning(f"[LINKEDIN] {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'platform': 'linkedin',
+                        'execution_time': time.time() - start_time
+                    }
+
+                # Post update
+                result = await linkedin_tool.execute(text, **kwargs)
+
+                execution_time = time.time() - start_time
+                result['execution_time'] = execution_time
+
+                # Update success stats
+                if result.get('success'):
+                    self.tool_performance['linkedin_posting']['success_count'] += 1
+                    self.tool_performance['linkedin_posting']['total_time'] += execution_time
+                    self.logger.info(f"[LINKEDIN] ✓ SUCCESS - Post created: {result.get('post_url')}")
+                else:
+                    self.logger.error(f"[LINKEDIN] ✗ FAILED: {result.get('error')}")
+
+                return result
+
+            except Exception as e:
+                execution_time = time.time() - start_time
+                error_msg = f"LinkedIn posting error: {str(e)}"
+                self.logger.error(f"[LINKEDIN] ✗ ERROR: {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'platform': 'linkedin',
+                    'execution_time': execution_time
+                }
+
+        else:
+            # Unknown platform
+            error_msg = f"Unknown social media platform: {platform}. Supported: twitter, linkedin"
+            self.logger.error(f"[SOCIAL_MEDIA] {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'platform': platform,
+                'execution_time': time.time() - start_time
+            }
+
+    async def _execute_landing_page_generation(self, description: str, **kwargs) -> Dict[str, Any]:
+        """
+        Execute landing page generation from description.
+
+        Args:
+            description: Text description of the landing page
+            **kwargs: Additional parameters (template, title, subtitle, features, etc.)
+
+        Returns:
+            Dict with success status, file paths, and metadata
+        """
+        import time
+        start_time = time.time()
+
+        # Update tool performance
+        self.tool_performance['landing_page_generator']['usage_count'] += 1
+
+        if not LANDING_PAGE_GENERATOR_AVAILABLE:
+            error_msg = "Landing page generator not available"
+            self.logger.error(f"[LANDING_PAGE] {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'execution_time': time.time() - start_time
+            }
+
+        try:
+            self.logger.info(f"[LANDING_PAGE] Generating landing page: {description[:50]}...")
+
+            # Create landing page generator
+            generator = create_landing_page_generator()
+
+            # Check availability
+            if not generator.is_available():
+                error_msg = "Landing page output directory not writable"
+                self.logger.warning(f"[LANDING_PAGE] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'execution_time': time.time() - start_time
+                }
+
+            # Generate landing page
+            result = await generator.execute(description, **kwargs)
+
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['landing_page_generator']['success_count'] += 1
+                self.tool_performance['landing_page_generator']['total_time'] += execution_time
+                self.logger.info(f"[LANDING_PAGE] ✓ SUCCESS - Generated: {result.get('filepath')}")
+                self.logger.info(f"[LANDING_PAGE] File size: {result.get('file_size')} bytes")
+            else:
+                self.logger.error(f"[LANDING_PAGE] ✗ FAILED: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"Landing page generation error: {str(e)}"
+            self.logger.error(f"[LANDING_PAGE] ✗ ERROR: {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'execution_time': execution_time
+            }
+
+    async def _execute_file_operation(self, operation: str, **kwargs) -> Dict[str, Any]:
+        """
+        Execute file operation (create, read, update, delete, move, copy, undo).
+
+        Args:
+            operation: Operation type (create, read, update, delete, move, copy, undo, list_backups)
+            **kwargs: Operation-specific parameters
+
+        Returns:
+            Dict with success status and operation results
+        """
+        import time
+        start_time = time.time()
+
+        # Update tool performance
+        self.tool_performance['file_operations']['usage_count'] += 1
+
+        if not FILE_OPERATIONS_AVAILABLE:
+            error_msg = "File operations not available"
+            self.logger.error(f"[FILE_OPS] {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'operation': operation,
+                'execution_time': time.time() - start_time
+            }
+
+        try:
+            self.logger.info(f"[FILE_OPS] Executing {operation} operation")
+
+            # Create file operations tool
+            file_ops = create_file_operations_tool()
+
+            # Check availability
+            if not file_ops.is_available():
+                error_msg = "File operations backup directory not writable"
+                self.logger.warning(f"[FILE_OPS] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'operation': operation,
+                    'execution_time': time.time() - start_time
+                }
+
+            # Execute operation
+            operation_map = {
+                'create': file_ops.create,
+                'read': file_ops.read,
+                'update': file_ops.update,
+                'delete': file_ops.delete,
+                'move': file_ops.move,
+                'copy': file_ops.copy,
+                'undo': file_ops.undo_last,
+                'list_backups': file_ops.list_backups
+            }
+
+            if operation not in operation_map:
+                error_msg = f"Unknown operation: {operation}"
+                self.logger.error(f"[FILE_OPS] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'operation': operation,
+                    'execution_time': time.time() - start_time
+                }
+
+            # Call operation method
+            operation_func = operation_map[operation]
+            result = await operation_func(**kwargs)
+
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['file_operations']['success_count'] += 1
+                self.tool_performance['file_operations']['total_time'] += execution_time
+                self.logger.info(f"[FILE_OPS] ✓ SUCCESS - {operation}: {result.get('filepath', 'N/A')}")
+            else:
+                self.logger.error(f"[FILE_OPS] ✗ FAILED - {operation}: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"File operation error: {str(e)}"
+            self.logger.error(f"[FILE_OPS] ✗ ERROR: {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'operation': operation,
+                'execution_time': execution_time
+            }
+
+    async def _execute_code_generation(self, description: str, **kwargs) -> Dict[str, Any]:
+        """
+        Execute code generation from description.
+
+        Args:
+            description: What the code should do
+            **kwargs: Additional parameters (language, function_name, filename, run_linter)
+
+        Returns:
+            Dict with success status and generated code details
+        """
+        import time
+        start_time = time.time()
+
+        # Update tool performance
+        self.tool_performance['code_generation']['usage_count'] += 1
+
+        if not CODE_GENERATION_AVAILABLE:
+            error_msg = "Code generation not available"
+            self.logger.error(f"[CODE_GEN] {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'execution_time': time.time() - start_time
+            }
+
+        try:
+            self.logger.info(f"[CODE_GEN] Generating code: {description[:50]}...")
+
+            # Create code generation tool
+            code_gen = create_code_generation_tool()
+
+            # Check availability
+            if not code_gen.is_available():
+                error_msg = "Code generation output directory not writable"
+                self.logger.warning(f"[CODE_GEN] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'execution_time': time.time() - start_time
+                }
+
+            # Generate code
+            result = await code_gen.generate(description, **kwargs)
+
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['code_generation']['success_count'] += 1
+                self.tool_performance['code_generation']['total_time'] += execution_time
+                self.logger.info(f"[CODE_GEN] ✓ SUCCESS - Generated {result.get('language')} code: {result.get('filepath')}")
+                self.logger.info(f"[CODE_GEN] Size: {result.get('size')} bytes, {result.get('lines')} lines")
+            else:
+                self.logger.error(f"[CODE_GEN] ✗ FAILED: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"Code generation error: {str(e)}"
+            self.logger.error(f"[CODE_GEN] ✗ ERROR: {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'execution_time': execution_time
+            }
+
+    async def _execute_n8n_workflow(
+        self,
+        action: str,
+        workflow_id: Optional[str] = None,
+        execution_id: Optional[str] = None,
+        data: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Execute n8n workflow automation operations.
+
+        Args:
+            action: Operation to perform (list_workflows, trigger_workflow,
+                    get_workflow_status, get_workflow_result)
+            workflow_id: Workflow ID (required for trigger_workflow)
+            execution_id: Execution ID (required for status/result queries)
+            data: Data payload for workflow trigger
+            **kwargs: Additional parameters
+
+        Returns:
+            Dict with success status and operation results
+        """
+        import time
+        start_time = time.time()
+
+        # Update tool performance
+        self.tool_performance['n8n_workflow']['usage_count'] += 1
+
+        if not N8N_WORKFLOW_AVAILABLE:
+            error_msg = "N8N Workflow Tool not available. Install httpx: pip install httpx"
+            self.logger.error(f"[N8N] {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'action': action,
+                'execution_time': time.time() - start_time
+            }
+
+        try:
+            self.logger.info(f"[N8N] Executing action: {action}")
+
+            # Create N8N workflow tool
+            n8n_tool = create_n8n_workflow_tool()
+
+            # Check availability
+            if not n8n_tool.is_available():
+                error_msg = ("N8N Workflow Tool not configured. Set N8N_API_URL and N8N_API_KEY "
+                            "environment variables, or connect MCP n8n server.")
+                self.logger.warning(f"[N8N] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'action': action,
+                    'execution_time': time.time() - start_time
+                }
+
+            # Execute workflow operation
+            result = await n8n_tool.execute(
+                action=action,
+                workflow_id=workflow_id,
+                execution_id=execution_id,
+                data=data,
+                **kwargs
+            )
+
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['n8n_workflow']['success_count'] += 1
+                self.tool_performance['n8n_workflow']['total_time'] += execution_time
+
+                # Log success based on action type
+                if action == 'list_workflows':
+                    count = result.get('result', {}).get('count', 0)
+                    self.logger.info(f"[N8N] ✓ SUCCESS - Listed {count} workflows")
+                elif action == 'trigger_workflow':
+                    exec_id = result.get('result', {}).get('execution_id', 'N/A')
+                    self.logger.info(f"[N8N] ✓ SUCCESS - Triggered workflow {workflow_id}, execution: {exec_id}")
+                elif action == 'get_workflow_status':
+                    status = result.get('result', {}).get('status', 'unknown')
+                    self.logger.info(f"[N8N] ✓ SUCCESS - Execution {execution_id} status: {status}")
+                elif action == 'get_workflow_result':
+                    status = result.get('result', {}).get('status', 'unknown')
+                    finished = result.get('result', {}).get('finished', False)
+                    self.logger.info(f"[N8N] ✓ SUCCESS - Execution {execution_id} finished: {finished}, status: {status}")
+            else:
+                self.logger.error(f"[N8N] ✗ FAILED: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"N8N workflow operation error: {str(e)}"
+            self.logger.error(f"[N8N] ✗ ERROR: {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'action': action,
+                'execution_time': execution_time
+            }
+
+    async def _execute_browser_automation(
+        self,
+        action: str,
+        url: Optional[str] = None,
+        selector: Optional[str] = None,
+        text: Optional[str] = None,
+        javascript: Optional[str] = None,
+        path: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Execute browser automation operations.
+
+        Args:
+            action: Operation to perform (navigate, click, fill, screenshot,
+                    get_text, wait_for, evaluate)
+            url: Target URL (required for navigate)
+            selector: CSS selector (required for click, fill, get_text, wait_for)
+            text: Text content (required for fill)
+            javascript: JavaScript code (required for evaluate)
+            path: File path (required for screenshot)
+            timeout_ms: Operation timeout in milliseconds
+            **kwargs: Additional parameters
+
+        Returns:
+            Dict with success status and operation results
+        """
+        import time
+        start_time = time.time()
+
+        # Update tool performance
+        self.tool_performance['browser_automation']['usage_count'] += 1
+
+        if not BROWSER_AUTOMATION_AVAILABLE:
+            error_msg = "Browser Automation Tool not available. Install Playwright: pip install playwright && playwright install"
+            self.logger.error(f"[BROWSER] {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'action': action,
+                'execution_time': time.time() - start_time
+            }
+
+        try:
+            self.logger.info(f"[BROWSER] Executing action: {action}")
+
+            # Create browser automation tool
+            browser_tool = create_browser_automation_tool()
+
+            # Check availability
+            if not browser_tool.is_available():
+                error_msg = ("Browser Automation Tool not configured. Install Playwright with: "
+                            "pip install playwright && playwright install")
+                self.logger.warning(f"[BROWSER] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'action': action,
+                    'execution_time': time.time() - start_time
+                }
+
+            # Execute browser operation
+            result = await browser_tool.execute(
+                action=action,
+                url=url,
+                selector=selector,
+                text=text,
+                javascript=javascript,
+                path=path,
+                timeout_ms=timeout_ms,
+                **kwargs
+            )
+
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['browser_automation']['success_count'] += 1
+                self.tool_performance['browser_automation']['total_time'] += execution_time
+
+                # Log success based on action type
+                if action == 'navigate':
+                    final_url = result.get('result', {}).get('final_url', 'N/A')
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Navigated to {final_url}")
+                elif action == 'click':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Clicked element {selector}")
+                elif action == 'fill':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Filled element {selector}")
+                elif action == 'screenshot':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Screenshot saved to {path}")
+                elif action == 'get_text':
+                    text_length = result.get('result', {}).get('length', 0)
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Extracted {text_length} chars from {selector}")
+                elif action == 'wait_for':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Element {selector} found")
+                elif action == 'evaluate':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - JavaScript executed")
+            else:
+                self.logger.error(f"[BROWSER] ✗ FAILED: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"Browser automation operation error: {str(e)}"
+            self.logger.error(f"[BROWSER] ✗ ERROR: {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'action': action,
+                'execution_time': execution_time
+            }
+
+    async def _execute_terminal_commands(
+        self,
+        query: str,
+        analysis: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute terminal commands tool.
+
+        Args:
+            query: User query
+            analysis: Query analysis results
+            context: Execution context
+
+        Returns:
+            Execution result with command output
+        """
+        if not TERMINAL_COMMANDS_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'Terminal Commands Tool not available',
+                'tool': 'terminal_commands'
+            }
+
+        start_time = time.time()
+        self.tool_performance['terminal_commands']['usage_count'] += 1
+
+        try:
+            # Extract command from query or context
+            command = context.get('command') or analysis.get('extracted_command')
+            action = context.get('action', 'execute_command')
+
+            self.logger.info(f"[TERMINAL] Executing: {action} - {command}")
+
+            # Create terminal commands tool
+            terminal_tool = create_terminal_commands_tool()
+
+            if action == 'get_whitelist':
+                result = terminal_tool.execute(action='get_whitelist')
+            elif action == 'validate_command':
+                result = terminal_tool.execute(
+                    action='validate_command',
+                    command=command
+                )
+            else:
+                # Default: execute_command
+                result = terminal_tool.execute(
+                    action='execute_command',
+                    command=command,
+                    working_directory=context.get('working_directory'),
+                    timeout=context.get('timeout', 30)
+                )
+
+            execution_time = time.time() - start_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['terminal_commands']['success_count'] += 1
+                self.tool_performance['terminal_commands']['total_time'] += execution_time
+                self.logger.info(f"[TERMINAL] SUCCESS in {execution_time:.2f}s")
+            else:
+                self.logger.error(f"[TERMINAL] FAILED: {result.get('error')}")
+
+            return {
+                'success': result.get('success', False),
+                'result': result.get('result'),
+                'error': result.get('error'),
+                'tool': 'terminal_commands',
+                'execution_time': execution_time
+            }
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self.logger.error(f"[TERMINAL] ERROR: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'tool': 'terminal_commands',
+                'execution_time': execution_time
+            }
+
+    async def _execute_mcp_client(
+        self,
+        query: str,
+        analysis: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute MCP client operations.
+
+        Args:
+            query: User query
+            analysis: Query analysis results
+            context: Execution context
+
+        Returns:
+            MCP operation result
+        """
+        if not MCP_CLIENT_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'MCP Client Tool not available',
+                'tool': 'mcp_client'
+            }
+
+        start_time = time.time()
+        self.tool_performance['mcp_client']['usage_count'] += 1
+
+        try:
+            operation = context.get('operation', 'list_servers')
+            server_id = context.get('server_id')
+            tool_name = context.get('tool_name')
+            params = context.get('params', {})
+            uri = context.get('uri')
+
+            self.logger.info(f"[MCP] Operation: {operation} - Server: {server_id}")
+
+            # Create MCP client tool
+            mcp_tool = create_mcp_client_tool(
+                server_config_path=os.getenv('MCP_SERVER_CONFIG')
+            )
+
+            result = await mcp_tool.execute(
+                operation=operation,
+                server_id=server_id,
+                tool_name=tool_name,
+                params=params,
+                uri=uri
+            )
+
+            execution_time = time.time() - start_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['mcp_client']['success_count'] += 1
+                self.tool_performance['mcp_client']['total_time'] += execution_time
+                self.logger.info(f"[MCP] SUCCESS in {execution_time:.2f}s")
+            else:
+                self.logger.error(f"[MCP] FAILED: {result.get('error')}")
+
+            return {
+                'success': result.get('success', False),
+                'result': result.get('result'),
+                'error': result.get('error'),
+                'tool': 'mcp_client',
+                'execution_time': execution_time
+            }
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self.logger.error(f"[MCP] ERROR: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'tool': 'mcp_client',
+                'execution_time': execution_time
+            }
+
+    async def _execute_multi_tool_composition(
+        self,
+        query: str,
+        analysis: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute multi-tool composition workflows.
+
+        Args:
+            query: User query
+            analysis: Query analysis results
+            context: Execution context with workflow definition
+
+        Returns:
+            Workflow execution result
+        """
+        if not MULTI_TOOL_COMPOSITION_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'Multi-Tool Composition Tool not available',
+                'tool': 'multi_tool_composition'
+            }
+
+        start_time = time.time()
+        self.tool_performance['multi_tool_composition']['usage_count'] += 1
+
+        try:
+            workflow = context.get('workflow')
+            workflow_context = context.get('context', {})
+            dry_run = context.get('dry_run', False)
+
+            if not workflow:
+                return {
+                    'success': False,
+                    'error': 'No workflow definition provided',
+                    'tool': 'multi_tool_composition'
+                }
+
+            self.logger.info(f"[COMPOSITION] Executing workflow type: {workflow.get('type')}")
+
+            # Create multi-tool composition tool with executor
+            composition_tool = create_multi_tool_composition_tool(
+                tool_executor=self._composition_tool_executor
+            )
+
+            result = await composition_tool.execute(
+                workflow=workflow,
+                context=workflow_context,
+                dry_run=dry_run
+            )
+
+            execution_time = time.time() - start_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['multi_tool_composition']['success_count'] += 1
+                self.tool_performance['multi_tool_composition']['total_time'] += execution_time
+                self.logger.info(f"[COMPOSITION] SUCCESS - {len(result.get('steps', []))} steps in {execution_time:.2f}s")
+            else:
+                self.logger.error(f"[COMPOSITION] FAILED: {result.get('error')}")
+
+            return {
+                'success': result.get('success', False),
+                'result': result.get('result'),
+                'error': result.get('error'),
+                'tool': 'multi_tool_composition',
+                'execution_time': execution_time,
+                'steps_executed': len(result.get('steps', [])),
+                'workflow_type': result.get('workflow_type')
+            }
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self.logger.error(f"[COMPOSITION] ERROR: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'tool': 'multi_tool_composition',
+                'execution_time': execution_time
+            }
+
+    async def _composition_tool_executor(
+        self,
+        tool_name: str,
+        params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Tool executor for multi-tool composition.
+        Allows composition tool to invoke other Prince tools.
+
+        Args:
+            tool_name: Name of tool to execute
+            params: Tool parameters
+
+        Returns:
+            Tool execution result
+        """
+        # Map tool names to execute methods
+        tool_map = {
+            'image_generation': self._execute_image_generation,
+            'file_operations': self._execute_file_operations,
+            'code_generation': self._execute_code_generation,
+            'n8n_workflow': self._execute_n8n_workflow,
+            'browser_automation': self._execute_browser_automation,
+            'terminal_commands': self._execute_terminal_commands,
+            'mcp_client': self._execute_mcp_client
+        }
+
+        if tool_name not in tool_map:
+            return {
+                'success': False,
+                'error': f'Tool not found: {tool_name}'
+            }
+
+        execute_method = tool_map[tool_name]
+
+        # Call tool with empty query and params as context
+        result = await execute_method(
+            query='',
+            analysis={},
+            context=params
+        )
+
+        return result
+
     async def _execute_content_analysis(self, search_results: List[Dict], query: str) -> Dict[str, Any]:
         """Execute content analysis on search results."""
         await asyncio.sleep(0.2)
@@ -2073,10 +3281,404 @@ For the most current information, I recommend checking the latest sources as thi
         return plan
 
     async def _execute_direct_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
-        """Execute direct reasoning for simple queries."""
+        """Execute direct reasoning for simple queries with semantic intent detection."""
         await asyncio.sleep(0.1)
 
-        # Create direct response action
+        # Use semantic intent detection if available, fall back to keywords
+        detected_tool = None
+        confidence = 0.0
+
+        if self.intent_detector:
+            # Semantic detection (natural language understanding)
+            intent_result = await self.intent_detector.detect(query)
+            detected_tool = intent_result.tool_name
+            confidence = intent_result.confidence
+            self.logger.info(f"[INTENT] Detected: {detected_tool} (confidence: {confidence:.2f})")
+        else:
+            # Fallback: Legacy keyword matching
+            query_lower = query.lower()
+            image_generation_keywords = ['generate image', 'create image', 'make image', 'draw image',
+                                           'generate picture', 'create picture', 'make picture', 'draw picture',
+                                           'generate photo', 'create photo', 'make photo',
+                                           'generate an image', 'create an image', 'make an image',
+                                           'image of', 'picture of', 'photo of',
+                                           'illustrate', 'visualize', 'artwork of', 'visual of']
+
+            if any(keyword in query_lower for keyword in image_generation_keywords):
+                detected_tool = 'image_generation'
+                confidence = 0.9
+
+        # Route to appropriate tool based on detection
+        if detected_tool == 'image_generation':
+            # This is an image generation request - use image generation tool
+            action = AgenticAction(
+                action_type="image_generation",
+                tool_name="image_generation",
+                parameters={"prompt": query, "mode": "direct"},
+                context={"analysis": analysis},
+                timestamp=time.time(),
+                expected_reward=0.9
+            )
+            trajectory.actions.append(action)
+
+            # Execute image generation
+            result = await self._execute_image_generation(query)
+            action.success = result.get('success', False)
+            action.actual_reward = 0.9 if action.success else 0.3
+
+            if result.get('success'):
+                # Format successful result
+                images = result.get('images', [])
+                output_file = result.get('output_file', '')
+
+                response = f"✅ I've generated {len(images)} image(s) for you!\n\n"
+
+                for i, url in enumerate(images, 1):
+                    response += f"**Image {i}:** {url}\n\n"
+
+                if output_file:
+                    response += f"\n💾 **Saved to:** {output_file}\n"
+
+                if result.get('revised_prompt'):
+                    response += f"\n📝 **Enhanced Prompt:** {result['revised_prompt']}\n"
+
+                # Update tool performance
+                self.tool_performance['image_generation']['success_count'] += 1
+
+                return {
+                    'success': True,
+                    'result': response,
+                    'confidence': 0.95,
+                    'tools_used': ['image_generation'],
+                    'method': 'image_generation',
+                    'accuracy': 0.95,
+                    'images': images,
+                    'output_file': output_file
+                }
+            else:
+                # Image generation failed
+                error_msg = result.get('error', 'Unknown error')
+                response = f"❌ Image generation failed: {error_msg}\n\n"
+
+                if 'API key' in error_msg:
+                    response += "Please configure your OpenAI API key in the .env file:\n"
+                    response += "OPENAI_API_KEY=your_key_here"
+
+                return {
+                    'success': False,
+                    'result': response,
+                    'confidence': 0.3,
+                    'tools_used': ['image_generation'],
+                    'method': 'image_generation_failed',
+                    'accuracy': 0.0,
+                    'error': error_msg
+                }
+
+        # Check if this is a social media posting request (semantic detection handled above)
+        if detected_tool == 'social_media':
+            # Detect specific platform from query
+            query_lower = query.lower()
+            detected_platform = None
+
+            if 'twitter' in query_lower or 'tweet' in query_lower:
+                detected_platform = 'twitter'
+            elif 'linkedin' in query_lower:
+                detected_platform = 'linkedin'
+            else:
+                # Default to Twitter if no specific platform mentioned
+                detected_platform = 'twitter'
+
+        else:
+            # Fallback: Legacy keyword matching for social media
+            if not self.intent_detector:
+                query_lower = query.lower()
+                social_media_keywords = {
+                    'twitter': ['tweet', 'post to twitter', 'post on twitter', 'share on twitter', 'twitter post'],
+                    'linkedin': ['post to linkedin', 'post on linkedin', 'share on linkedin', 'linkedin post', 'linkedin update']
+                }
+
+                detected_platform = None
+                for platform, keywords in social_media_keywords.items():
+                    if any(keyword in query_lower for keyword in keywords):
+                        detected_platform = platform
+                        break
+            else:
+                detected_platform = None
+
+        if detected_platform:
+            # Extract the content to post (remove platform-specific prefixes)
+            import re
+            post_content = query
+
+            # Remove common posting prefixes
+            posting_patterns = [
+                r'^(please\s+)?(tweet|post|share)\s+(on\s+|to\s+)?(twitter|linkedin):?\s*',
+                r'^(please\s+)?(create|make)\s+a\s+(tweet|linkedin\s+post):?\s*',
+            ]
+
+            for pattern in posting_patterns:
+                post_content = re.sub(pattern, '', post_content, flags=re.IGNORECASE)
+
+            post_content = post_content.strip()
+
+            # This is a social media posting request
+            action = AgenticAction(
+                action_type=f"{detected_platform}_posting",
+                tool_name=f"{detected_platform}_posting",
+                parameters={"text": post_content, "platform": detected_platform},
+                context={"analysis": analysis},
+                timestamp=time.time(),
+                expected_reward=0.85
+            )
+            trajectory.actions.append(action)
+
+            # Execute social media posting
+            result = await self._execute_social_media_post(detected_platform, post_content)
+            action.success = result.get('success', False)
+            action.actual_reward = 0.85 if action.success else 0.2
+
+            if result.get('success'):
+                # Format successful result
+                post_url = result.get('tweet_url') or result.get('post_url', '')
+                post_id = result.get('tweet_id') or result.get('post_id', '')
+
+                response = f"✅ Posted to {detected_platform.title()} successfully!\n\n"
+                response += f"**URL:** {post_url}\n"
+                response += f"**ID:** {post_id}\n\n"
+                response += f"**Content:**\n> {post_content[:200]}{'...' if len(post_content) > 200 else ''}\n"
+
+                # Update tool performance
+                tool_name = f'{detected_platform}_posting'
+                if tool_name in self.tool_performance:
+                    self.tool_performance[tool_name]['success_count'] += 1
+
+                return {
+                    'success': True,
+                    'result': response,
+                    'confidence': 0.95,
+                    'tools_used': [f'{detected_platform}_posting'],
+                    'method': f'{detected_platform}_posting',
+                    'accuracy': 0.95,
+                    'post_url': post_url,
+                    'post_id': post_id
+                }
+            else:
+                # Posting failed
+                error_msg = result.get('error', 'Unknown error')
+                response = f"❌ {detected_platform.title()} posting failed: {error_msg}\n\n"
+
+                if 'credentials' in error_msg.lower() or 'API' in error_msg:
+                    response += f"Please configure your {detected_platform.title()} API credentials in the .env file:\n"
+                    if detected_platform == 'twitter':
+                        response += "TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, "
+                        response += "TWITTER_ACCESS_TOKEN_SECRET, TWITTER_BEARER_TOKEN"
+                    else:
+                        response += "LINKEDIN_ACCESS_TOKEN, LINKEDIN_PERSON_URN"
+
+                return {
+                    'success': False,
+                    'result': response,
+                    'confidence': 0.3,
+                    'tools_used': [f'{detected_platform}_posting'],
+                    'method': f'{detected_platform}_posting_failed',
+                    'accuracy': 0.0,
+                    'error': error_msg
+                }
+
+        # Check if this is a landing page generation request (semantic detection handled above)
+        if detected_tool == 'landing_page_generator' or (
+            not self.intent_detector and any(keyword in query.lower() for keyword in [
+                'landing page', 'create landing page', 'generate landing page', 'make landing page',
+                'build landing page', 'design landing page', 'create website', 'build website'
+            ])
+        ):
+            # Extract description (remove landing page prefixes)
+            import re
+            description = query
+
+            # Remove common prefixes
+            patterns = [
+                r'^(please\s+)?(create|generate|make|build|design)\s+(a\s+)?landing\s+page\s+(for\s+|about\s+)?',
+                r'^(please\s+)?(create|generate|make|build)\s+(a\s+)?website\s+(for\s+|about\s+)?',
+            ]
+
+            for pattern in patterns:
+                description = re.sub(pattern, '', description, flags=re.IGNORECASE)
+
+            description = description.strip()
+
+            # This is a landing page generation request
+            action = AgenticAction(
+                action_type="landing_page_generation",
+                tool_name="landing_page_generator",
+                parameters={"description": description},
+                context={"analysis": analysis},
+                timestamp=time.time(),
+                expected_reward=0.90
+            )
+            trajectory.actions.append(action)
+
+            # Execute landing page generation
+            result = await self._execute_landing_page_generation(description)
+            action.success = result.get('success', False)
+            action.actual_reward = 0.90 if action.success else 0.3
+
+            if result.get('success'):
+                # Format successful result
+                filepath = result.get('filepath', '')
+                url = result.get('url', '')
+                file_size = result.get('file_size', 0)
+                title = result.get('title', '')
+
+                response = f"✅ I've generated a professional landing page for you!\n\n"
+                response += f"**Title:** {title}\n"
+                response += f"**File:** {filepath}\n"
+                response += f"**Size:** {file_size:,} bytes\n"
+                response += f"**URL:** {url}\n\n"
+                response += f"Open the file in your browser to view it!\n"
+
+                # Update tool performance
+                self.tool_performance['landing_page_generator']['success_count'] += 1
+
+                return {
+                    'success': True,
+                    'result': response,
+                    'confidence': 0.95,
+                    'tools_used': ['landing_page_generator'],
+                    'method': 'landing_page_generation',
+                    'accuracy': 0.95,
+                    'filepath': filepath,
+                    'url': url
+                }
+            else:
+                # Landing page generation failed
+                error_msg = result.get('error', 'Unknown error')
+                response = f"❌ Landing page generation failed: {error_msg}\n\n"
+                response += "Please check that the output directory is writable."
+
+                return {
+                    'success': False,
+                    'result': response,
+                    'confidence': 0.3,
+                    'tools_used': ['landing_page_generator'],
+                    'method': 'landing_page_generation_failed',
+                    'accuracy': 0.0,
+                    'error': error_msg
+                }
+
+        # Check if this is a terminal command request
+        terminal_keywords = ['terminal', 'command', 'execute command', 'run command', 'shell', 'execute shell']
+        if any(keyword in query_lower for keyword in terminal_keywords):
+            # Extract command from query
+            import re
+            command = query
+            for pattern in [r'^(please\s+)?(execute|run)\s+(command|terminal|shell):?\s*',
+                          r'^(please\s+)?(execute|run)\s+']:
+                command = re.sub(pattern, '', command, flags=re.IGNORECASE)
+
+            command = command.strip()
+
+            context = {
+                'command': command,
+                'action': 'execute_command'
+            }
+            result = await self._execute_terminal_commands(query, analysis, context)
+
+            if result.get('success'):
+                response = f"Command executed successfully!\n\n**Output:**\n```\n{result.get('result', {}).get('stdout', '')}\n```"
+                if result.get('result', {}).get('stderr'):
+                    response += f"\n\n**Errors:**\n```\n{result['result']['stderr']}\n```"
+            else:
+                response = f"Command execution failed: {result.get('error', 'Unknown error')}"
+
+            return {
+                'success': result.get('success', False),
+                'result': response,
+                'confidence': 0.9 if result.get('success') else 0.3,
+                'tools_used': ['terminal_commands'],
+                'method': 'terminal_commands',
+                'accuracy': 0.9 if result.get('success') else 0.0
+            }
+
+        # Check if this is an MCP client request
+        mcp_keywords = ['mcp', 'mcp server', 'connect to server', 'list mcp', 'mcp tools']
+        if any(keyword in query_lower for keyword in mcp_keywords):
+            # Parse operation from query
+            operation = 'list_servers'
+            if 'connect' in query_lower:
+                operation = 'connect_server'
+            elif 'list tools' in query_lower or 'show tools' in query_lower:
+                operation = 'list_tools'
+            elif 'call tool' in query_lower or 'invoke tool' in query_lower:
+                operation = 'call_tool'
+
+            context = {'operation': operation}
+            result = await self._execute_mcp_client(query, analysis, context)
+
+            if result.get('success'):
+                result_data = result.get('result', {})
+                if operation == 'list_servers':
+                    servers = result_data.get('servers', [])
+                    response = f"Available MCP Servers ({len(servers)}):\n\n"
+                    for server in servers:
+                        response += f"- **{server['name']}** (ID: {server['id']})\n"
+                        response += f"  Status: {server['state']}\n\n"
+                else:
+                    response = f"MCP Operation Result:\n\n```json\n{json.dumps(result_data, indent=2)}\n```"
+            else:
+                response = f"MCP operation failed: {result.get('error', 'Unknown error')}"
+
+            return {
+                'success': result.get('success', False),
+                'result': response,
+                'confidence': 0.85 if result.get('success') else 0.3,
+                'tools_used': ['mcp_client'],
+                'method': 'mcp_client',
+                'accuracy': 0.85 if result.get('success') else 0.0
+            }
+
+        # Check if this is a workflow composition request
+        workflow_keywords = ['workflow', 'pipeline', 'chain tools', 'compose tools', 'multi-step', 'orchestrate']
+        if any(keyword in query_lower for keyword in workflow_keywords):
+            # User should provide workflow in context or we generate a simple one
+            workflow = context.get('workflow')
+
+            if not workflow:
+                # Generate a simple sequential workflow as example
+                workflow = {
+                    'type': 'sequential',
+                    'steps': [
+                        {'tool': 'image_generation', 'params': {'prompt': query}}
+                    ]
+                }
+
+            comp_context = {
+                'workflow': workflow,
+                'dry_run': 'dry run' in query_lower or 'validate' in query_lower
+            }
+            result = await self._execute_multi_tool_composition(query, analysis, comp_context)
+
+            if result.get('success'):
+                steps = result.get('steps_executed', 0)
+                workflow_type = result.get('workflow_type', 'unknown')
+                response = f"Workflow executed successfully!\n\n"
+                response += f"**Type:** {workflow_type}\n"
+                response += f"**Steps:** {steps}\n"
+                response += f"**Duration:** {result.get('execution_time', 0):.2f}s\n\n"
+                response += f"**Result:**\n{result.get('result', '')}"
+            else:
+                response = f"Workflow execution failed: {result.get('error', 'Unknown error')}"
+
+            return {
+                'success': result.get('success', False),
+                'result': response,
+                'confidence': 0.88 if result.get('success') else 0.3,
+                'tools_used': ['multi_tool_composition'],
+                'method': 'multi_tool_composition',
+                'accuracy': 0.88 if result.get('success') else 0.0
+            }
+
+        # Create direct response action (for non-image/non-social/non-landing-page queries)
         action = AgenticAction(
             action_type="direct_response",
             tool_name="synthesis_engine",
