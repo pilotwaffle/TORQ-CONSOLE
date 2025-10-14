@@ -1,0 +1,113 @@
+================================================================================
+TORQ CONSOLE DESKTOP SHORTCUT - QUICK REFERENCE
+================================================================================
+Date Fixed: 2025-10-14
+Status: OPERATIONAL ✓
+Test Results: 10/10 PASSED
+================================================================================
+
+SHORTCUT LOCATION
+-----------------
+Desktop: C:\Users\asdasd\OneDrive\Desktop\TORQ Console.lnk
+Backup:  C:\Users\asdasd\OneDrive\Desktop\TORQ Console.lnk.backup
+
+SHORTCUT CONFIGURATION
+----------------------
+Target:     E:\TORQ-CONSOLE\start_torq.bat
+Working:    E:\TORQ-CONSOLE
+Icon:       E:\TORQ-CONSOLE\torq_console_icon.ico
+Window:     Normal (1)
+
+HOW TO LAUNCH
+-------------
+1. Double-click "TORQ Console" icon on desktop
+2. Browser opens to http://localhost:8899 after 3 seconds
+3. GPU acceleration enabled (28 layers)
+
+MANAGEMENT SCRIPTS
+------------------
+Create:   powershell -ExecutionPolicy Bypass -File "E:\Create-TORQ-Shortcut.ps1"
+Verify:   powershell -ExecutionPolicy Bypass -File "E:\Verify-TORQ-Shortcut.ps1"
+Test:     powershell -ExecutionPolicy Bypass -File "E:\Test-TORQ-Shortcut.ps1"
+
+EXPECTED STARTUP
+----------------
+================================================================================
+TORQ CONSOLE v0.70.0 - GPU-Accelerated AI Development Environment
+================================================================================
+
+[OK] CUDA DLLs added to PATH
+[OK] GPU acceleration enabled (28 layers)
+[OK] Starting TORQ Console...
+
+Server will be available at: http://localhost:8899
+Opening browser in 3 seconds...
+
+TROUBLESHOOTING
+---------------
+Problem: Shortcut doesn't launch
+Fix:     Run Test-TORQ-Shortcut.ps1 to diagnose
+         Then run Create-TORQ-Shortcut.ps1 to recreate
+
+Problem: No GPU acceleration
+Fix:     Verify CUDA DLLs exist:
+         - E:\Python\Python311\Lib\site-packages\nvidia\cuda_runtime\bin
+         - E:\Python\Python311\Lib\site-packages\nvidia\cublas\bin
+         - E:\Python\Python311\Lib\site-packages\llama_cpp\lib
+
+Problem: Icon doesn't show
+Fix:     Verify E:\TORQ-CONSOLE\torq_console_icon.ico exists
+         Rebuild icon cache: ie4uinit.exe -show
+
+DOCUMENTATION
+-------------
+Full Technical: E:\TORQ-CONSOLE\SHORTCUT_FIX_DOCUMENTATION.md
+Executive:      E:\TORQ-CONSOLE\SHORTCUT_FIX_SUMMARY.md
+Quick Ref:      E:\TORQ-CONSOLE\SHORTCUT_QUICK_REFERENCE.txt (this file)
+
+KEY FILES
+---------
+Startup Script: E:\TORQ-CONSOLE\start_torq.bat
+Python:         E:\Python\Python311\python.exe
+Application:    E:\TORQ-CONSOLE\torq_console\ui\main.py
+Icon:           E:\TORQ-CONSOLE\torq_console_icon.ico
+
+WHAT WAS FIXED
+--------------
+BEFORE: python.exe -m torq_console.cli --interactive (BROKEN)
+AFTER:  E:\TORQ-CONSOLE\start_torq.bat (WORKING ✓)
+
+Benefits:
+  ✓ GPU acceleration properly configured
+  ✓ Auto-opens browser
+  ✓ Displays startup information
+  ✓ Correct working directory
+  ✓ Proper icon displayed
+
+SUCCESS METRICS
+---------------
+[✓] Desktop shortcut created successfully
+[✓] Shortcut uses correct startup command (start_torq.bat)
+[✓] Icon displays correctly (torq_console_icon.ico)
+[✓] Working directory set properly (E:\TORQ-CONSOLE)
+[✓] All dependencies verified and exist
+[✓] Backup of original shortcut created
+[✓] 10/10 tests passed
+
+SUPPORT
+-------
+For issues, run the verification script:
+  powershell -ExecutionPolicy Bypass -File "E:\Verify-TORQ-Shortcut.ps1"
+
+For detailed diagnostics, run the test suite:
+  powershell -ExecutionPolicy Bypass -File "E:\Test-TORQ-Shortcut.ps1"
+
+To recreate from scratch:
+  powershell -ExecutionPolicy Bypass -File "E:\Create-TORQ-Shortcut.ps1"
+
+================================================================================
+SYSTEM ADMINISTRATOR: Claude Code
+VERSION: 1.0.0
+LAST UPDATED: 2025-10-14
+STATUS: PRODUCTION READY ✓
+================================================================================

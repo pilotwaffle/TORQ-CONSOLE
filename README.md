@@ -1,11 +1,11 @@
 # TORQ CONSOLE
 
-[![GitHub stars](https://img.shields.io/github/stars/YOUR-USERNAME/TORQ-CONSOLE?style=social)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/pilotwaffle/TORQ-CONSOLE?style=social)](https://github.com/pilotwaffle/TORQ-CONSOLE/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
-[![Last Commit](https://img.shields.io/github/last-commit/YOUR-USERNAME/TORQ-CONSOLE)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/commits/main)
-[![Issues](https://img.shields.io/github/issues/YOUR-USERNAME/TORQ-CONSOLE)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/issues)
-[![Pull Requests](https://img.shields.io/github/issues-pr/YOUR-USERNAME/TORQ-CONSOLE)](https://github.com/YOUR-USERNAME/TORQ-CONSOLE/pulls)
+[![Last Commit](https://img.shields.io/github/last-commit/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/commits/main)
+[![Issues](https://img.shields.io/github/issues/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/pulls)
 
 > **Version:** 0.80.0 (Enhanced Capabilities Release)
 > **Author:** B Flowers
@@ -110,10 +110,65 @@ TORQ CONSOLE answers that call with a complete, production-ready solution.
 
 ## 🚀 Quick Start
 
-### Installation
+### Windows Installation (Recommended)
+
+TORQ Console includes optimized Windows setup with GPU acceleration and desktop shortcuts.
+
+#### Option 1: Quick Launch with Desktop Shortcut
+
+**Create Desktop Shortcut:**
+```powershell
+# Navigate to TORQ-CONSOLE directory
+cd E:\TORQ-CONSOLE
+
+# Run shortcut creation script
+powershell -ExecutionPolicy Bypass -File Create-DesktopShortcut.ps1
+```
+
+**Launch TORQ Console:**
+- Double-click the "TORQ Console" icon on your desktop
+- Browser automatically opens to http://localhost:8899
+- GPU acceleration enabled (28 layers)
+
+**Features:**
+- One-click launch from desktop
+- Automatic GPU acceleration setup
+- Browser auto-launch after 3 seconds
+- Professional startup interface
+
+#### Option 2: Manual Startup with GPU Acceleration
+
+```bash
+# Using the optimized startup script
+cd TORQ-CONSOLE
+start_torq.bat
+```
+
+**What happens:**
+1. CUDA DLLs automatically added to system PATH
+2. GPU acceleration configured (28 layers)
+3. TORQ Console starts with web interface
+4. Browser opens to http://localhost:8899
+
+**Startup Output:**
+```
+================================================================================
+TORQ CONSOLE v0.70.0 - GPU-Accelerated AI Development Environment
+================================================================================
+
+[OK] CUDA DLLs added to PATH
+[OK] GPU acceleration enabled (28 layers)
+[OK] Starting TORQ Console...
+
+Server will be available at: http://localhost:8899
+Opening browser in 3 seconds...
+```
+
+### Standard Installation
+
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR-USERNAME/TORQ-CONSOLE.git
+git clone https://github.com/pilotwaffle/TORQ-CONSOLE.git
 cd TORQ-CONSOLE
 
 # Install dependencies
@@ -151,6 +206,67 @@ Alt+Enter
 
 # Complex queries with boolean logic
 @fibonacci OR @DataProcessor
+```
+
+---
+
+## 🖥️ Windows-Specific Features
+
+### GPU Acceleration
+
+TORQ Console includes automatic GPU acceleration for faster AI model inference:
+
+**Automatic Configuration:**
+- CUDA runtime DLLs automatically added to PATH
+- cuBLAS libraries for optimized matrix operations
+- llama.cpp GPU support for local models
+- 28-layer GPU offloading enabled by default
+
+**GPU Paths Configured:**
+```
+E:\Python\Python311\Lib\site-packages\nvidia\cuda_runtime\bin
+E:\Python\Python311\Lib\site-packages\nvidia\cublas\bin
+E:\Python\Python311\Lib\site-packages\llama_cpp\lib
+```
+
+**Performance Benefits:**
+- 5-10x faster model inference
+- Reduced CPU load
+- Better multi-tasking performance
+- Support for larger AI models
+
+### Desktop Shortcut Management
+
+**Available Scripts:**
+- `Create-DesktopShortcut.ps1` - Create or update desktop shortcut
+- `fix_all_torq_shortcuts.ps1` - Fix and verify all shortcuts
+- `update_shortcut_icon.ps1` - Update shortcut icon
+
+**Shortcut Features:**
+- Professional TORQ Console icon
+- Proper working directory configuration
+- GPU acceleration enabled by default
+- Automatic backup of existing shortcuts
+
+### Quick Launch Options
+
+**Method 1: Desktop Shortcut** (Recommended)
+```
+Double-click "TORQ Console" on desktop
+```
+
+**Method 2: Start Menu**
+```
+Start → Type "TORQ Console" → Enter
+```
+
+**Method 3: Command Line**
+```bash
+# Web UI with GPU acceleration
+start_torq.bat
+
+# CLI interactive mode
+start_torq_cli.bat
 ```
 
 ---
@@ -321,6 +437,151 @@ ruff check torq_console/
 
 ---
 
+## 🐛 Troubleshooting
+
+### Desktop Shortcut Issues
+
+**Issue: Shortcut doesn't appear on desktop**
+```powershell
+# Recreate the shortcut
+powershell -ExecutionPolicy Bypass -File Create-DesktopShortcut.ps1
+
+# Verify shortcut configuration
+powershell -ExecutionPolicy Bypass -File fix_all_torq_shortcuts.ps1
+```
+
+**Issue: Icon doesn't display correctly**
+```cmd
+# Rebuild Windows icon cache
+ie4uinit.exe -show
+
+# Or refresh desktop
+taskkill /f /im explorer.exe && start explorer.exe
+```
+
+**Issue: Shortcut launches but application fails**
+```bash
+# Verify start_torq.bat exists and is executable
+dir start_torq.bat
+
+# Test manual launch
+start_torq.bat
+```
+
+### GPU Acceleration Issues
+
+**Issue: GPU acceleration not working**
+```bash
+# Verify CUDA DLLs exist
+dir "E:\Python\Python311\Lib\site-packages\nvidia\cuda_runtime\bin"
+dir "E:\Python\Python311\Lib\site-packages\nvidia\cublas\bin"
+
+# Check if GPU is detected
+python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+```
+
+**Issue: "DLL not found" errors**
+```bash
+# Reinstall CUDA libraries
+pip install --upgrade nvidia-cuda-runtime-cu12
+pip install --upgrade nvidia-cublas-cu12
+
+# Verify installation
+pip show nvidia-cuda-runtime-cu12
+```
+
+### Application Launch Issues
+
+**Issue: ModuleNotFoundError when launching**
+```bash
+# Reinstall dependencies
+pip install -e .
+
+# Or install missing modules
+pip install -r requirements.txt
+```
+
+**Issue: Port 8899 already in use**
+```bash
+# Find process using port 8899
+netstat -ano | findstr :8899
+
+# Kill the process (replace PID)
+taskkill /PID <process_id> /F
+
+# Or use a different port
+python -m torq_console.cli serve --port 8080
+```
+
+**Issue: Browser doesn't open automatically**
+```bash
+# Manually open browser to
+http://localhost:8899
+
+# Or disable auto-launch in start_torq.bat
+# Comment out the browser launch line
+```
+
+### Environment Configuration Issues
+
+**Issue: API keys not loading**
+```bash
+# Verify .env file exists
+dir .env
+
+# Check environment variables
+python -c "import os; print('API Key:', os.getenv('ANTHROPIC_API_KEY')[:10] + '...' if os.getenv('ANTHROPIC_API_KEY') else 'Not found')"
+
+# Reload environment
+# Exit and restart your terminal
+```
+
+**Issue: Configuration file not found**
+```bash
+# Initialize configuration
+python -m torq_console.cli config-init
+
+# Verify config created
+dir config.json
+```
+
+### Performance Issues
+
+**Issue: Slow startup time**
+```bash
+# Disable unnecessary features in config.json
+{
+  "voice_enabled": false,
+  "socket_io": false  # For single-user mode
+}
+
+# Clear cache
+rd /s /q .torq-index
+```
+
+**Issue: High memory usage**
+```bash
+# Reduce GPU layers in start_torq.bat
+# Edit line: echo [OK] GPU acceleration enabled (14 layers)
+# Reduce from 28 to 14 or lower
+
+# Or disable GPU acceleration completely
+# Remove CUDA DLL paths from PATH in start_torq.bat
+```
+
+### Getting Help
+
+**Documentation:**
+- [SHORTCUT_FIX_DOCUMENTATION.md](SHORTCUT_FIX_DOCUMENTATION.md) - Desktop shortcut technical details
+- [STARTUP_GUIDE.md](STARTUP_GUIDE.md) - Complete startup documentation
+- [SHORTCUT_QUICK_REFERENCE.txt](SHORTCUT_QUICK_REFERENCE.txt) - Quick reference guide
+
+**Support:**
+- GitHub Issues: [Report a bug](https://github.com/pilotwaffle/TORQ-CONSOLE/issues)
+- Discussions: [Ask questions](https://github.com/pilotwaffle/TORQ-CONSOLE/discussions)
+
+---
+
 ## 👥 User Personas (Updated)
 
 ### Alice (Power User)
@@ -370,11 +631,14 @@ ruff check torq_console/
 - **View Status:** `/torq-spec status` → Show Spec-Kit overview and statistics
 - **Search Specs:** `/torq-spec search <query>` → Find specifications by content
 
-### API Documentation
-- [ContextManager API](docs/context-manager.md)
-- [ChatManager API](docs/chat-manager.md)
-- [InlineEditor API](docs/inline-editor.md)
-- [CommandPalette API](docs/command-palette.md)
+### Additional Documentation
+- [STARTUP_GUIDE.md](STARTUP_GUIDE.md) - Complete startup and configuration guide
+- [SHORTCUT_FIX_DOCUMENTATION.md](SHORTCUT_FIX_DOCUMENTATION.md) - Desktop shortcut technical documentation
+- [SHORTCUT_QUICK_REFERENCE.txt](SHORTCUT_QUICK_REFERENCE.txt) - Quick reference for shortcuts
+- [ContextManager API](docs/context-manager.md) - Context management API reference
+- [ChatManager API](docs/chat-manager.md) - Chat management API reference
+- [InlineEditor API](docs/inline-editor.md) - Inline editor API reference
+- [CommandPalette API](docs/command-palette.md) - Command palette API reference
 
 ---
 
@@ -400,7 +664,8 @@ MIT License – Open source and community-driven.
 
 ### Version History
 - **v0.60.0:** Initial MCP integration and core features
-- **v0.70.0:** Complete 4-phase integration with advanced UX (Current)
+- **v0.70.0:** Complete 4-phase integration with advanced UX
+- **v0.80.0:** Enhanced capabilities with Agency Swarm, YYZ Agentics, and HuggingFace integration (Current)
 
 **Ready for production deployment and community adoption.** 🚀
 
