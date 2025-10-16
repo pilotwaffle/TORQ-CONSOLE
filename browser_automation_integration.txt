@@ -1,0 +1,164 @@
+# Instructions for integrating Browser Automation Tool into torq_prince_flowers.py
+# Follow these steps to complete the integration
+
+## STEP 1: Add import (after line 86, after N8N import block)
+# Insert after "    logging.warning("N8N Workflow Tool not available")"
+
+# Import Browser Automation Tool
+try:
+    from .tools.browser_automation_tool import create_browser_automation_tool
+    BROWSER_AUTOMATION_AVAILABLE = True
+except ImportError:
+    BROWSER_AUTOMATION_AVAILABLE = False
+    logging.warning("Browser Automation Tool not available")
+
+
+## STEP 2: Add to available_tools dict (around line 412, after n8n_workflow entry)
+# Insert after the n8n_workflow dictionary entry:
+
+            'browser_automation': {
+                'name': 'Browser Automation',
+                'description': 'Automate web browser interactions using Playwright',
+                'cost': 0.4,
+                'success_rate': 0.85,
+                'avg_time': 2.5,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+
+
+## STEP 3: Add browser keywords to intent_signals (around line 776)
+# Add this line to the intent_signals dict in _analyze_query_enhanced:
+
+            'browser_automation': ['browse', 'click', 'screenshot', 'playwright', 'web scrape', 'automate', 'fill form'],
+
+
+## STEP 4: Add browser keywords to resource_prediction (around line 817)
+# Add this line to the resource_prediction dict:
+
+            'needs_browser_automation': any(term in query_lower for term in [
+                'browse', 'click', 'screenshot', 'playwright', 'web scrape', 'automate', 'fill form', 'extract text', 'navigate'
+            ]),
+
+
+## STEP 5: Add _execute_browser_automation method (after _execute_n8n_workflow, around line 2334)
+# Insert this complete method:
+
+    async def _execute_browser_automation(
+        self,
+        action: str,
+        url: Optional[str] = None,
+        selector: Optional[str] = None,
+        text: Optional[str] = None,
+        javascript: Optional[str] = None,
+        path: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Execute browser automation operations.
+
+        Args:
+            action: Operation to perform (navigate, click, fill, screenshot,
+                    get_text, wait_for, evaluate)
+            url: Target URL (required for navigate)
+            selector: CSS selector (required for click, fill, get_text, wait_for)
+            text: Text content (required for fill)
+            javascript: JavaScript code (required for evaluate)
+            path: File path (required for screenshot)
+            timeout_ms: Operation timeout in milliseconds
+            **kwargs: Additional parameters
+
+        Returns:
+            Dict with success status and operation results
+        """
+        import time
+        start_time = time.time()
+
+        # Update tool performance
+        self.tool_performance['browser_automation']['usage_count'] += 1
+
+        if not BROWSER_AUTOMATION_AVAILABLE:
+            error_msg = "Browser Automation Tool not available. Install Playwright: pip install playwright && playwright install"
+            self.logger.error(f"[BROWSER] {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'action': action,
+                'execution_time': time.time() - start_time
+            }
+
+        try:
+            self.logger.info(f"[BROWSER] Executing action: {action}")
+
+            # Create browser automation tool
+            browser_tool = create_browser_automation_tool()
+
+            # Check availability
+            if not browser_tool.is_available():
+                error_msg = ("Browser Automation Tool not configured. Install Playwright with: "
+                            "pip install playwright && playwright install")
+                self.logger.warning(f"[BROWSER] {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'action': action,
+                    'execution_time': time.time() - start_time
+                }
+
+            # Execute browser operation
+            result = await browser_tool.execute(
+                action=action,
+                url=url,
+                selector=selector,
+                text=text,
+                javascript=javascript,
+                path=path,
+                timeout_ms=timeout_ms,
+                **kwargs
+            )
+
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['browser_automation']['success_count'] += 1
+                self.tool_performance['browser_automation']['total_time'] += execution_time
+
+                # Log success based on action type
+                if action == 'navigate':
+                    final_url = result.get('result', {}).get('final_url', 'N/A')
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Navigated to {final_url}")
+                elif action == 'click':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Clicked element {selector}")
+                elif action == 'fill':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Filled element {selector}")
+                elif action == 'screenshot':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Screenshot saved to {path}")
+                elif action == 'get_text':
+                    text_length = result.get('result', {}).get('length', 0)
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Extracted {text_length} chars from {selector}")
+                elif action == 'wait_for':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - Element {selector} found")
+                elif action == 'evaluate':
+                    self.logger.info(f"[BROWSER] ✓ SUCCESS - JavaScript executed")
+            else:
+                self.logger.error(f"[BROWSER] ✗ FAILED: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"Browser automation operation error: {str(e)}"
+            self.logger.error(f"[BROWSER] ✗ ERROR: {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'action': action,
+                'execution_time': execution_time
+            }
+
+
+# END OF INTEGRATION INSTRUCTIONS

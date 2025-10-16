@@ -1,0 +1,498 @@
+=== INTEGRATION PATCH FOR FINAL 3 TOOLS ===
+
+This document contains all the code additions needed to integrate the final 3 tools.
+Follow these steps manually or use a script to apply them.
+
+===== STEP 1: ADD IMPORTS (After line 94) =====
+
+Insert after line 94 (after "logging.warning("Browser Automation Tool not available")"):
+
+```python
+# Terminal Commands Tool - Phase 1.8
+try:
+    from .tools.terminal_commands_tool import create_terminal_commands_tool
+    TERMINAL_COMMANDS_AVAILABLE = True
+except ImportError:
+    TERMINAL_COMMANDS_AVAILABLE = False
+    logging.warning("Terminal Commands Tool not available")
+
+# MCP Client Tool - Phase 1.9
+try:
+    from .tools.mcp_client_tool import create_mcp_client_tool
+    MCP_CLIENT_AVAILABLE = True
+except ImportError:
+    MCP_CLIENT_AVAILABLE = False
+    logging.warning("MCP Client Tool not available")
+
+# Multi-Tool Composition Tool - Phase 1.10
+try:
+    from .tools.multi_tool_composition_tool import create_multi_tool_composition_tool
+    MULTI_TOOL_COMPOSITION_AVAILABLE = True
+except ImportError:
+    MULTI_TOOL_COMPOSITION_AVAILABLE = False
+    logging.warning("Multi-Tool Composition Tool not available")
+```
+
+===== STEP 2: ADD REGISTRY ENTRIES (In available_tools dictionary, after browser_automation entry around line 430) =====
+
+Insert after the browser_automation tool entry:
+
+```python
+            'terminal_commands': {
+                'name': 'Terminal Commands',
+                'description': 'Execute whitelisted terminal commands with security controls',
+                'cost': 0.2,
+                'success_rate': 0.95,
+                'avg_time': 1.0,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': True,
+                'security_level': 'high'
+            },
+            'mcp_client': {
+                'name': 'MCP Client Integration',
+                'description': 'Connect to MCP servers and invoke their tools and resources',
+                'cost': 0.3,
+                'success_rate': 0.90,
+                'avg_time': 2.0,
+                'dependencies': [],
+                'composable': True,
+                'requires_approval': False
+            },
+            'multi_tool_composition': {
+                'name': 'Multi-Tool Composition',
+                'description': 'Orchestrate complex workflows with multiple tools (sequential, parallel, conditional, loop, map/reduce)',
+                'cost': 0.4,
+                'success_rate': 0.92,
+                'avg_time': 3.0,
+                'dependencies': [],
+                'composable': False,
+                'requires_approval': False,
+                'advanced': True
+            },
+```
+
+===== STEP 3: ADD EXECUTE METHODS (After _execute_browser_automation method, around line 2470) =====
+
+Insert these three methods after the _execute_browser_automation method:
+
+```python
+    async def _execute_terminal_commands(
+        self,
+        query: str,
+        analysis: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute terminal commands tool.
+
+        Args:
+            query: User query
+            analysis: Query analysis results
+            context: Execution context
+
+        Returns:
+            Execution result with command output
+        """
+        if not TERMINAL_COMMANDS_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'Terminal Commands Tool not available',
+                'tool': 'terminal_commands'
+            }
+
+        start_time = time.time()
+        self.tool_performance['terminal_commands']['usage_count'] += 1
+
+        try:
+            # Extract command from query or context
+            command = context.get('command') or analysis.get('extracted_command')
+            action = context.get('action', 'execute_command')
+
+            self.logger.info(f"[TERMINAL] Executing: {action} - {command}")
+
+            # Create terminal commands tool
+            terminal_tool = create_terminal_commands_tool()
+
+            if action == 'get_whitelist':
+                result = terminal_tool.execute(action='get_whitelist')
+            elif action == 'validate_command':
+                result = terminal_tool.execute(
+                    action='validate_command',
+                    command=command
+                )
+            else:
+                # Default: execute_command
+                result = terminal_tool.execute(
+                    action='execute_command',
+                    command=command,
+                    working_directory=context.get('working_directory'),
+                    timeout=context.get('timeout', 30)
+                )
+
+            execution_time = time.time() - start_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['terminal_commands']['success_count'] += 1
+                self.tool_performance['terminal_commands']['total_time'] += execution_time
+                self.logger.info(f"[TERMINAL] SUCCESS in {execution_time:.2f}s")
+            else:
+                self.logger.error(f"[TERMINAL] FAILED: {result.get('error')}")
+
+            return {
+                'success': result.get('success', False),
+                'result': result.get('result'),
+                'error': result.get('error'),
+                'tool': 'terminal_commands',
+                'execution_time': execution_time
+            }
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self.logger.error(f"[TERMINAL] ERROR: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'tool': 'terminal_commands',
+                'execution_time': execution_time
+            }
+
+    async def _execute_mcp_client(
+        self,
+        query: str,
+        analysis: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute MCP client operations.
+
+        Args:
+            query: User query
+            analysis: Query analysis results
+            context: Execution context
+
+        Returns:
+            MCP operation result
+        """
+        if not MCP_CLIENT_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'MCP Client Tool not available',
+                'tool': 'mcp_client'
+            }
+
+        start_time = time.time()
+        self.tool_performance['mcp_client']['usage_count'] += 1
+
+        try:
+            operation = context.get('operation', 'list_servers')
+            server_id = context.get('server_id')
+            tool_name = context.get('tool_name')
+            params = context.get('params', {})
+            uri = context.get('uri')
+
+            self.logger.info(f"[MCP] Operation: {operation} - Server: {server_id}")
+
+            # Create MCP client tool
+            mcp_tool = create_mcp_client_tool(
+                server_config_path=os.getenv('MCP_SERVER_CONFIG')
+            )
+
+            result = await mcp_tool.execute(
+                operation=operation,
+                server_id=server_id,
+                tool_name=tool_name,
+                params=params,
+                uri=uri
+            )
+
+            execution_time = time.time() - start_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['mcp_client']['success_count'] += 1
+                self.tool_performance['mcp_client']['total_time'] += execution_time
+                self.logger.info(f"[MCP] SUCCESS in {execution_time:.2f}s")
+            else:
+                self.logger.error(f"[MCP] FAILED: {result.get('error')}")
+
+            return {
+                'success': result.get('success', False),
+                'result': result.get('result'),
+                'error': result.get('error'),
+                'tool': 'mcp_client',
+                'execution_time': execution_time
+            }
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self.logger.error(f"[MCP] ERROR: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'tool': 'mcp_client',
+                'execution_time': execution_time
+            }
+
+    async def _execute_multi_tool_composition(
+        self,
+        query: str,
+        analysis: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute multi-tool composition workflows.
+
+        Args:
+            query: User query
+            analysis: Query analysis results
+            context: Execution context with workflow definition
+
+        Returns:
+            Workflow execution result
+        """
+        if not MULTI_TOOL_COMPOSITION_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'Multi-Tool Composition Tool not available',
+                'tool': 'multi_tool_composition'
+            }
+
+        start_time = time.time()
+        self.tool_performance['multi_tool_composition']['usage_count'] += 1
+
+        try:
+            workflow = context.get('workflow')
+            workflow_context = context.get('context', {})
+            dry_run = context.get('dry_run', False)
+
+            if not workflow:
+                return {
+                    'success': False,
+                    'error': 'No workflow definition provided',
+                    'tool': 'multi_tool_composition'
+                }
+
+            self.logger.info(f"[COMPOSITION] Executing workflow type: {workflow.get('type')}")
+
+            # Create multi-tool composition tool with executor
+            composition_tool = create_multi_tool_composition_tool(
+                tool_executor=self._composition_tool_executor
+            )
+
+            result = await composition_tool.execute(
+                workflow=workflow,
+                context=workflow_context,
+                dry_run=dry_run
+            )
+
+            execution_time = time.time() - start_time
+
+            # Update success stats
+            if result.get('success'):
+                self.tool_performance['multi_tool_composition']['success_count'] += 1
+                self.tool_performance['multi_tool_composition']['total_time'] += execution_time
+                self.logger.info(f"[COMPOSITION] SUCCESS - {len(result.get('steps', []))} steps in {execution_time:.2f}s")
+            else:
+                self.logger.error(f"[COMPOSITION] FAILED: {result.get('error')}")
+
+            return {
+                'success': result.get('success', False),
+                'result': result.get('result'),
+                'error': result.get('error'),
+                'tool': 'multi_tool_composition',
+                'execution_time': execution_time,
+                'steps_executed': len(result.get('steps', [])),
+                'workflow_type': result.get('workflow_type')
+            }
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self.logger.error(f"[COMPOSITION] ERROR: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'tool': 'multi_tool_composition',
+                'execution_time': execution_time
+            }
+
+    async def _composition_tool_executor(
+        self,
+        tool_name: str,
+        params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Tool executor for multi-tool composition.
+        Allows composition tool to invoke other Prince tools.
+
+        Args:
+            tool_name: Name of tool to execute
+            params: Tool parameters
+
+        Returns:
+            Tool execution result
+        """
+        # Map tool names to execute methods
+        tool_map = {
+            'image_generation': self._execute_image_generation,
+            'file_operations': self._execute_file_operations,
+            'code_generation': self._execute_code_generation,
+            'n8n_workflow': self._execute_n8n_workflow,
+            'browser_automation': self._execute_browser_automation,
+            'terminal_commands': self._execute_terminal_commands,
+            'mcp_client': self._execute_mcp_client
+        }
+
+        if tool_name not in tool_map:
+            return {
+                'success': False,
+                'error': f'Tool not found: {tool_name}'
+            }
+
+        execute_method = tool_map[tool_name]
+
+        # Call tool with empty query and params as context
+        result = await execute_method(
+            query='',
+            analysis={},
+            context=params
+        )
+
+        return result
+```
+
+===== STEP 4: ADD ROUTING IN _execute_direct_reasoning (Around line 3100) =====
+
+Insert these routing checks in the _execute_direct_reasoning method (after the landing page routing):
+
+```python
+        # Check if this is a terminal command request
+        terminal_keywords = ['terminal', 'command', 'execute command', 'run command', 'shell', 'execute shell']
+        if any(keyword in query_lower for keyword in terminal_keywords):
+            # Extract command from query
+            import re
+            command = query
+            for pattern in [r'^(please\s+)?(execute|run)\s+(command|terminal|shell):?\s*',
+                          r'^(please\s+)?(execute|run)\s+']:
+                command = re.sub(pattern, '', command, flags=re.IGNORECASE)
+
+            command = command.strip()
+
+            context = {
+                'command': command,
+                'action': 'execute_command'
+            }
+            result = await self._execute_terminal_commands(query, analysis, context)
+
+            if result.get('success'):
+                response = f"Command executed successfully!\n\n**Output:**\n```\n{result.get('result', {}).get('stdout', '')}\n```"
+                if result.get('result', {}).get('stderr'):
+                    response += f"\n\n**Errors:**\n```\n{result['result']['stderr']}\n```"
+            else:
+                response = f"Command execution failed: {result.get('error', 'Unknown error')}"
+
+            return {
+                'success': result.get('success', False),
+                'result': response,
+                'confidence': 0.9 if result.get('success') else 0.3,
+                'tools_used': ['terminal_commands'],
+                'method': 'terminal_commands',
+                'accuracy': 0.9 if result.get('success') else 0.0
+            }
+
+        # Check if this is an MCP client request
+        mcp_keywords = ['mcp', 'mcp server', 'connect to server', 'list mcp', 'mcp tools']
+        if any(keyword in query_lower for keyword in mcp_keywords):
+            # Parse operation from query
+            operation = 'list_servers'
+            if 'connect' in query_lower:
+                operation = 'connect_server'
+            elif 'list tools' in query_lower or 'show tools' in query_lower:
+                operation = 'list_tools'
+            elif 'call tool' in query_lower or 'invoke tool' in query_lower:
+                operation = 'call_tool'
+
+            context = {'operation': operation}
+            result = await self._execute_mcp_client(query, analysis, context)
+
+            if result.get('success'):
+                result_data = result.get('result', {})
+                if operation == 'list_servers':
+                    servers = result_data.get('servers', [])
+                    response = f"Available MCP Servers ({len(servers)}):\n\n"
+                    for server in servers:
+                        response += f"- **{server['name']}** (ID: {server['id']})\n"
+                        response += f"  Status: {server['state']}\n\n"
+                else:
+                    response = f"MCP Operation Result:\n\n```json\n{json.dumps(result_data, indent=2)}\n```"
+            else:
+                response = f"MCP operation failed: {result.get('error', 'Unknown error')}"
+
+            return {
+                'success': result.get('success', False),
+                'result': response,
+                'confidence': 0.85 if result.get('success') else 0.3,
+                'tools_used': ['mcp_client'],
+                'method': 'mcp_client',
+                'accuracy': 0.85 if result.get('success') else 0.0
+            }
+
+        # Check if this is a workflow composition request
+        workflow_keywords = ['workflow', 'pipeline', 'chain tools', 'compose tools', 'multi-step', 'orchestrate']
+        if any(keyword in query_lower for keyword in workflow_keywords):
+            # User should provide workflow in context or we generate a simple one
+            workflow = context.get('workflow')
+
+            if not workflow:
+                # Generate a simple sequential workflow as example
+                workflow = {
+                    'type': 'sequential',
+                    'steps': [
+                        {'tool': 'image_generation', 'params': {'prompt': query}}
+                    ]
+                }
+
+            comp_context = {
+                'workflow': workflow,
+                'dry_run': 'dry run' in query_lower or 'validate' in query_lower
+            }
+            result = await self._execute_multi_tool_composition(query, analysis, comp_context)
+
+            if result.get('success'):
+                steps = result.get('steps_executed', 0)
+                workflow_type = result.get('workflow_type', 'unknown')
+                response = f"Workflow executed successfully!\n\n"
+                response += f"**Type:** {workflow_type}\n"
+                response += f"**Steps:** {steps}\n"
+                response += f"**Duration:** {result.get('execution_time', 0):.2f}s\n\n"
+                response += f"**Result:**\n{result.get('result', '')}"
+            else:
+                response = f"Workflow execution failed: {result.get('error', 'Unknown error')}"
+
+            return {
+                'success': result.get('success', False),
+                'result': response,
+                'confidence': 0.88 if result.get('success') else 0.3,
+                'tools_used': ['multi_tool_composition'],
+                'method': 'multi_tool_composition',
+                'accuracy': 0.88 if result.get('success') else 0.0
+            }
+```
+
+===== END OF PATCH =====
+
+To apply this patch:
+1. Make a backup of torq_prince_flowers.py
+2. Open torq_prince_flowers.py in an editor
+3. Find each section mentioned above
+4. Insert the code at the specified locations
+5. Save the file
+6. Run verification commands
+
+Verification commands:
+```bash
+cd E:\TORQ-CONSOLE
+python -c "from torq_console.agents.tools import terminal_commands_tool, mcp_client_tool, multi_tool_composition_tool; print('Imports successful')"
+python -c "from torq_console.agents.torq_prince_flowers import TORQPrinceFlowers; prince = TORQPrinceFlowers(); print('Prince initialized with', len(prince.available_tools), 'tools')"
+```

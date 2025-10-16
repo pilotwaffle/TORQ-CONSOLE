@@ -13,7 +13,14 @@ import logging
 from .providers.deepseek import DeepSeekProvider
 from .providers.claude import ClaudeProvider
 from .providers.ollama import OllamaProvider
-from .providers.llama_cpp_provider import LlamaCppProvider
+
+# Session 3: Make llama_cpp optional
+try:
+    from .providers.llama_cpp_provider import LlamaCppProvider
+    LLAMA_CPP_AVAILABLE = True
+except (ImportError, RuntimeError) as e:
+    LLAMA_CPP_AVAILABLE = False
+    LlamaCppProvider = None
 
 # Session 3: Semantic Search Integration
 from torq_console.indexer.semantic_search import SemanticSearch
@@ -130,6 +137,12 @@ class LLMManager:
     def _init_llama_cpp(self):
         """Initialize llama.cpp local LLM provider for fast inference."""
         try:
+            # Check if llama_cpp is available
+            if not LLAMA_CPP_AVAILABLE or LlamaCppProvider is None:
+                self.logger.info("llama-cpp-python not available - skipping llama.cpp initialization")
+                self.logger.info("To enable GPU acceleration, ensure CUDA DLLs are in PATH when launching")
+                return
+
             # Get model path from config or environment
             model_path = self.config.get('llama_cpp_model_path', os.getenv('LLAMA_CPP_MODEL_PATH'))
 

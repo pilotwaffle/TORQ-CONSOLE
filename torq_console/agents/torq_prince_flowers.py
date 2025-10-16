@@ -2881,26 +2881,54 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
         # Update tool performance
         self.tool_performance['synthesis_engine']['usage_count'] += 1
 
+        # CRITICAL FIX: Check if we have actual search results or just fallback/guidance
+        # Filter out results that are only guidance/fallback messages
+        real_results = [
+            r for r in search_results
+            if r.get('source') not in ['fallback_guidance', 'fallback_ai_guidance',
+                                       'fallback_news_guidance', 'web_scraping_suggestion',
+                                       'ai_context', 'temporal_context', 'system_message']
+        ]
+
+        # If no real search results, return honest error instead of hallucinating
+        if not real_results or len(real_results) == 0:
+            self.logger.warning(f"[SYNTHESIS] No real search results available for query: {query}")
+            return {
+                'success': False,
+                'response': f"I apologize, but I cannot access real-time search results for '{query}' at the moment. "
+                           f"This could be due to API rate limits, network issues, or service availability. "
+                           f"Please try:\n"
+                           f"• Searching directly on Google, DuckDuckGo, or other search engines\n"
+                           f"• Checking official news sources or documentation\n"
+                           f"• Trying again in a few minutes if this is a temporary API issue",
+                'confidence': 0.0,
+                'synthesis_time': time.time() - start_time,
+                'sources_integrated': 0,
+                'llm_generated': False,
+                'error': 'no_real_search_results'
+            }
+
         key_themes = analysis.get('key_themes', [])
         source_quality = analysis.get('source_quality', 'medium')
         relevance_score = analysis.get('relevance_score', 0.7)
 
         # Use LLM to synthesize response from search results and analysis
         try:
-            # Log search results for debugging
-            self.logger.info(f"[SYNTHESIS] Processing {len(search_results)} search results")
-            for i, result in enumerate(search_results[:3]):
+            # Log real search results for debugging
+            self.logger.info(f"[SYNTHESIS] Processing {len(real_results)} real search results (filtered from {len(search_results)} total)")
+            for i, result in enumerate(real_results[:3]):
                 title = result.get('title', 'No title')[:100]
                 snippet_len = len(result.get('snippet', ''))
                 is_ai = result.get('is_ai_synthesis', False)
-                self.logger.info(f"[SYNTHESIS] Result {i+1}: {title} ({'AI synthesis' if is_ai else 'standard'}, {snippet_len} chars)")
+                source = result.get('source', 'unknown')
+                self.logger.info(f"[SYNTHESIS] Result {i+1}: {title} (source: {source}, {'AI synthesis' if is_ai else 'standard'}, {snippet_len} chars)")
 
             # Call LLM with research context and explicit instruction
             llm_response = await self._call_llm(
                 user_message=query,
                 mode='research',
                 context={
-                    'search_results': search_results,
+                    'search_results': real_results,  # Use only real results
                     'analysis': analysis,
                     'instruction': 'Synthesize a comprehensive response using ALL available search result information. Focus on concrete facts, developments, and data points. If AI-synthesized content is available, integrate it fully.'
                 }
@@ -2917,97 +2945,36 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
                 'response': llm_response,
                 'confidence': min(relevance_score + 0.15, 1.0),
                 'synthesis_time': synthesis_time,
-                'sources_integrated': len(search_results),
+                'sources_integrated': len(real_results),  # Use real results count
                 'llm_generated': True
             }
 
         except Exception as e:
-            self.logger.error(f"LLM synthesis failed, using fallback: {e}")
-            # Fallback to template-based response if LLM fails
-            query_lower = query.lower()
+            self.logger.error(f"LLM synthesis failed: {e}")
 
-            if any(term in query_lower for term in ['prince flowers', 'agentic rl', 'torq console']):
-                response = f"""Based on my comprehensive research across {len(search_results)} high-quality sources, here's what I found about {query}:
-
-**Prince Flowers Enhanced: Advanced Agentic RL System**
-
-Prince Flowers Enhanced represents a significant advancement in agentic reinforcement learning (RL) architecture, implementing several cutting-edge capabilities:
-
-**Core Technical Architecture:**
-- **Meta-Planning Engine**: Advanced strategy selection that learns how to plan, not just create plans
-- **Tool Composition Framework**: Dynamic tool chaining with error recovery and adaptive strategies
-- **Multi-layered Memory Systems**: Working, episodic, semantic, and meta-memory for comprehensive context management
-- **Self-Correction Mechanisms**: Automatic error detection and alternative strategy execution
-- **GRPO-style Reward Modeling**: Sophisticated reward calculation for continuous learning improvement
-
-**TORQ Console Integration:**
-The enhanced agent seamlessly integrates with TORQ Console, providing:
-- **MCP (Model Context Protocol) Compatibility**: Full integration with MCP servers and Claude Code
-- **Advanced Command Interface**: Support for "prince" and "@prince" commands with context awareness
-- **Web Search Capabilities**: Multi-source research with intelligent content synthesis
-- **Real-time Learning**: Performance optimization through experience replay and pattern recognition
-
-**Key Performance Metrics:**
-- **Success Rate**: {relevance_score*100:.0f}% across diverse query types
-- **Response Time**: Optimized for sub-2-second responses with quality maintenance
-- **Tool Efficiency**: Dynamic tool selection based on learned performance patterns
-- **Context Awareness**: Full conversation memory with intelligent retrieval
-
-**Research Significance:**
-This implementation bridges the gap between traditional language models and truly autonomous agents, demonstrating practical applications of agentic RL in real-world development environments. The integration with TORQ Console provides immediate access to these advanced capabilities through familiar command interfaces.
-
-The system continuously learns from interactions, improving its strategy selection, tool usage, and response quality over time through sophisticated reinforcement learning mechanisms."""
-
-            elif any(term in query_lower for term in ['latest', 'recent', 'ai news']):
-                response = f"""Based on my analysis of {len(search_results)} current sources with {source_quality} reliability, here are the latest AI developments relevant to your query:
-
-**Current AI Landscape:**
-Key themes identified: {', '.join(key_themes[:5])}
-
-**Recent Breakthroughs:**
-- Advanced reasoning capabilities in large language models
-- Improved multi-modal AI systems integrating text, vision, and audio
-- Enhanced AI safety and alignment research methodologies
-- More efficient training techniques reducing computational requirements
-- Growing enterprise adoption with focus on practical applications
-
-**Industry Trends:**
-The analysis reveals {analysis.get('information_density', 'substantial')} coverage with {relevance_score*100:.0f}% relevance to your specific query. Sources indicate continued rapid advancement in AI capabilities while addressing safety and practical deployment challenges.
-
-**Quality Assessment:**
-Information gathered from {source_quality} quality sources provides reliable insights into current AI developments. The research spans academic, industry, and news sources for comprehensive coverage."""
-
-            else:
-                response = f"""Based on comprehensive research across {len(search_results)} sources, I've analyzed your query about {query}:
-
-**Key Findings:**
-The research identified these main themes: {', '.join(key_themes[:5])}
-
-**Analysis Summary:**
-- **Information Quality**: {source_quality.capitalize()} quality sources with {relevance_score*100:.0f}% relevance
-- **Coverage Depth**: {analysis.get('information_density', 'Moderate')} information density
-- **Source Reliability**: Analysis indicates {analysis.get('coverage_assessment', {}).get('authority', 0.7)*100:.0f}% source authority
-
-**Comprehensive Response:**
-The research reveals substantial information about your query topic. Sources provide detailed coverage with expert commentary and analysis. The information spans multiple perspectives and authoritative sources to give you a well-rounded understanding.
-
-**Recommendations:**
-For the most current information, I recommend checking the latest sources as this field continues to evolve. The analysis shows strong alignment between your query and available authoritative information."""
-
-            # Fallback return
+            # CRITICAL FIX: Return honest error instead of hallucinating
+            # DO NOT generate fake responses from templates
             synthesis_time = time.time() - start_time
-            self.tool_performance['synthesis_engine']['success_count'] += 1
-            self.tool_performance['synthesis_engine']['total_time'] += synthesis_time
 
             return {
-                'success': True,
-                'response': response,
-                'confidence': min(relevance_score + 0.15, 1.0),
+                'success': False,
+                'response': f"I apologize, but I encountered an error while synthesizing the search results for '{query}'. "
+                           f"While I found {len(real_results)} real search results, I was unable to process them properly. "
+                           f"Error details: {str(e)}\n\n"
+                           f"Please try:\n"
+                           f"• Rephrasing your query\n"
+                           f"• Searching directly on search engines for immediate results\n"
+                           f"• Trying again in a moment",
+                'confidence': 0.0,
                 'synthesis_time': synthesis_time,
-                'sources_integrated': len(search_results),
+                'sources_integrated': 0,
                 'llm_generated': False,
-                'fallback': True
+                'error': f'synthesis_failed: {str(e)}'
             }
+
+    # REMOVED: All hallucinating fallback templates (lines 2929-3060 in original)
+    # These templates were generating fake news, prices, and information
+    # Now we return honest errors when search fails instead of hallucinating
 
     async def _execute_analysis_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
         """Execute deep analysis reasoning with multi-source evaluation."""
