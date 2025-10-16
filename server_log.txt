@@ -1,0 +1,137 @@
+2025-10-10 20:41:46,169 - torq_console.core.config - WARNING - Demo API keys detected for: alpha_vantage, fred, news_api. Please replace with real API keys for full functionality.
+[OK] Environment variables loaded from .env
+[START] TORQ CONSOLE v0.70.0 - Starting with Critical Fixes
+============================================================
+[OK] /api/chat endpoint added for direct queries
+[OK] Prince Flowers command routing fixed
+[OK] Search query detection improved
+[OK] DirectChatRequest model added
+============================================================
+context_manager - INFO - ContextManager initialized at E:\TORQ-CONSOLE
+2025-10-10 20:41:46,171 - context_manager - INFO - ContextManager initialized at E:\TORQ-CONSOLE
+chat_manager - INFO - ChatManager initialized with storage at C:\Users\asdasd\.torq_console\chat_history
+2025-10-10 20:41:46,172 - chat_manager - INFO - ChatManager initialized with storage at C:\Users\asdasd\.torq_console\chat_history
+torq_console.llm.providers.claude - INFO - Claude provider initialized with model: claude-sonnet-4-20250514
+2025-10-10 20:41:46,661 - torq_console.llm.providers.claude - INFO - Claude provider initialized with model: claude-sonnet-4-20250514
+torq_console.llm.manager - INFO - Claude provider configured successfully with model: claude-sonnet-4-20250514
+2025-10-10 20:41:46,661 - torq_console.llm.manager - INFO - Claude provider configured successfully with model: claude-sonnet-4-20250514
+torq_console.llm.providers.deepseek - INFO - DeepSeek provider initialized with base URL: https://api.deepseek.com
+2025-10-10 20:41:46,661 - torq_console.llm.providers.deepseek - INFO - DeepSeek provider initialized with base URL: https://api.deepseek.com
+torq_console.llm.manager - INFO - DeepSeek provider configured successfully
+2025-10-10 20:41:46,661 - torq_console.llm.manager - INFO - DeepSeek provider configured successfully
+torq_console.llm.manager - INFO - LLM Manager initialized with providers: ['claude', 'deepseek']
+2025-10-10 20:41:46,661 - torq_console.llm.manager - INFO - LLM Manager initialized with providers: ['claude', 'deepseek']
+torq_console.llm.providers.websearch - INFO - WebSearch provider initialized with methods: ['perplexity_search', 'google_custom_search', 'brave_search', 'web_scraping', 'mcp_server', 'fallback_response']
+2025-10-10 20:41:46,661 - torq_console.llm.providers.websearch - INFO - WebSearch provider initialized with methods: ['perplexity_search', 'google_custom_search', 'brave_search', 'web_scraping', 'mcp_server', 'fallback_response']
+torq_console.utils.ai_integration - INFO - AI Integration initialized in enhanced mode
+2025-10-10 20:41:46,661 - torq_console.utils.ai_integration - INFO - AI Integration initialized in enhanced mode
+torq_console.llm.providers.claude - INFO - Claude provider initialized with model: claude-sonnet-4-20250514
+2025-10-10 20:41:46,990 - torq_console.llm.providers.claude - INFO - Claude provider initialized with model: claude-sonnet-4-20250514
+torq_console.llm.manager - INFO - Claude provider configured successfully with model: claude-sonnet-4-20250514
+2025-10-10 20:41:46,990 - torq_console.llm.manager - INFO - Claude provider configured successfully with model: claude-sonnet-4-20250514
+torq_console.llm.providers.deepseek - INFO - DeepSeek provider initialized with base URL: https://api.deepseek.com
+2025-10-10 20:41:46,990 - torq_console.llm.providers.deepseek - INFO - DeepSeek provider initialized with base URL: https://api.deepseek.com
+torq_console.llm.manager - INFO - DeepSeek provider configured successfully
+2025-10-10 20:41:46,990 - torq_console.llm.manager - INFO - DeepSeek provider configured successfully
+torq_console.llm.manager - INFO - LLM Manager initialized with providers: ['claude', 'deepseek']
+2025-10-10 20:41:46,990 - torq_console.llm.manager - INFO - LLM Manager initialized with providers: ['claude', 'deepseek']
+torq_console.llm.providers.websearch - INFO - WebSearch provider initialized with methods: ['perplexity_search', 'google_custom_search', 'brave_search', 'web_scraping', 'mcp_server', 'fallback_response']
+2025-10-10 20:41:46,990 - torq_console.llm.providers.websearch - INFO - WebSearch provider initialized with methods: ['perplexity_search', 'google_custom_search', 'brave_search', 'web_scraping', 'mcp_server', 'fallback_response']
+torq_console.swarm.memory_system - INFO - Persistent memory loaded successfully
+2025-10-10 20:41:46,990 - torq_console.swarm.memory_system - INFO - Persistent memory loaded successfully
+torq_console.swarm.memory_system - INFO - SwarmMemory initialized with storage at: C:\Users\asdasd\.torq_console\swarm_memory
+2025-10-10 20:41:46,990 - torq_console.swarm.memory_system - INFO - SwarmMemory initialized with storage at: C:\Users\asdasd\.torq_console\swarm_memory
+torq_console.swarm.orchestrator_advanced - INFO - Advanced SwarmOrchestrator initialized with 8 agents: search_agent, analysis_agent, synthesis_agent, response_agent, code_agent, documentation_agent, testing_agent, performance_agent
+2025-10-10 20:41:46,990 - torq_console.swarm.orchestrator_advanced - INFO - Advanced SwarmOrchestrator initialized with 8 agents: search_agent, analysis_agent, synthesis_agent, response_agent, code_agent, documentation_agent, testing_agent, performance_agent
+torq_console.swarm.orchestrator_advanced - INFO - Agency Swarm compatible directional communication enabled
+2025-10-10 20:41:46,990 - torq_console.swarm.orchestrator_advanced - INFO - Agency Swarm compatible directional communication enabled
+2025-10-10 20:41:46,991 - MemoryIntegration.torq_prince_flowers - INFO - Enhanced memory enabled for agent torq_prince_flowers
+2025-10-10 20:41:46,991 - TORQPrinceFlowers.torq_prince_flowers - INFO - Enhanced Supabase memory system connected
+2025-10-10 20:41:46,991 - TORQPrinceFlowers.torq_prince_flowers - INFO - TORQ Prince Flowers Enhanced v2.1.0 initialized
+2025-10-10 20:41:46,991 - TORQPrinceFlowersInterface - INFO - Prince Flowers interface initialized for TORQ Console
+2025-10-10 20:41:46,991 - PrinceFlowersIntegration - INFO - Registering Prince Flowers integration with TORQ Console
+2025-10-10 20:41:46,992 - PrinceFlowers.Integration - INFO - Using TORQ Console integrated Prince Flowers agent
+2025-10-10 20:41:46,992 - PrinceFlowers.Integration - INFO - Prince Flowers Integration Wrapper initialized
+2025-10-10 20:41:46,992 - PrinceFlowersIntegration - INFO - Prince Flowers integration registered successfully
+torq_console - INFO - Enhanced Prince Flowers integration registered successfully
+2025-10-10 20:41:46,992 - torq_console - INFO - Enhanced Prince Flowers integration registered successfully
+inline_editor - INFO - InlineEditor initialized with Cursor-like functionality
+2025-10-10 20:41:46,992 - inline_editor - INFO - InlineEditor initialized with Cursor-like functionality
+command_palette - INFO - CommandPalette initialized
+2025-10-10 20:41:46,993 - command_palette - INFO - CommandPalette initialized
+2025-10-10 20:41:46,993 - TORQ.SpecKit.RLAnalyzer - WARNING - No Enhanced RL System available, using heuristic analysis
+2025-10-10 20:41:46,993 - TORQ.SpecKit.Engine - INFO - Initialized SpecKit Engine at E:\TORQ-CONSOLE
+torq_console - INFO - TORQ CONSOLE v0.70.0 initialized at E:\TORQ-CONSOLE
+2025-10-10 20:41:46,993 - torq_console - INFO - TORQ CONSOLE v0.70.0 initialized at E:\TORQ-CONSOLE
+torq_console - INFO - All components loaded: ContextManager, ChatManager, InlineEditor, CommandPalette, Prince Flowers Agent with Enhanced Integration
+2025-10-10 20:41:46,993 - torq_console - INFO - All components loaded: ContextManager, ChatManager, InlineEditor, CommandPalette, Prince Flowers Agent with Enhanced Integration
+torq_console.utils.visual_diff - INFO - Visual diff tools available: ['diff', 'git']
+2025-10-10 20:41:47,009 - torq_console.utils.visual_diff - INFO - Visual diff tools available: ['diff', 'git']
+chat_manager - INFO - ChatManager initialized with storage at C:\Users\asdasd\.torq_console\chat_history
+2025-10-10 20:41:47,009 - chat_manager - INFO - ChatManager initialized with storage at C:\Users\asdasd\.torq_console\chat_history
+inline_editor - INFO - InlineEditor initialized with Cursor-like functionality
+2025-10-10 20:41:47,010 - inline_editor - INFO - InlineEditor initialized with Cursor-like functionality
+command_palette - INFO - CommandPalette initialized
+2025-10-10 20:41:47,010 - command_palette - INFO - CommandPalette initialized
+torq_console.ui.web_ai_fix - INFO - Applied AI integration fixes to WebUI instance
+2025-10-10 20:41:47,020 - torq_console.ui.web_ai_fix - INFO - Applied AI integration fixes to WebUI instance
+torq_console.ui.web - INFO - Applied AI integration fixes successfully
+2025-10-10 20:41:47,020 - torq_console.ui.web - INFO - Applied AI integration fixes successfully
+[WEB] Starting web server at http://127.0.0.1:8899
+[BOT] Prince Flowers Enhanced Agent ready
+[CHAT] Web chat interface fully functional
+
+[SEARCH] TEST THE FIX:
+   1. Open http://127.0.0.1:8899 in your browser
+   2. Type: search web for ai news
+   3. Should return actual AI search results!
+============================================================
+torq_console.ui.web - INFO - Starting TORQ CONSOLE Web UI v0.70.0 at http://127.0.0.1:8899
+2025-10-10 20:41:47,020 - torq_console.ui.web - INFO - Starting TORQ CONSOLE Web UI v0.70.0 at http://127.0.0.1:8899
+chat_manager - INFO - Loaded 0 existing tabs
+2025-10-10 20:41:47,032 - chat_manager - INFO - Loaded 0 existing tabs
+chat_manager - INFO - ChatManager initialization completed
+2025-10-10 20:41:47,032 - chat_manager - INFO - ChatManager initialization completed
+command_palette - ERROR - Error registering builtin commands: Command.__init__() got an unexpected keyword argument 'executor'
+2025-10-10 20:41:47,033 - command_palette - ERROR - Error registering builtin commands: Command.__init__() got an unexpected keyword argument 'executor'
+command_palette - INFO - CommandPalette initialization completed
+2025-10-10 20:41:47,033 - command_palette - INFO - CommandPalette initialization completed
+torq_console - INFO - Auto-connecting to local MCP servers...
+2025-10-10 20:41:47,033 - torq_console - INFO - Auto-connecting to local MCP servers...
+Connecting to http://localhost:3100...
+torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+2025-10-10 20:41:49,666 - torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+2025-10-10 20:41:54,210 - torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+Failed to connect to http://localhost:3100
+Connecting to http://localhost:3101...
+torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+2025-10-10 20:41:58,931 - torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+2025-10-10 20:42:03,433 - torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+Failed to connect to http://localhost:3101
+Connecting to http://localhost:3102...
+torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+2025-10-10 20:42:08,108 - torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+2025-10-10 20:42:12,600 - torq_console.mcp.client - ERROR - HTTP connection error: All connection attempts failed
+Failed to connect to http://localhost:3102
+No MCP servers connected. Run E:\start_hybrid_mcp.bat first
+torq_console.ui.web - WARNING - Socket.IO not available - real-time features limited
+2025-10-10 20:42:12,600 - torq_console.ui.web - WARNING - Socket.IO not available - real-time features limited
+INFO:     Started server process [17096]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8899): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+torq_console.ui.web - INFO - Message processor task cancelled
+2025-10-10 20:42:12,626 - torq_console.ui.web - INFO - Message processor task cancelled
+chat_manager - INFO - Background cleanup task cancelled
+2025-10-10 20:42:12,627 - chat_manager - INFO - Background cleanup task cancelled
+chat_manager - INFO - ChatManager shutdown completed
+2025-10-10 20:42:12,627 - chat_manager - INFO - ChatManager shutdown completed
+inline_editor - INFO - InlineEditor cleanup completed
+2025-10-10 20:42:12,627 - inline_editor - INFO - InlineEditor cleanup completed
+torq_console.ui.web - INFO - WebUI cleanup completed
+2025-10-10 20:42:12,627 - torq_console.ui.web - INFO - WebUI cleanup completed

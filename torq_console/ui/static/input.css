@@ -2,7 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Professional Typography - JetBrains Mono */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 /* Custom styles for TORQ CONSOLE */
+
+/* C. Professional Typography System */
+:root {
+  /* Typography - Font Families */
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+
+  /* Typography - Font Weights */
+  --font-weight-regular: 400;    /* Body text, paragraphs */
+  --font-weight-medium: 500;     /* Buttons, labels */
+  --font-weight-semibold: 600;   /* Headers, titles */
+
+  /* Typography - Line Heights */
+  --line-height-tight: 1.2;      /* Headers, code */
+  --line-height-normal: 1.5;     /* Body text */
+  --line-height-relaxed: 1.75;   /* Long-form content */
+
+  /* D. Consistent Spacing System (8px grid) */
+  --spacing-1: 0.5rem;   /* 8px */
+  --spacing-2: 1rem;     /* 16px */
+  --spacing-3: 1.5rem;   /* 24px */
+  --spacing-4: 2rem;     /* 32px */
+  --spacing-5: 2.5rem;   /* 40px */
+  --spacing-6: 3rem;     /* 48px */
+  --spacing-8: 4rem;     /* 64px */
+}
+
+/* Apply professional typography globally */
+body {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  font-size: 14px;
+}
+
+/* Headers use semibold weight and tight line-height */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.025em;
+}
+
+/* Buttons use medium weight */
+button, .btn, .button {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+/* Code blocks use tight line-height */
+code, pre, .code-block {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-tight);
+}
+
+/* Input fields use regular weight */
+input, textarea, select {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+}
+
+/* Labels use medium weight */
+label {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+/* Apply consistent spacing to common elements */
+.panel, .card, .section {
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-3);
+}
+
+.panel-header {
+  margin-bottom: var(--spacing-3);
+  padding-bottom: var(--spacing-2);
+}
+
+.button-group {
+  gap: var(--spacing-2);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-3);
+}
+
+.form-label {
+  margin-bottom: var(--spacing-1);
+}
 .panel-transition {
   transition: all 0.3s ease-in-out;
 }
