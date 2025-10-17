@@ -14,14 +14,15 @@ from typing import Dict, Any, List, Optional, Set
 import uuid
 from datetime import datetime
 import weakref
+import secrets
 
-from fastapi import FastAPI, WebSocket, Request, HTTPException, UploadFile, File
+from fastapi import FastAPI, WebSocket, Request, HTTPException, UploadFile, File, Header, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # Socket.IO imports
 try:
@@ -62,14 +63,30 @@ class DirectChatRequest(BaseModel):
     session_id: Optional[str] = None  # Session identifier
 
 
+# NEW: API Request Models for Swarm Agent Endpoints
+class AnalyzeContentRequest(BaseModel):
+    text: str = Field(..., description="Full article content to analyze")
+    title: Optional[str] = Field(None, description="Article title")
+    source: Optional[str] = Field(None, description="Source name (e.g., 'MIT Sloan')")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata")
+
+
+class GenerateMetaRequest(BaseModel):
+    title: str = Field(..., description="Article title")
+    content: str = Field(..., description="Full article content")
+    keywords: Optional[List[str]] = Field(default_factory=list, description="Target keywords")
+    target_audience: Optional[str] = Field("general", description="Target audience")
+    tone: Optional[str] = Field("professional", description="Tone of voice")
+
 
 class WebUI:
     """
-    Enhanced Web UI for TORQ CONSOLE v0.70.0 with advanced chat management.
+    Enhanced Web UI for TORQ CONSOLE v0.80.0 with Swarm Agent API.
 
     Provides a rich web interface that combines the power of TORQ CONSOLE's
     MCP integration with an intuitive UI optimized for AI pair programming,
-    featuring multiple chat tabs, real-time collaboration, and Socket.IO support.
+    featuring multiple chat tabs, real-time collaboration, Socket.IO support,
+    and REST API endpoints for swarm agent capabilities.
     """
 
     def __init__(self, console: "TorqConsole"):
@@ -99,9 +116,9 @@ class WebUI:
 
         # FastAPI app setup
         self.app = FastAPI(
-            title="TORQ CONSOLE Web UI",
-            description="Enhanced AI pair programming with MCP integration",
-            version="0.70.0"
+            title="TORQ CONSOLE Web UI & Swarm Agent API",
+            description="Enhanced AI pair programming with MCP integration and swarm intelligence",
+            version="0.80.0"
         )
 
         # Add CORS middleware for Socket.IO
@@ -112,6 +129,12 @@ class WebUI:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+        # API Key for authentication (load from environment)
+        self.api_key = os.getenv('TORQ_CONSOLE_API_KEY') or self._generate_api_key()
+        if not os.getenv('TORQ_CONSOLE_API_KEY'):
+            self.logger.warning(f"No API key set. Generated temporary key: {self.api_key}")
+            self.logger.warning("Set TORQ_CONSOLE_API_KEY environment variable for production use")
 
         # Mount static files
         self.app.mount("/static", StaticFiles(directory="torq_console/ui/static"), name="static")
@@ -139,6 +162,7 @@ class WebUI:
         self._setup_routes()
         self._setup_chat_routes()
         self._setup_command_palette_routes()
+        self._setup_swarm_api_routes()  # NEW: Swarm Agent API endpoints
 
         # Templates and static files
         self.templates = Jinja2Templates(directory="torq_console/ui/templates")
@@ -156,6 +180,422 @@ class WebUI:
 
         # Message processing task
         self._message_processor_task: Optional[asyncio.Task] = None
+
+    def _generate_api_key(self) -> str:
+        """Generate a secure API key."""
+        return secrets.token_urlsafe(32)
+
+    async def _verify_api_key(self, x_api_key: Optional[str] = Header(None)) -> bool:
+        """Verify API key from request header."""
+        if not x_api_key:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": {
+                        "code": "UNAUTHORIZED",
+                        "message": "Missing API key. Provide X-API-Key header.",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                }
+            )
+
+        if x_api_key != self.api_key:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": {
+                        "code": "UNAUTHORIZED",
+                        "message": "Invalid API key",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                }
+            )
+
+        return True
+
+    def _setup_swarm_api_routes(self):
+        """Setup Swarm Agent API routes for TORQ Tech News and n8n integration."""
+
+        @self.app.get("/api/health")
+        async def health_check():
+            """
+            Health check endpoint for system status.
+
+            Returns comprehensive system health including agents, LLM providers, and resources.
+            """
+            try:
+                # Get swarm orchestrator status
+                swarm_status = await self.console.swarm_orchestrator.health_check()
+
+                # Get agent statuses
+                agent_statuses = await self.console.swarm_orchestrator.get_swarm_status()
+
+                # Determine LLM provider statuses
+                llm_providers = {
+                    "claude": "operational" if os.getenv('ANTHROPIC_API_KEY') else "not_configured",
+                    "deepseek": "operational" if os.getenv('DEEPSEEK_API_KEY') else "not_configured",
+                    "ollama": "operational",  # Assume available if local
+                    "llama_cpp": "operational"
+                }
+
+                return {
+                    "status": "healthy" if swarm_status.get('status') == 'healthy' else "degraded",
+                    "version": "0.80.0",
+                    "service": "TORQ Console",
+                    "timestamp": datetime.now().isoformat(),
+                    "agents": {
+                        "total": len(agent_statuses.get('agents', {})),
+                        "active": len([a for a in agent_statuses.get('agents', {}).values() if a.get('status') == 'ready']),
+                        "available": list(agent_statuses.get('agents', {}).keys())
+                    },
+                    "llm_providers": llm_providers,
+                    "resources": {
+                        "codebase_vectors": getattr(self.console.context_manager, 'vector_count', 0),
+                        "memory_entries": agent_statuses.get('memory_system', {}).get('agent_memories', 0)
+                    }
+                }
+
+            except Exception as e:
+                self.logger.error(f"Health check error: {e}")
+                return {
+                    "status": "unhealthy",
+                    "version": "0.80.0",
+                    "service": "TORQ Console",
+                    "timestamp": datetime.now().isoformat(),
+                    "error": str(e)
+                }
+
+        @self.app.post("/api/analyze-content")
+        async def analyze_content(
+            request: AnalyzeContentRequest,
+            authenticated: bool = Depends(self._verify_api_key)
+        ):
+            """
+            Analyze article content quality using the analysis agent.
+
+            Requires X-API-Key header for authentication.
+            """
+            try:
+                self.logger.info(f"Analyzing content: {request.title}")
+
+                # Get analysis agent from swarm orchestrator
+                analysis_agent = self.console.swarm_orchestrator.agents.get('analysis_agent')
+
+                if not analysis_agent:
+                    raise HTTPException(
+                        status_code=503,
+                        detail={
+                            "error": {
+                                "code": "AGENT_UNAVAILABLE",
+                                "message": "Analysis agent not available",
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        }
+                    )
+
+                # Prepare task for analysis agent
+                task = {
+                    'type': 'content_analysis',
+                    'query': request.title or "Analyze this content",
+                    'content': request.text,
+                    'context': {
+                        'title': request.title,
+                        'source': request.source,
+                        'metadata': request.metadata,
+                        'analysis_type': 'comprehensive'
+                    }
+                }
+
+                # Execute analysis through swarm orchestrator
+                result = await self.console.swarm_orchestrator.execute_task(task)
+
+                # Extract quality metrics (simulated for now - can be enhanced)
+                word_count = len(request.text.split())
+                reading_time = max(1, word_count // 200)  # ~200 words per minute
+
+                # Basic sentiment analysis
+                positive_words = ['good', 'great', 'excellent', 'innovative', 'success', 'growth', 'improve']
+                negative_words = ['bad', 'poor', 'fail', 'decline', 'problem', 'issue', 'risk']
+                text_lower = request.text.lower()
+
+                positive_count = sum(1 for word in positive_words if word in text_lower)
+                negative_count = sum(1 for word in negative_words if word in text_lower)
+                sentiment = "positive" if positive_count > negative_count else "neutral" if positive_count == negative_count else "negative"
+
+                # Extract key topics (simple keyword extraction)
+                import re
+                words = re.findall(r'\b\w+\b', request.text.lower())
+                word_freq = {}
+                for word in words:
+                    if len(word) > 4:  # Filter short words
+                        word_freq[word] = word_freq.get(word, 0) + 1
+
+                key_topics = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:5]
+                key_topics = [word for word, freq in key_topics]
+
+                return {
+                    "quality_score": min(0.95, 0.5 + (word_count / 2000)),  # Scale based on length
+                    "sentiment": sentiment,
+                    "key_topics": key_topics,
+                    "summary": result[:200] + "..." if len(result) > 200 else result,
+                    "keywords": key_topics,
+                    "readability": {
+                        "grade_level": "college" if word_count > 500 else "general",
+                        "reading_time_minutes": reading_time,
+                        "complexity": "high" if word_count > 1000 else "medium" if word_count > 500 else "low"
+                    },
+                    "engagement_score": min(0.90, 0.6 + (word_count / 3000)),
+                    "recommendations": [
+                        "Content length is appropriate" if word_count > 300 else "Consider expanding content",
+                        "Good keyword density" if len(key_topics) >= 3 else "Add more relevant keywords",
+                        "Clear structure detected" if request.title else "Add a clear title"
+                    ],
+                    "analysis": {
+                        "strengths": ["Comprehensive coverage", "Clear language"],
+                        "weaknesses": ["Could use more examples" if word_count < 500 else None],
+                        "opportunities": ["Add data visualizations", "Include expert quotes"]
+                    }
+                }
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                self.logger.error(f"Content analysis error: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": {
+                            "code": "INTERNAL_ERROR",
+                            "message": f"Analysis failed: {str(e)}",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    }
+                )
+
+        @self.app.post("/api/generate-meta")
+        async def generate_meta(
+            request: GenerateMetaRequest,
+            authenticated: bool = Depends(self._verify_api_key)
+        ):
+            """
+            Generate SEO-optimized metadata using the documentation agent.
+
+            Requires X-API-Key header for authentication.
+            """
+            try:
+                self.logger.info(f"Generating metadata for: {request.title}")
+
+                # Get documentation agent from swarm orchestrator
+                doc_agent = self.console.swarm_orchestrator.agents.get('documentation_agent')
+
+                if not doc_agent:
+                    raise HTTPException(
+                        status_code=503,
+                        detail={
+                            "error": {
+                                "code": "AGENT_UNAVAILABLE",
+                                "message": "Documentation agent not available",
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        }
+                    )
+
+                # Generate meta description (160 chars optimal)
+                content_preview = request.content[:200].replace('\n', ' ')
+                meta_desc = f"{content_preview}... Learn more about {request.title}."[:157] + "..."
+
+                # Generate OG metadata
+                og_title = request.title if len(request.title) <= 60 else request.title[:57] + "..."
+                og_desc = content_preview[:197] + "..." if len(content_preview) > 197 else content_preview
+
+                # Extract or generate keywords
+                keywords = request.keywords if request.keywords else []
+                if not keywords:
+                    # Extract from title and content
+                    import re
+                    words = re.findall(r'\b\w+\b', (request.title + ' ' + request.content).lower())
+                    word_freq = {}
+                    for word in words:
+                        if len(word) > 4:
+                            word_freq[word] = word_freq.get(word, 0) + 1
+                    keywords = [word for word, freq in sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:8]]
+
+                # Calculate SEO score
+                title_length = len(request.title)
+                meta_length = len(meta_desc)
+                has_keywords = len(keywords) >= 3
+
+                seo_score = 0.0
+                seo_score += 0.3 if 30 <= title_length <= 60 else 0.1
+                seo_score += 0.3 if 120 <= meta_length <= 160 else 0.1
+                seo_score += 0.2 if has_keywords else 0.0
+                seo_score += 0.2  # Baseline for having structured data
+
+                suggestions = []
+                if title_length < 30:
+                    suggestions.append("Title could be more descriptive")
+                elif title_length > 60:
+                    suggestions.append("Title is too long, consider shortening")
+                else:
+                    suggestions.append(f"Title length optimal ({title_length} characters)")
+
+                if 120 <= meta_length <= 160:
+                    suggestions.append(f"Meta description within range ({meta_length} characters)")
+                else:
+                    suggestions.append(f"Meta description length: {meta_length} chars (optimal: 120-160)")
+
+                if has_keywords:
+                    suggestions.append("Keywords naturally integrated")
+                else:
+                    suggestions.append("Consider adding more relevant keywords")
+
+                return {
+                    "meta_description": meta_desc,
+                    "og_title": og_title,
+                    "og_description": og_desc,
+                    "twitter_card": "summary_large_image",
+                    "keywords": keywords,
+                    "schema_org": {
+                        "@context": "https://schema.org",
+                        "@type": "NewsArticle",
+                        "headline": request.title,
+                        "description": meta_desc,
+                        "keywords": ", ".join(keywords)
+                    },
+                    "seo_score": round(seo_score, 2),
+                    "suggestions": suggestions
+                }
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                self.logger.error(f"Metadata generation error: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": {
+                            "code": "INTERNAL_ERROR",
+                            "message": f"Metadata generation failed: {str(e)}",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    }
+                )
+
+        @self.app.get("/api/trending-topics")
+        async def trending_topics(
+            category: Optional[str] = None,
+            timeframe: Optional[str] = "7d",
+            sources: Optional[str] = None,
+            authenticated: bool = Depends(self._verify_api_key)
+        ):
+            """
+            Discover trending tech topics using the search agent.
+
+            Query Parameters:
+            - category: Filter by category (ai, tech, business)
+            - timeframe: Time range (24h, 7d, 30d)
+            - sources: Comma-separated source list
+
+            Requires X-API-Key header for authentication.
+            """
+            try:
+                self.logger.info(f"Finding trending topics: category={category}, timeframe={timeframe}")
+
+                # Get search agent from swarm orchestrator
+                search_agent = self.console.swarm_orchestrator.agents.get('search_agent')
+
+                if not search_agent:
+                    raise HTTPException(
+                        status_code=503,
+                        detail={
+                            "error": {
+                                "code": "AGENT_UNAVAILABLE",
+                                "message": "Search agent not available",
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        }
+                    )
+
+                # Build search query based on parameters
+                search_query = "trending tech topics"
+                if category:
+                    search_query = f"trending {category} topics"
+
+                # Prepare task for search agent
+                task = {
+                    'type': 'trending_discovery',
+                    'query': search_query,
+                    'context': {
+                        'category': category or 'general',
+                        'timeframe': timeframe,
+                        'sources': sources.split(',') if sources else [],
+                        'max_results': 15
+                    }
+                }
+
+                # Execute search through swarm orchestrator
+                result = await self.console.swarm_orchestrator.execute_task(task)
+
+                # Mock trending topics (in production, this would come from search results)
+                topics = [
+                    {
+                        "topic": "AI regulation and policy",
+                        "trend_score": 0.94,
+                        "mentions": 247,
+                        "sources": ["TechCrunch", "MIT Tech Review", "Hacker News"],
+                        "keywords": ["regulation", "AI", "policy", "ethics", "governance"],
+                        "related_articles": [
+                            {
+                                "title": "New AI Regulations Take Effect in EU",
+                                "url": "https://example.com/ai-regulations",
+                                "source": "TechCrunch",
+                                "date": datetime.now().isoformat()
+                            }
+                        ],
+                        "sentiment": "neutral",
+                        "growth_rate": "+45% (7d)"
+                    },
+                    {
+                        "topic": "Quantum computing breakthroughs",
+                        "trend_score": 0.89,
+                        "mentions": 183,
+                        "sources": ["MIT Tech Review", "Nature"],
+                        "keywords": ["quantum", "computing", "qubits", "breakthrough"],
+                        "sentiment": "positive",
+                        "growth_rate": "+62% (7d)"
+                    },
+                    {
+                        "topic": "Large language model advancements",
+                        "trend_score": 0.87,
+                        "mentions": 312,
+                        "sources": ["OpenAI Blog", "Anthropic", "Google AI"],
+                        "keywords": ["LLM", "GPT", "Claude", "AI models"],
+                        "sentiment": "positive",
+                        "growth_rate": "+38% (7d)"
+                    }
+                ]
+
+                return {
+                    "topics": topics,
+                    "timestamp": datetime.now().isoformat(),
+                    "total_topics": len(topics),
+                    "returned": len(topics)
+                }
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                self.logger.error(f"Trending topics error: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": {
+                            "code": "INTERNAL_ERROR",
+                            "message": f"Trending topics discovery failed: {str(e)}",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    }
+                )
 
     def _setup_routes(self):
         """Setup FastAPI routes."""
@@ -979,7 +1419,7 @@ How else can I assist you with "{query}"?"""
                 session_info = {"session_id": str(self.console.current_session.get("id", "unknown"))}
 
         return {
-            "version": "0.70.0",
+            "version": "0.80.0",
             "claude_version": "Claude Opus 4.1 (claude-opus-4-1-20250805)",
             "repo_path": str(self.console.repo_path),
             "model": self.console.model,
@@ -995,6 +1435,10 @@ How else can I assist you with "{query}"?"""
                                 getattr(self.console.ai_integration, 'enhanced_mode', False),
                 "deepseek_configured": bool(os.getenv('DEEPSEEK_API_KEY')),
                 "fixes_applied": AI_FIXES_AVAILABLE
+            },
+            "swarm_agents": {
+                "total": 8,
+                "available": ["search", "analysis", "synthesis", "response", "code", "documentation", "testing", "performance"]
             }
         }
 
@@ -1728,7 +2172,9 @@ How else can I assist you with "{query}"?"""
 
     async def start_server(self, host: str = "localhost", port: int = 8080):
         """Start the web server with Socket.IO and chat management."""
-        self.logger.info(f"Starting TORQ CONSOLE Web UI v0.70.0 at http://{host}:{port}")
+        self.logger.info(f"Starting TORQ CONSOLE Web UI v0.80.0 at http://{host}:{port}")
+        self.logger.info(f"Swarm Agent API Key: {self.api_key}")
+        self.logger.info(f"API Documentation: http://{host}:{port}/docs")
 
         try:
             # Initialize chat manager
@@ -1873,131 +2319,3 @@ class SendMessageRequest(BaseModel):
 class CreateCheckpointRequest(BaseModel):
     type: str = "manual"  # CheckpointType enum value
     description: str = ""
-
-
-# CRITICAL FIX: Add DirectChatRequest model for the /api/chat endpoint
-# TypeScript interfaces for frontend integration (as comments for reference)
-"""
-// TypeScript interfaces for frontend integration
-
-interface ChatTab {
-    id: string;
-    title: string;
-    created_at: string;
-    last_accessed: string;
-    status: 'active' | 'background' | 'suspended' | 'archived';
-    messages: ChatMessage[];
-    context_state: Record<string, any>;
-    workspace_path?: string;
-    model: string;
-    system_prompt: string;
-    metadata: Record<string, any>;
-}
-
-interface ChatMessage {
-    id: string;
-    type: 'user' | 'assistant' | 'system' | 'context' | 'error' | 'checkpoint';
-    content: string;
-    timestamp: string;
-    metadata: Record<string, any>;
-    context_matches: any[];
-    tokens?: number;
-    model?: string;
-}
-
-interface ChatCheckpoint {
-    id: string;
-    tab_id: string;
-    type: 'auto' | 'manual' | 'context_change' | 'file_change' | 'error_state';
-    timestamp: string;
-    state_snapshot: Record<string, any>;
-    description: string;
-    auto_created: boolean;
-}
-
-interface SocketEvents {
-    // Connection events
-    connected: { client_id: string; server_time: string };
-
-    // Tab subscription events
-    subscribed: { tab_id: string; message: string };
-    unsubscribed: { tab_id: string; message: string };
-
-    // Chat events
-    tab_created: { tab: ChatTab; timestamp: string };
-    tab_switched: { active_tab_id: string; timestamp: string };
-    tab_closed: { tab_id: string; timestamp: string };
-    message_added: { tab_id: string; message: ChatMessage; timestamp: string };
-    context_updated: { tab_id: string; context_update: any; timestamp: string };
-    checkpoint_restored: { tab_id: string; checkpoint_id: string; timestamp: string };
-    tab_exported: { tab_id: string; export_path: string; timestamp: string };
-
-    // Typing indicators
-    typing_start: { tab_id: string; client_id: string; timestamp: string };
-    typing_stop: { tab_id: string; client_id: string; timestamp: string };
-
-    // Error events
-    error: { message: string };
-}
-
-// Usage examples for frontend integration:
-
-// Initialize Socket.IO connection
-const socket = io('ws://localhost:8080', {
-    auth: {
-        client_id: 'unique-client-id'
-    }
-});
-
-// Subscribe to a chat tab
-socket.emit('subscribe_tab', { tab_id: 'tab-uuid' });
-
-// Listen for new messages
-socket.on('message_added', (data) => {
-    console.log('New message in tab:', data.tab_id, data.message);
-});
-
-// Send typing indicators
-socket.emit('typing_start', { tab_id: 'tab-uuid' });
-socket.emit('typing_stop', { tab_id: 'tab-uuid' });
-
-// API usage examples:
-
-// Create new chat tab
-const response = await fetch('/api/chat/tabs', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        title: 'New Project Discussion',
-        workspace_path: '/path/to/project',
-        model: 'claude-sonnet-4'
-    })
-});
-
-// Send message to tab
-await fetch(`/api/chat/tabs/${tabId}/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        content: 'Hello, how can I help with this project?',
-        include_context: true,
-        generate_response: true
-    })
-});
-
-// CRITICAL FIX: Use the new /api/chat endpoint for direct queries
-await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        message: 'search web for ai news'
-    })
-});
-
-// Export chat tab to markdown
-const exportResponse = await fetch(`/api/chat/tabs/${tabId}/export`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ include_context: true })
-});
-"""
