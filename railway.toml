@@ -1,10 +1,16 @@
 [build]
 builder = "NIXPACKS"
 
+[build.nixpacksPlan]
+providers = ["python"]
+
+[build.nixpacksOptions]
+# Disable pip hash checking to avoid CUDA library hash mismatches
+pipInstallFlags = "--no-cache-dir --no-deps"
+
 [deploy]
 startCommand = "uvicorn torq_console.ui.web:app --host 0.0.0.0 --port $PORT"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
-
-[build.nixpacksPlan]
-providers = ["python"]
+healthcheckPath = "/"
+healthcheckTimeout = 300

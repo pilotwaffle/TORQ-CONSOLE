@@ -1,0 +1,60 @@
+# Railway ignore file - exclude unnecessary files from deployment
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Local development
+.env.local
+*.local
+
+# Large test files
+demo_workspace/
+tests/
+examples/
+
+# Node modules (if any)
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Unnecessary project files
+*.bat
+*.ps1
+*.sh
+*.html
+create_*.py
+test_*.py
+demo_*.py
+fix_*.py
+apply_*.py
+*_test.py
+*_demo.py

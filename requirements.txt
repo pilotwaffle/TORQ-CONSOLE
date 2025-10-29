@@ -1,12 +1,12 @@
 # TORQ Console Dependencies
-# Generated for Railway deployment
+# Generated for Railway deployment - without hash checking
 
 # Core dependencies
 click>=8.0.0
 rich>=13.0.0
 prompt_toolkit>=3.0.0
 fastapi>=0.100.0
-uvicorn>=0.20.0
+uvicorn[standard]>=0.20.0
 websockets>=11.0.0
 gitpython>=3.1.0
 aiofiles>=23.0.0
@@ -24,6 +24,8 @@ watchdog>=3.0.0
 typer>=0.9.0
 
 # ML/Data Science dependencies
-numpy>=1.24.0
+numpy>=1.24.0,<2.0.0
 scikit-learn>=1.3.0
+torch>=2.0.0
+transformers>=4.30.0
 sentence-transformers>=2.2.0
