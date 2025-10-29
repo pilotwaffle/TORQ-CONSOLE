@@ -6,7 +6,7 @@ providers = ["python"]
 
 [build.nixpacksOptions]
 # Disable pip hash checking to avoid CUDA library hash mismatches
-pipInstallFlags = "--no-cache-dir --no-deps"
+pipInstallFlags = "--no-cache-dir"
 
 [deploy]
 startCommand = "uvicorn torq_console.ui.web:app --host 0.0.0.0 --port $PORT"
