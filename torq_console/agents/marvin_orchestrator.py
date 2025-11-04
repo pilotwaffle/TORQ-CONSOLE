@@ -23,6 +23,15 @@ from .marvin_workflow_agents import (
     get_workflow_agent
 )
 
+# Import original TorqPrinceFlowers for tool-based capabilities
+try:
+    from .torq_prince_flowers import TorqPrinceFlowers
+    TORQ_PRINCE_AVAILABLE = True
+except ImportError:
+    TORQ_PRINCE_AVAILABLE = False
+    import warnings
+    warnings.warn("TorqPrinceFlowers not available - search capabilities will be limited")
+
 
 class OrchestrationMode(str, Enum):
     """Orchestration execution modes."""
@@ -68,6 +77,16 @@ class MarvinAgentOrchestrator:
         self.router = MarvinQueryRouter(model=model)
         self.prince_flowers = MarvinPrinceFlowers(model=model)
 
+        # Initialize TorqPrinceFlowers for tool-based capabilities (async)
+        self.torq_prince = None
+        if TORQ_PRINCE_AVAILABLE:
+            # We'll initialize this lazily when needed since it may require LLM provider
+            self._torq_prince_initialized = False
+            self.logger.info("TorqPrinceFlowers available for search capabilities")
+        else:
+            self._torq_prince_initialized = False
+            self.logger.warning("TorqPrinceFlowers not available - search capabilities limited")
+
         # Agent registry
         self.agents = {
             'prince_flowers': self.prince_flowers,
@@ -81,6 +100,8 @@ class MarvinAgentOrchestrator:
             'multi_agent_requests': 0,
             'successful_requests': 0,
             'failed_requests': 0,
+            'torq_prince_requests': 0,
+            'marvin_prince_requests': 0,
         }
 
         self.logger.info("Initialized Marvin Agent Orchestrator")
@@ -165,19 +186,88 @@ class MarvinAgentOrchestrator:
         """Execute using a single agent."""
         agent_name = routing.primary_agent
 
-        # For now, route everything through Prince Flowers
-        # In future, can route to specialized agents
-        response = await self.prince_flowers.chat(query, context)
+        # Detect if search/research capabilities are needed
+        needs_search = (
+            AgentCapability.WEB_SEARCH in routing.capabilities_needed or
+            AgentCapability.RESEARCH in routing.capabilities_needed or
+            self._is_search_query(query)
+        )
+
+        # Route to appropriate agent based on capabilities
+        if needs_search and TORQ_PRINCE_AVAILABLE:
+            # Initialize TorqPrinceFlowers lazily if not already done
+            if not self._torq_prince_initialized:
+                await self._initialize_torq_prince()
+
+            if self.torq_prince:
+                self.logger.info(f"Routing search query to TorqPrinceFlowers: {query[:50]}...")
+                self.metrics['torq_prince_requests'] += 1
+
+                # Use TorqPrinceFlowers for tool-based search
+                response = await self.torq_prince.process_query(query)
+                agent_used = "torq_prince_flowers (with tools)"
+            else:
+                # Fallback to Marvin Prince
+                self.logger.warning("TorqPrinceFlowers initialization failed, using MarvinPrinceFlowers")
+                response = await self.prince_flowers.chat(query, context)
+                agent_used = "marvin_prince_flowers (fallback)"
+                self.metrics['marvin_prince_requests'] += 1
+        else:
+            # Use Marvin Prince for conversational/analytical tasks
+            self.metrics['marvin_prince_requests'] += 1
+            response = await self.prince_flowers.chat(query, context)
+            agent_used = "marvin_prince_flowers"
 
         return OrchestrationResult(
             mode=OrchestrationMode.SINGLE_AGENT,
             primary_response=response,
             routing_decision=routing,
             metadata={
-                'agent_used': agent_name,
-                'capabilities': [cap.value for cap in routing.capabilities_needed]
+                'agent_used': agent_used,
+                'capabilities': [cap.value for cap in routing.capabilities_needed],
+                'used_tools': needs_search
             }
         )
+
+    async def _initialize_torq_prince(self):
+        """Lazy initialization of TorqPrinceFlowers."""
+        try:
+            # Import and initialize with a basic LLM provider
+            from ..llm.providers.base import BaseLLMProvider
+            from ..llm.providers import create_anthropic_provider, create_openai_provider
+
+            # Try to create a provider (prefer Anthropic, fallback to OpenAI)
+            llm_provider = None
+            try:
+                llm_provider = create_anthropic_provider()
+            except Exception:
+                try:
+                    llm_provider = create_openai_provider()
+                except Exception:
+                    self.logger.warning("Could not initialize LLM provider for TorqPrinceFlowers")
+
+            if llm_provider:
+                self.torq_prince = TorqPrinceFlowers(llm_provider=llm_provider)
+                self._torq_prince_initialized = True
+                self.logger.info("Successfully initialized TorqPrinceFlowers")
+            else:
+                self.logger.warning("No LLM provider available for TorqPrinceFlowers")
+                self._torq_prince_initialized = True  # Mark as attempted
+        except Exception as e:
+            self.logger.error(f"Failed to initialize TorqPrinceFlowers: {e}", exc_info=True)
+            self._torq_prince_initialized = True  # Mark as attempted to avoid repeated failures
+
+    def _is_search_query(self, query: str) -> bool:
+        """Detect if a query requires web search capabilities."""
+        search_keywords = [
+            'search', 'find', 'look up', 'lookup', 'what is', 'what are',
+            'github', 'repository', 'repo', 'latest', 'recent', 'news',
+            'top', 'best', 'list', 'compare', 'trends', 'popular',
+            'information about', 'tell me about', 'show me', 'get me'
+        ]
+
+        query_lower = query.lower()
+        return any(keyword in query_lower for keyword in search_keywords)
 
     async def _execute_multi_agent(
         self,
@@ -349,6 +439,8 @@ class MarvinAgentOrchestrator:
 
     def get_agent(self, agent_name: str):
         """Get a specific agent by name."""
+        if agent_name == 'torq_prince_flowers' and self.torq_prince:
+            return self.torq_prince
         return self.agents.get(agent_name)
 
     def get_comprehensive_metrics(self) -> Dict[str, Any]:
