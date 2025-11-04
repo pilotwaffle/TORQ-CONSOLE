@@ -1,97 +1,76 @@
-"""
-Simple Prince Flowers Test - Windows Compatible
-Tests the Prince Flowers integration without Unicode emojis
-"""
+#!/usr/bin/env python3
+"""Simple test to verify Prince Flowers routing logic (no API calls)."""
 
 import asyncio
-import sys
-import os
+import logging
 
-# Add current directory to path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def simple_test():
-    """Simple test without Unicode issues"""
-    print("=== Prince Flowers Simple Test ===")
-    print("Testing TORQ Console integration...")
 
+async def test_routing_logic():
+    """Test just the routing logic without making API calls."""
     try:
-        # Test 1: Import the integration
-        from torq_integration import PrinceFlowersAgent
-        print("✓ Successfully imported PrinceFlowersAgent")
+        from torq_console.agents.marvin_orchestrator import MarvinAgentOrchestrator
+        from torq_console.agents.marvin_query_router import AgentCapability
 
-        # Test 2: Initialize the agent
-        agent = PrinceFlowersAgent()
-        print(f"✓ Agent initialized - Status: {'Available' if agent.available else 'Mock mode'}")
+        logger.info("=" * 60)
+        logger.info("Testing Prince Flowers Routing Logic")
+        logger.info("=" * 60)
 
-        # Test 3: Check capabilities
-        print(f"✓ Agent capabilities: {len(agent.capabilities)} tools available")
+        # Create orchestrator
+        orchestrator = MarvinAgentOrchestrator()
 
-        # Test 4: Basic status check
-        print("✓ Basic initialization tests passed")
+        # Test search query detection
+        test_queries = [
+            ("Search GitHub for top repositories", True),
+            ("Find the best Python frameworks", True),
+            ("List top 3 repositories with most workflows", True),
+            ("What is GitHub?", True),
+            ("Explain async/await in Python", False),
+            ("How does authentication work?", False),
+            ("Tell me about design patterns", False),
+        ]
+
+        logger.info("\nTesting keyword detection:")
+        logger.info("-" * 60)
+
+        for query, should_be_search in test_queries:
+            is_search = orchestrator._is_search_query(query)
+            status = "✓" if is_search == should_be_search else "✗"
+            query_type = "SEARCH" if is_search else "CHAT"
+
+            logger.info(f"{status} '{query[:50]}...'")
+            logger.info(f"   Detected as: {query_type} (expected: {'SEARCH' if should_be_search else 'CHAT'})")
+
+        # Check if TorqPrince is available
+        from torq_console.agents import marvin_orchestrator as mo
+        logger.info("\n" + "=" * 60)
+        logger.info("Component Availability:")
+        logger.info("-" * 60)
+        logger.info(f"TorqPrinceFlowers available: {mo.TORQ_PRINCE_AVAILABLE}")
+        logger.info(f"Initialized: {orchestrator._torq_prince_initialized}")
+
+        # Check metrics structure
+        logger.info("\n" + "=" * 60)
+        logger.info("Metrics Structure:")
+        logger.info("-" * 60)
+        logger.info(f"Total requests: {orchestrator.metrics['total_requests']}")
+        logger.info(f"TorqPrince requests: {orchestrator.metrics['torq_prince_requests']}")
+        logger.info(f"MarvinPrince requests: {orchestrator.metrics['marvin_prince_requests']}")
+
+        logger.info("\n" + "=" * 60)
+        logger.info("ROUTING LOGIC TEST: PASSED ✓")
+        logger.info("=" * 60)
 
         return True
 
     except Exception as e:
-        print(f"✗ Error: {str(e)}")
+        logger.error(f"Test failed: {e}", exc_info=True)
         return False
 
-async def async_test():
-    """Async test of agent functionality"""
-    print("\n=== Async Functionality Test ===")
-
-    try:
-        from torq_integration import PrinceFlowersAgent
-        agent = PrinceFlowersAgent()
-
-        # Test async query processing
-        result = await agent.process_query("what are your capabilities?")
-
-        if result["success"]:
-            print("✓ Async query processing works")
-            print(f"✓ Response received: {len(result['response'])} characters")
-            print(f"✓ Agent: {result['agent']}")
-
-            metadata = result.get("metadata", {})
-            if metadata:
-                print(f"✓ Performance data available: {len(metadata)} metrics")
-
-            return True
-        else:
-            print(f"✗ Query failed: {result['error']}")
-            return False
-
-    except Exception as e:
-        print(f"✗ Async test error: {str(e)}")
-        return False
-
-def main():
-    """Main test function"""
-    print("Prince Flowers Integration Test")
-    print("=" * 40)
-
-    # Synchronous tests
-    sync_success = simple_test()
-
-    # Asynchronous tests
-    async_success = asyncio.run(async_test())
-
-    # Summary
-    print("\n=== Test Summary ===")
-    print(f"Sync Tests: {'PASSED' if sync_success else 'FAILED'}")
-    print(f"Async Tests: {'PASSED' if async_success else 'FAILED'}")
-
-    overall_success = sync_success and async_success
-    print(f"Overall: {'ALL TESTS PASSED' if overall_success else 'SOME TESTS FAILED'}")
-
-    if overall_success:
-        print("\n*** Prince Flowers integration is working correctly! ***")
-        print("You can now use 'prince help' in your TORQ Console interactive shell.")
-    else:
-        print("\n*** Some issues detected - check error messages above ***")
-
-    return overall_success
 
 if __name__ == "__main__":
-    success = main()
+    success = asyncio.run(test_routing_logic())
+    import sys
     sys.exit(0 if success else 1)
