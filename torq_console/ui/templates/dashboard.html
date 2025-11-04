@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>TORQ CONSOLE - Enhanced AI Pair Programming with MCP</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
@@ -595,6 +598,282 @@
 
         .group:hover .tool-icon {
             animation: tool-icon-pulse 0.5s ease-in-out;
+        }
+
+        /* ===============================================
+           MOBILE RESPONSIVE DESIGN
+           iPhone 17 Pro Max & Mobile Device Support
+           =============================================== */
+
+        /* Mobile viewport optimizations */
+        @media (max-width: 1024px) {
+            /* Stack panels vertically on tablets and below */
+            .flex.flex-1.overflow-hidden {
+                flex-direction: column !important;
+            }
+
+            /* Remove fixed widths on all panels */
+            .mcp-panel,
+            .chat-panel,
+            .diff-panel {
+                min-width: 100% !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                flex: none !important;
+            }
+
+            /* Adjust panel heights for vertical stacking */
+            .mcp-panel {
+                max-height: 40vh;
+                border-right: none !important;
+                border-bottom: 1px solid #374151;
+            }
+
+            .chat-panel {
+                flex: 1 !important;
+                min-height: 300px;
+            }
+
+            .diff-panel {
+                max-height: 35vh;
+                border-left: none !important;
+                border-top: 1px solid #374151;
+            }
+
+            /* Make panels collapsible on mobile */
+            .panel-mobile-collapsed {
+                max-height: 48px !important;
+                overflow: hidden !important;
+            }
+
+            /* Touch-friendly button sizing */
+            button, .btn, a.btn {
+                min-height: 44px;
+                min-width: 44px;
+                padding: 12px 16px;
+            }
+
+            /* Larger tap targets for mobile */
+            .mcp-tool-card,
+            .command-palette-item {
+                padding: 12px !important;
+                margin-bottom: 8px;
+            }
+
+            /* Adjust header for mobile */
+            header {
+                padding: 12px 16px !important;
+            }
+
+            header .flex {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            /* Model selector full width on small screens */
+            header select {
+                min-width: 120px;
+            }
+        }
+
+        /* iPhone 17 Pro Max and similar large phones (portrait) */
+        @media (max-width: 430px) {
+            /* Further optimize for phone screens */
+            body {
+                font-size: 16px; /* Prevent zoom on input focus */
+            }
+
+            /* Stack header elements */
+            header .flex {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+
+            header h1 {
+                font-size: 1.25rem !important;
+            }
+
+            header .space-x-4 {
+                width: 100%;
+                justify-content: space-between;
+                margin-left: 0 !important;
+                margin-top: 8px;
+            }
+
+            /* Full-width inputs */
+            input[type="text"],
+            textarea,
+            select {
+                width: 100% !important;
+                font-size: 16px !important; /* Prevent iOS zoom */
+            }
+
+            /* Chat input area */
+            .ai-input {
+                font-size: 16px !important;
+                padding: 12px !important;
+            }
+
+            /* Message bubbles */
+            .message-bubble {
+                max-width: 100% !important;
+                padding: 12px !important;
+            }
+
+            /* Compact panel headers */
+            .mcp-panel .p-4,
+            .chat-panel .p-4,
+            .diff-panel .p-4 {
+                padding: 12px !important;
+            }
+
+            /* Smaller text in tool cards */
+            .mcp-tool-card {
+                font-size: 0.875rem;
+            }
+
+            /* Command palette full screen on mobile */
+            .command-palette-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 100% !important;
+                max-height: 100% !important;
+                border-radius: 0 !important;
+            }
+
+            /* Inline editor full screen on mobile */
+            .inline-editor-panel {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 100% !important;
+                max-height: 100% !important;
+                border-radius: 0 !important;
+            }
+
+            /* Hide less important UI elements on very small screens */
+            .text-xs.text-gray-400 {
+                font-size: 0.75rem;
+            }
+
+            /* Adjust spacing */
+            .p-6 {
+                padding: 1rem !important;
+            }
+
+            .gap-4 {
+                gap: 0.75rem !important;
+            }
+        }
+
+        /* Landscape phone support */
+        @media (max-width: 932px) and (max-height: 430px) and (orientation: landscape) {
+            /* Optimize for landscape phone mode */
+            .mcp-panel,
+            .diff-panel {
+                max-height: 60vh;
+            }
+
+            .chat-panel {
+                min-height: 200px;
+            }
+
+            /* Compact header in landscape */
+            header {
+                padding: 8px 16px !important;
+            }
+
+            header h1 {
+                font-size: 1rem !important;
+            }
+        }
+
+        /* Touch improvements for all mobile devices */
+        @media (hover: none) and (pointer: coarse) {
+            /* Remove hover effects on touch devices */
+            .hover\:bg-gray-100:hover,
+            .hover\:bg-blue-600:hover,
+            .hover\:bg-red-600:hover,
+            .hover\:bg-green-600:hover {
+                background-color: inherit;
+            }
+
+            /* Add active states instead */
+            button:active,
+            .btn:active {
+                transform: scale(0.98);
+                opacity: 0.8;
+            }
+
+            /* Improve scrolling on touch devices */
+            .overflow-y-auto,
+            .overflow-auto {
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Larger click targets */
+            a, button, .clickable {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Prevent accidental text selection */
+            .no-select {
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        }
+
+        /* Safe area insets for notched devices (iPhone X and newer) */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(0px, env(safe-area-inset-left));
+                padding-right: max(0px, env(safe-area-inset-right));
+            }
+
+            header {
+                padding-top: max(12px, env(safe-area-inset-top));
+            }
+
+            .chat-panel {
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+            }
+        }
+
+        /* Fix iOS input zoom issue */
+        @supports (-webkit-touch-callout: none) {
+            input, textarea, select {
+                font-size: 16px !important;
+            }
+        }
+
+        /* Mobile menu toggle button (add to header for panel visibility) */
+        .mobile-panel-toggle {
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .mobile-panel-toggle {
+                display: inline-flex;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 100;
+                background: #3b82f6;
+                color: white;
+                border-radius: 50%;
+                width: 56px;
+                height: 56px;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                cursor: pointer;
+            }
+
+            .mobile-panel-toggle:active {
+                transform: scale(0.95);
+            }
         }
     </style>
 </head>
