@@ -601,49 +601,74 @@
         }
 
         /* ===============================================
-           MOBILE RESPONSIVE DESIGN
+           MOBILE RESPONSIVE DESIGN - PHASE 1 CRITICAL FIXES
            iPhone 17 Pro Max & Mobile Device Support
+           Research-based improvements for mobile AI chat UX
            =============================================== */
 
-        /* Mobile viewport optimizations */
-        @media (max-width: 1024px) {
-            /* Stack panels vertically on tablets and below */
-            .flex.flex-1.overflow-hidden {
-                flex-direction: column !important;
-            }
-
-            /* Remove fixed widths on all panels */
+        /* ===== PHASE 1: CRITICAL MOBILE FIXES (< 768px) ===== */
+        @media (max-width: 768px) {
+            /* CRITICAL: Hide side panels completely on mobile - single-panel focus */
             .mcp-panel,
-            .chat-panel,
             .diff-panel {
-                min-width: 100% !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                flex: none !important;
+                display: none !important;
             }
 
-            /* Adjust panel heights for vertical stacking */
-            .mcp-panel {
-                max-height: 40vh;
-                border-right: none !important;
-                border-bottom: 1px solid #374151;
-            }
-
+            /* Chat panel takes full screen */
             .chat-panel {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 100% !important;
+                height: 100% !important;
                 flex: 1 !important;
-                min-height: 300px;
+                border: none !important;
             }
 
-            .diff-panel {
-                max-height: 35vh;
-                border-left: none !important;
-                border-top: 1px solid #374151;
+            /* CRITICAL: Enlarge input box - show 3-4 lines (80px min-height) */
+            .ai-input,
+            textarea.ai-input,
+            #aiInput {
+                min-height: 80px !important;
+                max-height: 40vh !important;
+                font-size: 17px !important;
+                line-height: 1.4 !important;
+                padding: 16px !important;
+                resize: vertical;
+                border-radius: 12px !important;
+                -webkit-appearance: none;
             }
 
-            /* Make panels collapsible on mobile */
-            .panel-mobile-collapsed {
-                max-height: 48px !important;
-                overflow: hidden !important;
+            /* CRITICAL: Increase message font sizes and padding for readability */
+            .message-bubble,
+            .ai-message,
+            .user-message,
+            [x-html="formatMessage(message.content)"] {
+                font-size: 16px !important;
+                line-height: 1.5 !important;
+                padding: 16px !important;
+                margin-bottom: 16px !important;
+            }
+
+            /* Message container spacing */
+            .messages-container,
+            .chat-messages,
+            #chatMessages {
+                padding: 16px !important;
+                gap: 16px;
+            }
+
+            /* Input container spacing */
+            .input-container,
+            .chat-input-container {
+                padding: 16px !important;
+            }
+
+            /* Send button next to input - make it prominent */
+            .send-button,
+            button[type="submit"] {
+                min-height: 48px !important;
+                min-width: 48px !important;
+                font-size: 18px !important;
             }
 
             /* Touch-friendly button sizing */
@@ -651,53 +676,147 @@
                 min-height: 44px;
                 min-width: 44px;
                 padding: 12px 16px;
+                font-size: 16px;
+            }
+        }
+
+        /* ===== FLOATING ACTION BUTTONS (FABs) for hidden panels ===== */
+        .mobile-fab-container {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-fab-container {
+                display: flex;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                flex-direction: column;
+                gap: 12px;
+                z-index: 100;
             }
 
-            /* Larger tap targets for mobile */
-            .mcp-tool-card,
-            .command-palette-item {
-                padding: 12px !important;
-                margin-bottom: 8px;
+            .mobile-fab {
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                color: white;
+                font-size: 20px;
             }
 
-            /* Adjust header for mobile */
+            .mobile-fab:active {
+                transform: scale(0.95);
+            }
+
+            .mobile-fab-tools {
+                background: linear-gradient(135deg, #065f46, #064e3b);
+                border: 1px solid #10b981;
+            }
+
+            .mobile-fab-changes {
+                background: linear-gradient(135deg, #1e40af, #7c3aed);
+                border: 1px solid #3b82f6;
+            }
+
+            /* When FAB is tapped, show panel as bottom sheet */
+            .mobile-bottom-sheet {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: #1f2937;
+                border-top: 1px solid #374151;
+                border-radius: 16px 16px 0 0;
+                max-height: 70vh;
+                transform: translateY(100%);
+                transition: transform 0.3s ease;
+                z-index: 101;
+                overflow-y: auto;
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+            }
+
+            .mobile-bottom-sheet.active {
+                transform: translateY(0);
+            }
+
+            .mobile-bottom-sheet-handle {
+                width: 40px;
+                height: 4px;
+                background: #4b5563;
+                border-radius: 2px;
+                margin: 12px auto;
+            }
+
+            .mobile-bottom-sheet-content {
+                padding: 16px;
+            }
+        }
+
+        /* ===== TABLET OPTIMIZATION (768px - 1024px) ===== */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            /* On tablets, stack panels vertically but keep them visible */
+            .flex.flex-1.overflow-hidden {
+                flex-direction: column !important;
+            }
+
+            .mcp-panel,
+            .chat-panel,
+            .diff-panel {
+                min-width: 100% !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+
+            .mcp-panel {
+                max-height: 30vh;
+                border-right: none !important;
+                border-bottom: 1px solid #374151;
+            }
+
+            .chat-panel {
+                flex: 1 !important;
+                min-height: 400px;
+            }
+
+            .diff-panel {
+                max-height: 30vh;
+                border-left: none !important;
+                border-top: 1px solid #374151;
+            }
+
+            /* Larger input on tablet too */
+            .ai-input {
+                min-height: 60px !important;
+                font-size: 16px !important;
+                padding: 14px !important;
+            }
+        }
+
+        /* ===== iPhone 17 Pro Max Specific (430px portrait) ===== */
+        @media (max-width: 430px) {
+            /* Prevent iOS zoom on input focus */
+            body {
+                font-size: 16px;
+            }
+
+            /* Compact header for more chat space */
             header {
-                padding: 12px 16px !important;
+                padding: 10px 14px !important;
+            }
+
+            header h1 {
+                font-size: 1.15rem !important;
             }
 
             header .flex {
                 flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            /* Model selector full width on small screens */
-            header select {
-                min-width: 120px;
-            }
-        }
-
-        /* iPhone 17 Pro Max and similar large phones (portrait) */
-        @media (max-width: 430px) {
-            /* Further optimize for phone screens */
-            body {
-                font-size: 16px; /* Prevent zoom on input focus */
-            }
-
-            /* Stack header elements */
-            header .flex {
-                flex-direction: column;
-                align-items: stretch !important;
-            }
-
-            header h1 {
-                font-size: 1.25rem !important;
-            }
-
-            header .space-x-4 {
-                width: 100%;
-                justify-content: space-between;
-                margin-left: 0 !important;
-                margin-top: 8px;
+                gap: 6px;
             }
 
             /* Full-width inputs */
@@ -708,32 +827,8 @@
                 font-size: 16px !important; /* Prevent iOS zoom */
             }
 
-            /* Chat input area */
-            .ai-input {
-                font-size: 16px !important;
-                padding: 12px !important;
-            }
-
-            /* Message bubbles */
-            .message-bubble {
-                max-width: 100% !important;
-                padding: 12px !important;
-            }
-
-            /* Compact panel headers */
-            .mcp-panel .p-4,
-            .chat-panel .p-4,
-            .diff-panel .p-4 {
-                padding: 12px !important;
-            }
-
-            /* Smaller text in tool cards */
-            .mcp-tool-card {
-                font-size: 0.875rem;
-            }
-
             /* Command palette full screen on mobile */
-            .command-palette-container {
+            .command-palette-panel {
                 width: 100% !important;
                 max-width: 100% !important;
                 height: 100% !important;
@@ -750,12 +845,7 @@
                 border-radius: 0 !important;
             }
 
-            /* Hide less important UI elements on very small screens */
-            .text-xs.text-gray-400 {
-                font-size: 0.75rem;
-            }
-
-            /* Adjust spacing */
+            /* Adjust spacing for small screens */
             .p-6 {
                 padding: 1rem !important;
             }
@@ -765,29 +855,35 @@
             }
         }
 
-        /* Landscape phone support */
+        /* ===== Landscape phone support (932px x 430px) ===== */
         @media (max-width: 932px) and (max-height: 430px) and (orientation: landscape) {
             /* Optimize for landscape phone mode */
-            .mcp-panel,
-            .diff-panel {
-                max-height: 60vh;
-            }
-
             .chat-panel {
-                min-height: 200px;
+                min-height: 100vh;
             }
 
             /* Compact header in landscape */
             header {
-                padding: 8px 16px !important;
+                padding: 6px 12px !important;
             }
 
             header h1 {
                 font-size: 1rem !important;
             }
+
+            /* Smaller input in landscape to save vertical space */
+            .ai-input {
+                min-height: 50px !important;
+                padding: 10px 14px !important;
+            }
+
+            /* Hide FABs in landscape to save space */
+            .mobile-fab-container {
+                display: none;
+            }
         }
 
-        /* Touch improvements for all mobile devices */
+        /* ===== Touch device improvements (all mobile) ===== */
         @media (hover: none) and (pointer: coarse) {
             /* Remove hover effects on touch devices */
             .hover\:bg-gray-100:hover,
@@ -797,20 +893,21 @@
                 background-color: inherit;
             }
 
-            /* Add active states instead */
+            /* Add active states for touch feedback */
             button:active,
             .btn:active {
                 transform: scale(0.98);
                 opacity: 0.8;
             }
 
-            /* Improve scrolling on touch devices */
+            /* Smooth scrolling on touch devices */
             .overflow-y-auto,
             .overflow-auto {
                 -webkit-overflow-scrolling: touch;
+                scroll-behavior: smooth;
             }
 
-            /* Larger click targets */
+            /* Larger click targets for accessibility */
             a, button, .clickable {
                 min-height: 44px;
                 display: inline-flex;
@@ -818,14 +915,14 @@
                 justify-content: center;
             }
 
-            /* Prevent accidental text selection */
+            /* Prevent accidental text selection during scrolling */
             .no-select {
                 -webkit-user-select: none;
                 user-select: none;
             }
         }
 
-        /* Safe area insets for notched devices (iPhone X and newer) */
+        /* ===== Safe area insets for notched iPhones (X and newer) ===== */
         @supports (padding: max(0px)) {
             body {
                 padding-left: max(0px, env(safe-area-inset-left));
@@ -837,42 +934,36 @@
             }
 
             .chat-panel {
-                padding-bottom: max(0px, env(safe-area-inset-bottom));
+                padding-bottom: max(16px, env(safe-area-inset-bottom));
+            }
+
+            /* FABs respect safe area */
+            @media (max-width: 768px) {
+                .mobile-fab-container {
+                    bottom: max(20px, env(safe-area-inset-bottom));
+                    right: max(20px, env(safe-area-inset-right));
+                }
             }
         }
 
-        /* Fix iOS input zoom issue */
+        /* ===== iOS-specific fixes ===== */
         @supports (-webkit-touch-callout: none) {
+            /* Prevent iOS zoom on input focus */
             input, textarea, select {
                 font-size: 16px !important;
             }
-        }
 
-        /* Mobile menu toggle button (add to header for panel visibility) */
-        .mobile-panel-toggle {
-            display: none;
-        }
-
-        @media (max-width: 1024px) {
-            .mobile-panel-toggle {
-                display: inline-flex;
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                z-index: 100;
-                background: #3b82f6;
-                color: white;
-                border-radius: 50%;
-                width: 56px;
-                height: 56px;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                cursor: pointer;
+            /* Fix iOS textarea scrolling issues */
+            textarea {
+                -webkit-appearance: none;
+                appearance: none;
             }
 
-            .mobile-panel-toggle:active {
-                transform: scale(0.95);
+            /* Prevent iOS from adding rounded corners */
+            input[type="text"],
+            textarea,
+            button {
+                -webkit-border-radius: inherit;
             }
         }
     </style>
@@ -3100,6 +3191,102 @@
             </div>
             <div class="p-3 border-t border-gray-700 text-xs text-gray-500 text-center">
                 Press <kbd class="px-2 py-1 bg-gray-700 rounded">Esc</kbd> to close
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Floating Action Buttons (FABs) -->
+    <div class="mobile-fab-container" x-data="{ showTools: false, showChanges: false }">
+        <!-- Tools FAB -->
+        <div class="mobile-fab mobile-fab-tools"
+             @click="showTools = !showTools; showChanges = false"
+             title="MCP Tools">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+            </svg>
+        </div>
+
+        <!-- Changes FAB -->
+        <div class="mobile-fab mobile-fab-changes"
+             @click="showChanges = !showChanges; showTools = false"
+             title="Code Changes">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+            </svg>
+        </div>
+
+        <!-- Tools Bottom Sheet -->
+        <div class="mobile-bottom-sheet" :class="{ 'active': showTools }">
+            <div class="mobile-bottom-sheet-handle"></div>
+            <div class="mobile-bottom-sheet-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">MCP Tools</h3>
+                    <button @click="showTools = false" class="text-gray-400 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- MCP Panel Content -->
+                <div class="space-y-3">
+                    <template x-for="server in mcpServers" :key="server.name">
+                        <div class="mcp-tool-card p-3 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="tool-icon" x-text="server.icon || '🔧'"></span>
+                                <span class="font-medium text-sm" x-text="server.name"></span>
+                            </div>
+                            <div class="text-xs text-gray-400 mb-2" x-text="server.description"></div>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="tool in server.tools" :key="tool.name">
+                                    <button @click="insertTool(tool)"
+                                            class="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded"
+                                            x-text="tool.name"></button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="mcpServers.length === 0" class="text-center text-gray-500 py-8">
+                        No MCP servers connected
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Changes Bottom Sheet -->
+        <div class="mobile-bottom-sheet" :class="{ 'active': showChanges }">
+            <div class="mobile-bottom-sheet-handle"></div>
+            <div class="mobile-bottom-sheet-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Code Changes</h3>
+                    <button @click="showChanges = false" class="text-gray-400 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Diff Content -->
+                <div class="space-y-3">
+                    <div x-show="currentDiff">
+                        <div class="bg-gray-800 rounded-lg p-3 text-xs font-mono overflow-x-auto">
+                            <pre x-html="formatDiff(currentDiff)"></pre>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button @click="acceptChange()"
+                                    class="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-medium">
+                                Accept
+                            </button>
+                            <button @click="rejectChange()"
+                                    class="flex-1 bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-medium">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                    <div x-show="!currentDiff" class="text-center text-gray-500 py-8">
+                        No changes to review
+                    </div>
+                </div>
             </div>
         </div>
     </div>
