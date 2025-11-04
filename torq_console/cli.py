@@ -199,6 +199,52 @@ def config_init():
     console.print(f"  {config_path}")
 
 
+@main.command(name='agent')
+@click.argument('subcommand', required=False)
+@click.argument('args', nargs=-1)
+@click.option('--model', '-m', default='anthropic/claude-3-5-sonnet-20241022',
+              help='AI model to use for agents')
+def agent_command(subcommand, args, model):
+    """
+    Marvin-powered AI agent system.
+
+    Commands:
+      query       - Intelligent query routing
+      chat        - Chat with Prince Flowers agent
+      code        - Generate code
+      debug       - Debug assistance
+      docs        - Generate documentation
+      test        - Generate tests
+      arch        - Design architecture
+      orchestrate - Multi-agent coordination
+      memory      - Manage agent memory
+      metrics     - Show performance metrics
+      status      - Show system status
+
+    Example:
+      torq-console agent query "How do I implement JWT auth?"
+      torq-console agent code "Binary search tree" --language=python
+    """
+    try:
+        from .agents import create_marvin_commands
+
+        marvin_commands = create_marvin_commands(model=model)
+
+        if not subcommand:
+            result = asyncio.run(marvin_commands.handle_torq_agent_command('help', []))
+        else:
+            result = asyncio.run(marvin_commands.handle_torq_agent_command(subcommand, list(args)))
+
+        console.print(result)
+    except ImportError as e:
+        console.print(f"[red]ERROR[/red] Marvin integration not available: {e}")
+        console.print("Install marvin with: pip install marvin")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]ERROR[/red] Agent command failed: {e}")
+        sys.exit(1)
+
+
 async def launch_interactive_shell(console_instance: TorqConsole):
     """Launch interactive shell interface."""
     shell = InteractiveShell(console_instance)

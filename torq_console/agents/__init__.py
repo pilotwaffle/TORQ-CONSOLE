@@ -52,6 +52,12 @@ from .marvin_memory import (
     AgentMemorySnapshot
 )
 
+# CLI Commands
+from .marvin_commands import (
+    MarvinAgentCommands,
+    create_marvin_commands
+)
+
 
 __all__ = [
     # Query Router
@@ -90,6 +96,10 @@ __all__ = [
     'AgentInteraction',
     'InteractionType',
     'AgentMemorySnapshot',
+
+    # CLI Commands
+    'MarvinAgentCommands',
+    'create_marvin_commands',
 ]
 
 __version__ = '0.3.0'  # Phase 3: Agent Enhancement
