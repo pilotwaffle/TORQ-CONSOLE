@@ -205,7 +205,27 @@ class MarvinQueryRouter:
         # Keyword-based capability detection
         query_lower = query.lower()
 
-        if any(kw in query_lower for kw in ['code', 'function', 'class', 'implement']):
+        # Check for search/research keywords FIRST (highest priority)
+        search_keywords = [
+            'search', 'find', 'look up', 'lookup', 'what is', 'what are',
+            'github', 'repository', 'repo', 'latest', 'recent', 'news',
+            'top', 'best', 'list', 'compare', 'trends', 'popular',
+            'information about', 'tell me about', 'show me', 'get me'
+        ]
+
+        is_search_query = any(kw in query_lower for kw in search_keywords)
+
+        if is_search_query:
+            # If it's a search query, prioritize search/research capabilities
+            if AgentCapability.WEB_SEARCH not in capabilities:
+                capabilities.append(AgentCapability.WEB_SEARCH)
+            if AgentCapability.RESEARCH not in capabilities:
+                capabilities.append(AgentCapability.RESEARCH)
+            # Don't add code generation for search queries
+            return list(set(capabilities))
+
+        # Only check for code-related keywords if NOT a search query
+        if any(kw in query_lower for kw in ['write code', 'generate code', 'create function', 'implement function', 'code for']):
             capabilities.append(AgentCapability.CODE_GENERATION)
 
         if any(kw in query_lower for kw in ['bug', 'error', 'fix', 'debug']):
