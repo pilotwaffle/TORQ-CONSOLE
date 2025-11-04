@@ -1,6 +1,7 @@
 """
 TORQ Console Spec-Kit Command Interface
 Implements /torq-spec commands: /constitution, /specify, /plan, /tasks, /implement
+Enhanced with Marvin 3.0 integration for AI-powered analysis
 """
 
 import asyncio
@@ -9,12 +10,21 @@ import logging
 from typing import Dict, List, Any, Optional
 from .spec_engine import SpecKitEngine, ProjectConstitution, Specification, TaskPlan
 
+# Import Marvin integration (optional, falls back if not available)
+try:
+    from .marvin_integration import marvin_analyze_spec, marvin_is_available
+    from .rl_spec_analyzer import SpecificationContext
+    MARVIN_AVAILABLE = True
+except ImportError:
+    MARVIN_AVAILABLE = False
+
 class SpecKitCommands:
     """Command interface for TORQ Console Spec-Kit integration"""
 
     def __init__(self, spec_engine: SpecKitEngine):
         self.logger = logging.getLogger("TORQ.SpecKit.Commands")
         self.spec_engine = spec_engine
+        self.use_marvin_by_default = MARVIN_AVAILABLE
 
     async def handle_torq_spec_command(self, subcommand: str, args: List[str]) -> str:
         """Handle /torq-spec subcommands"""
@@ -170,6 +180,50 @@ Stakeholders:
 Created: {const.created_at}
 Updated: {const.updated_at}"""
 
+    async def _update_constitution(self, args: List[str]) -> str:
+        """Update an existing constitution"""
+        if not args:
+            return """Usage: /torq-spec constitution update <name> [options]
+
+Update constitution fields:
+  --purpose="New purpose"
+  --add-principle="New principle"
+  --add-constraint="New constraint"
+  --add-criteria="New success criteria"
+
+Example:
+  /torq-spec constitution update "MyApp" --purpose="Updated purpose"
+"""
+
+        name = args[0]
+        if name not in self.spec_engine.constitutions:
+            return f"Constitution '{name}' not found"
+
+        const = self.spec_engine.constitutions[name]
+
+        # Parse updates
+        for arg in args[1:]:
+            if arg.startswith("--purpose="):
+                const.purpose = arg[10:].strip('"')
+            elif arg.startswith("--add-principle="):
+                principle = arg[16:].strip('"')
+                if principle not in const.principles:
+                    const.principles.append(principle)
+            elif arg.startswith("--add-constraint="):
+                constraint = arg[17:].strip('"')
+                if constraint not in const.constraints:
+                    const.constraints.append(constraint)
+            elif arg.startswith("--add-criteria="):
+                criteria = arg[15:].strip('"')
+                if criteria not in const.success_criteria:
+                    const.success_criteria.append(criteria)
+
+        try:
+            self.spec_engine.save_constitutions()
+            return f"PASS Constitution '{name}' updated successfully"
+        except Exception as e:
+            return f"FAIL Failed to update constitution: {e}"
+
     async def _handle_specify(self, args: List[str]) -> str:
         """Handle specification creation"""
         if not args:
@@ -205,6 +259,8 @@ Optional flags:
   --timeline="2-weeks"
   --complexity="medium"
   --priority="high"
+  --use-marvin              Enable Marvin AI-powered analysis (default: auto)
+  --no-marvin               Disable Marvin, use RL-based analysis only
 """
 
         title = args[0]
@@ -218,6 +274,7 @@ Optional flags:
         timeline = "2-weeks"
         complexity = "medium"
         priority = "medium"
+        use_marvin = self.use_marvin_by_default
 
         # Simple parsing for optional arguments
         for arg in args[2:]:
@@ -235,6 +292,10 @@ Optional flags:
                 complexity = arg[13:]
             elif arg.startswith("--priority="):
                 priority = arg[11:]
+            elif arg == "--use-marvin":
+                use_marvin = True
+            elif arg == "--no-marvin":
+                use_marvin = False
 
         try:
             spec = await self.spec_engine.create_specification(
@@ -264,7 +325,44 @@ Timeline: {timeline}
 Complexity: {complexity}
 Priority: {priority}"""
 
-            # Add RL analysis results
+            # Add Marvin AI-powered analysis if enabled
+            if use_marvin and MARVIN_AVAILABLE:
+                try:
+                    spec_text = f"{title}\n\n{description}\n\nRequirements:\n" + "\n".join(f"- {req}" for req in requirements)
+                    context = SpecificationContext(
+                        domain="general",
+                        tech_stack=tech_stack,
+                        project_size=complexity,
+                        timeline=timeline,
+                        constraints=[],
+                    )
+
+                    marvin_result = await marvin_analyze_spec(spec_text, context)
+
+                    result += f"""
+
+Marvin AI-Powered Analysis:
+  Quality Score: {marvin_result['quality_score']['overall_score']:.2f} ({marvin_result['quality_score']['quality_level']})
+
+  Dimension Scores:
+    Clarity: {marvin_result['quality_score']['dimension_scores']['clarity']:.2f}
+    Completeness: {marvin_result['quality_score']['dimension_scores']['completeness']:.2f}
+    Feasibility: {marvin_result['quality_score']['dimension_scores']['feasibility']:.2f}
+    Testability: {marvin_result['quality_score']['dimension_scores']['testability']:.2f}
+    Maintainability: {marvin_result['quality_score']['dimension_scores']['maintainability']:.2f}
+
+  Validation: {'PASS' if marvin_result['validation']['is_valid'] else 'FAIL'}
+"""
+                    if marvin_result['improvements']:
+                        result += f"""
+Marvin Recommendations:
+{self._format_list([f"{imp['type']}: {imp['suggestion']}" for imp in marvin_result['improvements'][:5]])}
+"""
+                except Exception as e:
+                    self.logger.warning(f"Marvin analysis failed: {e}")
+                    result += "\n\nMarvin AI Analysis: Not available (using RL fallback)"
+
+            # Add RL analysis results (always runs as fallback/complement)
             if spec.analysis:
                 result += f"""
 
@@ -350,6 +448,168 @@ Recommendations:
 
 Risk Assessment:
 {self._format_dict(spec.analysis.risk_assessment)}"""
+
+        return result
+
+    async def _update_specification(self, args: List[str]) -> str:
+        """Update an existing specification"""
+        if len(args) < 2:
+            return """Usage: /torq-spec specify update <spec_id> [options]
+
+Update specification fields:
+  --title="New Title"
+  --description="New description"
+  --status="active|in_progress|completed"
+  --priority="low|medium|high"
+
+Example:
+  /torq-spec specify update spec_0001 --status="in_progress" --priority="high"
+"""
+
+        spec_id = args[0]
+        if spec_id not in self.spec_engine.specifications:
+            return f"Specification '{spec_id}' not found"
+
+        # Parse update fields
+        updates = {}
+        for arg in args[1:]:
+            if arg.startswith("--title="):
+                updates['title'] = arg[8:].strip('"')
+            elif arg.startswith("--description="):
+                updates['description'] = arg[14:].strip('"')
+            elif arg.startswith("--status="):
+                updates['status'] = arg[9:].strip('"')
+            elif arg.startswith("--priority="):
+                updates['priority'] = arg[11:].strip('"')
+
+        if not updates:
+            return "No updates specified. Use --title, --description, --status, or --priority"
+
+        try:
+            # Apply updates
+            spec = self.spec_engine.specifications[spec_id]
+            for key, value in updates.items():
+                setattr(spec, key, value)
+
+            self.spec_engine.save_specifications()
+
+            return f"""PASS Specification updated: {spec_id}
+
+Updated fields: {', '.join(updates.keys())}
+
+Current status:
+  Title: {spec.title}
+  Description: {spec.description}
+  Status: {spec.status}
+  Priority: {spec.priority}
+"""
+        except Exception as e:
+            return f"FAIL Failed to update specification: {e}"
+
+    async def _analyze_specification(self, args: List[str]) -> str:
+        """Re-analyze a specification with Marvin AI"""
+        if not args:
+            return """Usage: /torq-spec specify analyze <spec_id> [--use-marvin|--no-marvin]
+
+Re-analyze an existing specification using Marvin AI or RL analysis.
+
+Options:
+  --use-marvin    Use Marvin AI-powered analysis (default if available)
+  --no-marvin     Use RL-based analysis only
+
+Example:
+  /torq-spec specify analyze spec_0001
+  /torq-spec specify analyze spec_0001 --use-marvin
+"""
+
+        spec_id = args[0]
+        if spec_id not in self.spec_engine.specifications:
+            return f"Specification '{spec_id}' not found"
+
+        use_marvin = self.use_marvin_by_default
+        for arg in args[1:]:
+            if arg == "--use-marvin":
+                use_marvin = True
+            elif arg == "--no-marvin":
+                use_marvin = False
+
+        spec = self.spec_engine.specifications[spec_id]
+        result = f"""PASS Re-analyzing specification: {spec.id} - {spec.title}
+
+"""
+
+        # Marvin AI-powered analysis
+        if use_marvin and MARVIN_AVAILABLE:
+            try:
+                spec_text = f"{spec.title}\n\n{spec.description}\n\nRequirements:\n" + "\n".join(f"- {req}" for req in spec.requirements)
+                context = SpecificationContext(
+                    domain="general",
+                    tech_stack=spec.tech_stack,
+                    project_size=spec.complexity,
+                    timeline=spec.timeline,
+                    constraints=[],
+                )
+
+                marvin_result = await marvin_analyze_spec(spec_text, context)
+
+                result += f"""Marvin AI-Powered Analysis:
+  Quality Score: {marvin_result['quality_score']['overall_score']:.2f} ({marvin_result['quality_score']['quality_level']})
+
+  Dimension Scores:
+    Clarity: {marvin_result['quality_score']['dimension_scores']['clarity']:.2f}
+    Completeness: {marvin_result['quality_score']['dimension_scores']['completeness']:.2f}
+    Feasibility: {marvin_result['quality_score']['dimension_scores']['feasibility']:.2f}
+    Testability: {marvin_result['quality_score']['dimension_scores']['testability']:.2f}
+    Maintainability: {marvin_result['quality_score']['dimension_scores']['maintainability']:.2f}
+
+  Validation: {'PASS' if marvin_result['validation']['is_valid'] else 'FAIL'}
+  Issues Found: {len(marvin_result['validation']['issues'])}
+"""
+
+                if marvin_result['validation']['issues']:
+                    result += f"""
+Validation Issues:
+{self._format_list(marvin_result['validation']['issues'][:5])}
+"""
+
+                if marvin_result['improvements']:
+                    result += f"""
+Marvin Recommendations:
+{self._format_list([f"{imp['type']}: {imp['suggestion']}" for imp in marvin_result['improvements'][:10]])}
+"""
+
+                if marvin_result['spec_analysis']:
+                    result += f"""
+Marvin Spec Analysis:
+  Intent: {marvin_result['spec_analysis'].get('intent', 'N/A')}
+  Complexity Level: {marvin_result['spec_analysis'].get('complexity', 'N/A')}
+"""
+                    if 'requirements' in marvin_result['spec_analysis']:
+                        result += f"  Extracted Requirements: {len(marvin_result['spec_analysis']['requirements'])}\n"
+
+            except Exception as e:
+                self.logger.error(f"Marvin analysis failed: {e}", exc_info=True)
+                result += f"\nMarvin AI Analysis: Failed - {e}\n"
+                use_marvin = False  # Fall back to RL
+
+        # RL-based analysis (fallback or complement)
+        if spec.analysis:
+            result += f"""
+RL-Powered Analysis:
+  Clarity: {spec.analysis.clarity_score:.2f}
+  Completeness: {spec.analysis.completeness_score:.2f}
+  Feasibility: {spec.analysis.feasibility_score:.2f}
+  Complexity: {spec.analysis.complexity_score:.2f}
+  Confidence: {spec.analysis.confidence:.2f}
+
+Recommendations:
+{self._format_list(spec.analysis.recommendations)}
+
+Risk Assessment:
+{self._format_dict(spec.analysis.risk_assessment)}
+"""
+        else:
+            result += "\nRL Analysis: Not available\n"
 
         return result
 
