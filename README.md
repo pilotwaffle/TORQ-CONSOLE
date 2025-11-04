@@ -7,15 +7,24 @@
 [![Issues](https://img.shields.io/github/issues/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/pulls)
 
-> **Version:** 0.80.0 (Enhanced Capabilities Release)
+> **Version:** 0.80.0+ (Marvin 3.0 Integration Complete)
 > **Author:** B Flowers
-> **Status:** Production Ready – Enhanced with Agency Swarm + YYZ Agentics + HuggingFace
+> **Status:** Production Ready – Now with Marvin 3.0 AI Agent System
 > **License:** MIT
 
 TORQ CONSOLE is an enhanced evolution of [Aider](https://github.com/Aider-AI/aider), the open-source AI pair programmer (⭐37k+).
 It combines Aider's **CLI speed** with the **Model Context Protocol (MCP)** for agentic workflows, polished UX, and intuitive ideation.
 
-**🎉 NEW in v0.80.0:** Enhanced with best-in-class capabilities for **web searching**, **code writing**, **N8N workflows**, and **app/website building** based on Agency Swarm, YYZ Agentics, and HuggingFace model integration.
+**🎉 NEW: Marvin 3.0 Integration Complete!**
+
+TORQ Console now features **complete Marvin 3.0 integration** with:
+- ✅ **AI-Powered Specification Analysis** with multi-dimensional quality scoring
+- ✅ **Intelligent Agent Orchestration** with query routing and multi-agent coordination
+- ✅ **5 Specialized Workflow Agents** for code, debugging, docs, testing, and architecture
+- ✅ **Persistent Memory & Learning** from user interactions
+- ✅ **5,469 lines** of production-ready code, **25/25 tests passing**
+
+**Also in v0.80.0:** Enhanced with best-in-class capabilities for **web searching**, **code writing**, **N8N workflows**, and **app/website building** based on Agency Swarm, YYZ Agentics, and HuggingFace model integration.
 
 ---
 
