@@ -205,7 +205,26 @@ class MarvinQueryRouter:
         # Keyword-based capability detection
         query_lower = query.lower()
 
-        # Check for search/research keywords FIRST (highest priority)
+        # FIRST: Check if this is an explicit code generation request
+        # This prevents "generate code for search app" from being misclassified as search
+        explicit_code_request_starters = [
+            'write code', 'generate code', 'create code', 'implement code',
+            'write a', 'create a', 'generate a', 'implement a',
+            'build an app', 'build a program', 'create an app', 'build a class',
+            'code for', 'code to', 'code that'
+        ]
+
+        starts_with_code_request = any(
+            query_lower.startswith(pattern)
+            for pattern in explicit_code_request_starters
+        )
+
+        if starts_with_code_request:
+            # Explicit code request - route to code generation
+            capabilities.append(AgentCapability.CODE_GENERATION)
+            return list(set(capabilities))
+
+        # Check for search/research keywords (high priority, but after explicit code checks)
         search_keywords = [
             'search', 'find', 'look up', 'lookup', 'what is', 'what are',
             'github', 'repository', 'repo', 'latest', 'recent', 'news',
@@ -215,17 +234,47 @@ class MarvinQueryRouter:
 
         is_search_query = any(kw in query_lower for kw in search_keywords)
 
-        if is_search_query:
+        # Also detect "use/with X to search/find" patterns which should be treated as search
+        # Examples: "use perplexity to search", "use google to find", "with brave search"
+        search_tool_patterns = [
+            'use to search', 'use to find', 'use to look up',
+            'with to search', 'with to find',
+            'use for searching', 'use for finding',
+            'to search for', 'to find information', 'to look up information',
+            'and search for', 'and find information'
+        ]
+
+        # Special check: phrases containing both a tool indicator and search action
+        # Matches: "use X to search", "with X to find", etc.
+        has_tool_indicator = any(ind in query_lower for ind in ['use ', 'with ', 'using '])
+        has_search_action = any(act in query_lower for act in [' to search', ' to find', ' search ', ' find '])
+        tool_based_search = has_tool_indicator and has_search_action
+
+        uses_search_tool = any(pattern in query_lower for pattern in search_tool_patterns)
+
+        if is_search_query or uses_search_tool or tool_based_search:
             # If it's a search query, prioritize search/research capabilities
+            # This prevents queries like "Use perplexity to search X" from being
+            # misinterpreted as code generation requests
             if AgentCapability.WEB_SEARCH not in capabilities:
                 capabilities.append(AgentCapability.WEB_SEARCH)
             if AgentCapability.RESEARCH not in capabilities:
                 capabilities.append(AgentCapability.RESEARCH)
-            # Don't add code generation for search queries
+            # Don't add code generation for search queries - return immediately
             return list(set(capabilities))
 
         # Only check for code-related keywords if NOT a search query
-        if any(kw in query_lower for kw in ['write code', 'generate code', 'create function', 'implement function', 'code for']):
+        # Make code generation detection very explicit to avoid false positives
+        code_generation_patterns = [
+            'write code', 'generate code', 'create code', 'implement code',
+            'create function', 'implement function', 'write function',
+            'generate function', 'write a program', 'create a program',
+            'implement a class', 'create a class', 'write a class',
+            'code for', 'function that', 'class that implements',
+            'build an application', 'create an application'
+        ]
+
+        if any(pattern in query_lower for pattern in code_generation_patterns):
             capabilities.append(AgentCapability.CODE_GENERATION)
 
         if any(kw in query_lower for kw in ['bug', 'error', 'fix', 'debug']):
