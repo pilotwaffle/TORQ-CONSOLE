@@ -210,7 +210,7 @@ def run_manual_tests():
 
         for query, expected_intent in test_cases:
             routing = await agent.route_query(query)
-            status = "✓ PASS" if routing['intent'] == expected_intent else "✗ FAIL"
+            status = "[PASS]" if routing['intent'] == expected_intent else "[FAIL]"
             print(f"{status} | Query: '{query[:50]}'")
             print(f"       | Expected: {expected_intent}, Got: {routing['intent']}")
             print(f"       | Confidence: {routing['confidence']:.2f}")
