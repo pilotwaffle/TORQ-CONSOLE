@@ -350,14 +350,17 @@ class MarvinAgentMemory:
     def _save_memory(self):
         """Save memory to persistent storage."""
         try:
-            # Save interactions
+            # Save interactions (convert enums to strings for JSON serialization)
             interactions_file = self.storage_path / "interactions.json"
             with open(interactions_file, 'w') as f:
-                json.dump(
-                    [asdict(i) for i in self.interactions],
-                    f,
-                    indent=2
-                )
+                interactions_data = []
+                for interaction in self.interactions:
+                    interaction_dict = asdict(interaction)
+                    # Convert enum to string value
+                    interaction_dict['interaction_type'] = interaction.interaction_type.value
+                    interactions_data.append(interaction_dict)
+
+                json.dump(interactions_data, f, indent=2)
 
             # Save preferences
             prefs_file = self.storage_path / "preferences.json"

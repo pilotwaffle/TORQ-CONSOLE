@@ -55,6 +55,8 @@ class RoutingDecision:
     estimated_complexity: ComplexityLevel
     suggested_approach: str
     context_requirements: Dict[str, Any]
+    confidence: float
+    reasoning: str
 
 
 class MarvinQueryRouter:
@@ -388,7 +390,9 @@ class MarvinQueryRouter:
                 capabilities_needed=analysis.required_capabilities,
                 estimated_complexity=analysis.complexity,
                 suggested_approach=suggested_approach,
-                context_requirements=context_requirements
+                context_requirements=context_requirements,
+                confidence=analysis.confidence,
+                reasoning=analysis.reasoning
             )
 
             # Store in history
@@ -512,7 +516,9 @@ class MarvinQueryRouter:
                 'needs_code_context': False,
                 'needs_spec_context': False,
                 'needs_history': False,
-            }
+            },
+            confidence=0.3,
+            reasoning="Fallback routing due to query routing failure"
         )
 
     def get_agent_capabilities(self, agent_name: str) -> List[AgentCapability]:
