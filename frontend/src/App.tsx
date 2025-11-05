@@ -1,13 +1,48 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TopNav } from '@/components/layout/TopNav';
 import { AgentSidebar } from '@/components/layout/AgentSidebar';
 import { ChatWindow } from '@/components/chat/ChatWindow';
+import { CommandPalette } from '@/components/command/CommandPalette';
+import { CoordinationPanel } from '@/components/coordination/CoordinationPanel';
 import { useAgentStore } from '@/stores/agentStore';
+import { useCoordinationStore } from '@/stores/coordinationStore';
+import { useKeyboardShortcuts, SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
 import type { Agent, ChatSession } from '@/lib/types';
 
 function App() {
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
   const { setAgents, addSession, setActiveSession, setWorkspace, setConnectionStatus } =
     useAgentStore();
+
+  const hasActiveWorkflows = useCoordinationStore((state) => state.hasActiveWorkflows());
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      ...SHORTCUTS.COMMAND_PALETTE,
+      callback: () => setIsCommandPaletteOpen(true),
+    },
+    {
+      ...SHORTCUTS.NEW_CHAT,
+      callback: () => {
+        // Create new chat with current agent
+        const { activeAgentId, addSession, setActiveSession } = useAgentStore.getState();
+        if (activeAgentId) {
+          const newSession: ChatSession = {
+            id: `session_${Date.now()}`,
+            title: 'New Chat',
+            agentId: activeAgentId,
+            messages: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          addSession(newSession);
+          setActiveSession(newSession.id);
+        }
+      },
+    },
+  ]);
 
   useEffect(() => {
     // Initialize with mock data for demo purposes
@@ -86,10 +121,24 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden">
       <TopNav />
-      <div className="flex-1 flex overflow-hidden">
+      <div
+        className={`
+          flex-1 flex overflow-hidden transition-all duration-300
+          ${hasActiveWorkflows ? 'mb-14' : 'mb-0'}
+        `}
+      >
         <AgentSidebar />
         <ChatWindow />
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
+
+      {/* Multi-Agent Coordination Panel */}
+      <CoordinationPanel />
     </div>
   );
 }

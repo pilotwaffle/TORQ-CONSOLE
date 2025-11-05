@@ -41,10 +41,10 @@ class TorqMarvinIntegration:
         self.api_key = api_key or self._get_api_key()
 
         # Configure Marvin
-        if self.api_key:
-            if "anthropic" in model.lower():
+        if self.api_key and self.model:
+            if "anthropic" in self.model.lower():
                 os.environ.setdefault("ANTHROPIC_API_KEY", self.api_key)
-            elif "openai" in model.lower() or "gpt" in model.lower():
+            elif "openai" in self.model.lower() or "gpt" in self.model.lower():
                 os.environ.setdefault("OPENAI_API_KEY", self.api_key)
 
         # Performance metrics
