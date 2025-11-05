@@ -33,6 +33,14 @@ from .torq_search_master import create_search_master
 from .intent_detector import create_intent_detector
 SEARCHMASTER_AVAILABLE = True
 
+# Import Marvin Query Router for intelligent query routing
+try:
+    from .marvin_query_router import create_query_router, AgentCapability
+    MARVIN_ROUTER_AVAILABLE = True
+except ImportError:
+    MARVIN_ROUTER_AVAILABLE = False
+    logging.warning("MarvinQueryRouter not available - search routing may be less accurate")
+
 # Import Image Generation Tool
 try:
     from .tools.image_generation_tool import create_image_generation_tool
@@ -202,6 +210,15 @@ class TORQPrinceFlowers:
         self._init_memory_systems()
         self._init_planning_engine()
         self._init_learning_systems()
+
+        # Initialize Marvin Query Router for intelligent search routing
+        self.query_router = None
+        if MARVIN_ROUTER_AVAILABLE:
+            try:
+                self.query_router = create_query_router()
+                self.logger.info("MarvinQueryRouter initialized for intelligent query routing")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize MarvinQueryRouter: {e}")
 
         # Performance tracking
         self.active_since = time.time()
@@ -683,6 +700,56 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
 
         self.total_queries += 1
         self.logger.info(f"[PRINCE-RL] Processing query {trajectory_id}: {query[:50]}...")
+
+        # CRITICAL FIX: Use MarvinQueryRouter to detect search queries
+        # Route search queries to SearchMaster instead of code generation
+        if self.query_router:
+            try:
+                routing_analysis = await self.query_router.analyze_query(query)
+
+                # Check if this is a search/research query
+                is_search_query = (
+                    AgentCapability.WEB_SEARCH in routing_analysis.required_capabilities or
+                    AgentCapability.RESEARCH in routing_analysis.required_capabilities
+                )
+
+                if is_search_query:
+                    self.logger.info(f"[PRINCE-RL] Detected SEARCH query - routing to SearchMaster: {routing_analysis.reasoning}")
+
+                    # Use SearchMaster for search queries
+                    if SEARCHMASTER_AVAILABLE and self.search_master:
+                        try:
+                            search_result = await self.search_master.search(
+                                query=query,
+                                max_results=10,
+                                search_type='comprehensive'
+                            )
+
+                            execution_time = time.time() - start_time
+                            self.successful_responses += 1
+
+                            return TORQAgentResult(
+                                success=True,
+                                content=search_result.get('formatted_answer', search_result.get('answer', 'Search completed')),
+                                confidence=routing_analysis.confidence,
+                                tools_used=['marvin_query_router', 'search_master', 'web_search'],
+                                execution_time=execution_time,
+                                reasoning_mode=ReasoningMode.DIRECT,
+                                trajectory_id=trajectory_id,
+                                metadata={
+                                    'routing_decision': routing_analysis.suggested_agent,
+                                    'routing_confidence': routing_analysis.confidence,
+                                    'routing_reasoning': routing_analysis.reasoning,
+                                    'search_sources': search_result.get('sources', []),
+                                    'query_routed': True
+                                }
+                            )
+                        except Exception as search_error:
+                            self.logger.error(f"SearchMaster failed: {search_error}, falling back to normal processing")
+                    else:
+                        self.logger.warning("SearchMaster not available for search query, using normal processing")
+            except Exception as router_error:
+                self.logger.warning(f"Query routing failed: {router_error}, using normal processing")
 
         # Initialize reasoning trajectory
         trajectory = ReasoningTrajectory(
