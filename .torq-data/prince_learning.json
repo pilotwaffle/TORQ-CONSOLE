@@ -1,0 +1,287 @@
+{
+  "version": "2.1.0",
+  "metadata": {
+    "last_saved": 1760672463.8933792,
+    "total_queries": 10,
+    "successful_responses": 9,
+    "uptime_hours": 24.035693520175087
+  },
+  "strategy_weights": {
+    "direct": 1.0046866666666667,
+    "research": 1.0373915678968864,
+    "analysis": 1.0,
+    "composition": 1.0,
+    "meta_planning": 1.0
+  },
+  "q_table": {},
+  "pattern_recognition": {
+    "success_patterns": {
+      "research_news_low": 3,
+      "research_general_low": 2,
+      "creative_general_low": 1,
+      "research_technology_low": 3
+    },
+    "failure_patterns": {},
+    "tool_combination_patterns": {
+      "strategy_selector->web_search->content_analyzer->synthesis_engine": 8,
+      "strategy_selector->image_generation": 1
+    }
+  },
+  "tool_performance": {
+    "web_search": {
+      "usage_count": 8,
+      "success_count": 8,
+      "total_time": 6.616908550262451,
+      "reward_sum": 6.3999999999999995,
+      "composition_success": {}
+    },
+    "image_generation": {
+      "usage_count": 2,
+      "success_count": 2,
+      "total_time": 14.560984373092651,
+      "reward_sum": 0.9,
+      "composition_success": {}
+    },
+    "twitter_posting": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "linkedin_posting": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "landing_page_generator": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "file_operations": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "code_generation": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "n8n_workflow": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "browser_automation": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "terminal_commands": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "mcp_client": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "multi_tool_composition": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "content_analyzer": {
+      "usage_count": 8,
+      "success_count": 8,
+      "total_time": 1.5999999999999999,
+      "reward_sum": 5.6000000000000005,
+      "composition_success": {}
+    },
+    "synthesis_engine": {
+      "usage_count": 8,
+      "success_count": 8,
+      "total_time": 137.66341972351074,
+      "reward_sum": 7.200000000000001,
+      "composition_success": {}
+    },
+    "memory_retrieval": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "error_recovery": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    },
+    "meta_planner": {
+      "usage_count": 0,
+      "success_count": 0,
+      "total_time": 0.0,
+      "reward_sum": 0.0,
+      "composition_success": {}
+    }
+  },
+  "action_policy": {
+    "exploration_rate": 0.15,
+    "exploitation_threshold": 0.7,
+    "learning_rate": 0.01,
+    "decay_factor": 0.95
+  },
+  "learning_rate": 0.1,
+  "trajectory_summary": {
+    "count": 9,
+    "recent_100": [
+      {
+        "id": "fd2bb08b",
+        "query": "prince search the web for the latest news from openai",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 20.249556303024292,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      },
+      {
+        "id": "3d927911",
+        "query": "prince search the web for the latest news from openai about app building",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 22.10153603553772,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      },
+      {
+        "id": "005d6cba",
+        "query": "prince search the web for current btc price",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 18.24955987930298,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      },
+      {
+        "id": "959a68e1",
+        "query": "Generate an image of: cat",
+        "mode": "direct",
+        "success": true,
+        "reward": 0.4686666666666667,
+        "execution_time": 14.718347787857056,
+        "tools_used": [
+          "strategy_selector",
+          "image_generation"
+        ]
+      },
+      {
+        "id": "8b5c2499",
+        "query": "prince search https://sloanreview.mit.edu/ for ai news",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 20.729022979736328,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      },
+      {
+        "id": "419fda07",
+        "query": "prince search https://sloanreview.mit.edu/ for ai news",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 17.932239055633545,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      },
+      {
+        "id": "b8f7a380",
+        "query": "prince search for specific AI topics within the MIT Sloan Management Review",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 14.180152177810669,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      },
+      {
+        "id": "b34e4299",
+        "query": "prince search for prince new album news",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 16.691850423812866,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      },
+      {
+        "id": "7e35deb1",
+        "query": "prince search Prince estate 2025 release",
+        "mode": "research",
+        "success": true,
+        "reward": 0.48400000000000004,
+        "execution_time": 15.738089561462402,
+        "tools_used": [
+          "strategy_selector",
+          "web_search",
+          "content_analyzer",
+          "synthesis_engine"
+        ]
+      }
+    ]
+  }
+}

@@ -1,2 +1,3 @@
 torq_console
+torq_consoleintegrations
 torq_consoleuitemplates

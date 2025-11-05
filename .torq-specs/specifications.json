@@ -1,0 +1,45 @@
+{
+  "spec_0001": {
+    "id": "spec_0001",
+    "title": "'User",
+    "description": "Auth'",
+    "requirements": [
+      "User can register with email",
+      "User can login securely",
+      "Password reset functionality"
+    ],
+    "acceptance_criteria": [
+      "All tests pass",
+      "Security audit completed",
+      "Performance benchmarks met"
+    ],
+    "dependencies": [],
+    "tech_stack": [
+      "python",
+      "jwt"
+    ],
+    "timeline": "2-weeks",
+    "complexity": "medium",
+    "priority": "high",
+    "status": "draft",
+    "analysis": {
+      "clarity_score": 1.0,
+      "completeness_score": 0.0,
+      "feasibility_score": 1.0,
+      "complexity_score": 0.35,
+      "risk_assessment": {
+        "scope_creep": 0.24499999999999997,
+        "technical_debt": 0.0,
+        "timeline_risk": 0.0,
+        "quality_risk": 0.0
+      },
+      "recommendations": [
+        "Add more implementation details and technical specifications",
+        "Add more explicit requirements using 'must', 'should', 'shall' language"
+      ],
+      "confidence": 0.6
+    },
+    "created_at": "2025-10-17T20:22:07.414517",
+    "updated_at": "2025-10-17T20:22:07.414517"
+  }
+}
