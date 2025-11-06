@@ -127,10 +127,28 @@ def is_marvin_available() -> bool:
 
 def get_marvin_status() -> dict:
     """Get Marvin integration status and any import errors."""
-    return {
+    import os
+
+    status = {
         'available': _MARVIN_AVAILABLE,
         'error': _MARVIN_IMPORT_ERROR if not _MARVIN_AVAILABLE else None
     }
+
+    # Check for API key configuration if Marvin is available
+    if _MARVIN_AVAILABLE:
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+
+        status['api_keys'] = {
+            'anthropic_configured': bool(anthropic_key),
+            'openai_configured': bool(openai_key),
+            'any_configured': bool(anthropic_key or openai_key)
+        }
+
+        if not status['api_keys']['any_configured']:
+            status['warning'] = "No API keys configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable."
+
+    return status
 
 
 __version__ = '0.3.0'  # Phase 3: Agent Enhancement
