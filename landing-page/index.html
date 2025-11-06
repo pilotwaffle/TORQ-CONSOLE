@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Primary Meta Tags -->
+    <title>TORQ-CONSOLE | Real-Time AI Research & Export Platform</title>
+    <meta name="title" content="TORQ-CONSOLE | Real-Time AI Research & Export Platform">
+    <meta name="description" content="Production-ready AI research platform with real-time progress tracking, multi-format export, and Prince Flowers AI agent. Powered by Claude, DeepSeek, Ollama & llama.cpp.">
+    <meta name="keywords" content="AI research, real-time collaboration, multi-LLM, export formats, WebSocket, Azure integration, Prince Flowers AI">
+    <meta name="author" content="TORQ-CONSOLE">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://torq-console.vercel.app/">
+    <meta property="og:title" content="TORQ-CONSOLE | Real-Time AI Research & Export Platform">
+    <meta property="og:description" content="Production-ready AI research platform with real-time progress tracking, multi-format export, and Prince Flowers AI agent.">
+    <meta property="og:image" content="https://torq-console.vercel.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://torq-console.vercel.app/">
+    <meta property="twitter:title" content="TORQ-CONSOLE | Real-Time AI Research & Export Platform">
+    <meta property="twitter:description" content="Production-ready AI research platform with real-time progress tracking, multi-format export, and Prince Flowers AI agent.">
+    <meta property="twitter:image" content="https://torq-console.vercel.app/og-image.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+
+    <!-- Preconnect to external resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "TORQ-CONSOLE",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web, Windows, macOS, Linux",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Production-ready AI research platform with real-time progress tracking, multi-format export, and Prince Flowers AI agent.",
+      "featureList": [
+        "Real-time progress tracking",
+        "Multi-format export (Markdown, PDF, CSV, JSON)",
+        "Prince Flowers AI research agent",
+        "Multi-LLM support (Claude, DeepSeek, Ollama, llama.cpp)",
+        "WebSocket real-time collaboration",
+        "Azure integration capabilities"
+      ]
+    }
+    </script>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+
+      // Event tracking helper
+      function trackEvent(category, action, label) {
+        gtag('event', action, {
+          'event_category': category,
+          'event_label': label
+        });
+      }
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <span class="logo-icon">⚡</span>
+                    <span class="logo-text">TORQ-CONSOLE</span>
+                    <span class="version-badge">Phase 5</span>
+                </div>
+                <div class="nav-links">
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#technology" class="nav-link">Technology</a>
+                    <a href="#pricing" class="nav-link">Pricing</a>
+                    <a href="#demo" class="nav-link">Demo</a>
+                    <a href="https://github.com/yourusername/torq-console" class="btn btn-secondary" onclick="trackEvent('Navigation', 'click', 'GitHub')">GitHub</a>
+                    <a href="#get-started" class="btn btn-primary" onclick="trackEvent('Navigation', 'click', 'Get Started')">Get Started</a>
+                </div>
+                <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-background"></div>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Real-Time AI Research<br>
+                        <span class="gradient-text">Powered by Intelligence</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Production-ready AI research platform with 5-stage pipeline tracking,
+                        multi-format export, and Prince Flowers AI agent. Built for speed, scale, and collaboration.
+                    </p>
+                    <div class="hero-cta">
+                        <a href="#get-started" class="btn btn-primary btn-lg" onclick="trackEvent('Hero', 'click', 'Get Started')">
+                            Get Started Free
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
+                        <a href="#demo" class="btn btn-secondary btn-lg" onclick="trackEvent('Hero', 'click', 'Watch Demo')">
+                            Watch Demo
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6.66666 5L13.3333 10L6.66666 15V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <div class="stat-value">5-Stage</div>
+                            <div class="stat-label">Pipeline Tracking</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">4 Formats</div>
+                            <div class="stat-label">Export Options</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">4 LLMs</div>
+                            <div class="stat-label">Model Support</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">Real-Time</div>
+                            <div class="stat-label">WebSocket Sync</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="terminal-window">
+                        <div class="terminal-header">
+                            <div class="terminal-buttons">
+                                <span class="terminal-button red"></span>
+                                <span class="terminal-button yellow"></span>
+                                <span class="terminal-button green"></span>
+                            </div>
+                            <div class="terminal-title">torq-console@phase5</div>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="terminal-line">
+                                <span class="terminal-prompt">$</span>
+                                <span class="terminal-command">torq research --agent prince --export pdf</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-output">
+                                    <span class="status-icon loading">●</span> Stage 1: Planning Query Strategy...
+                                </span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-output">
+                                    <span class="status-icon success">✓</span> Stage 2: Gathering Sources (12 found)
+                                </span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-output">
+                                    <span class="status-icon success">✓</span> Stage 3: Analyzing Content (Claude Sonnet 4)
+                                </span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-output">
+                                    <span class="status-icon loading">●</span> Stage 4: Synthesizing Report...
+                                </span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-output">
+                                    <span class="status-icon pending">○</span> Stage 5: Exporting to PDF...
+                                </span>
+                            </div>
+                            <div class="terminal-line terminal-cursor">
+                                <span class="cursor-blink">▋</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Powerful Features</h2>
+                <p class="section-subtitle">Everything you need for AI-powered research and collaboration</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- Feature 1 -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="4" y="8" width="24" height="4" rx="2" fill="url(#gradient1)"/>
+                            <rect x="4" y="14" width="18" height="4" rx="2" fill="url(#gradient1)" opacity="0.7"/>
+                            <rect x="4" y="20" width="20" height="4" rx="2" fill="url(#gradient1)" opacity="0.5"/>
+                            <defs>
+                                <linearGradient id="gradient1" x1="4" y1="8" x2="28" y2="24" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#6366f1"/>
+                                    <stop offset="1" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">5-Stage Pipeline Tracking</h3>
+                    <p class="feature-description">
+                        Real-time visibility into every stage of your research workflow: Planning, Gathering,
+                        Analyzing, Synthesizing, and Exporting. Track progress with WebSocket updates.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Live progress indicators</li>
+                        <li>Stage-specific metrics</li>
+                        <li>Error handling & recovery</li>
+                        <li>Performance analytics</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 4H24C25.1046 4 26 4.89543 26 6V26C26 27.1046 25.1046 28 24 28H8C6.89543 28 6 27.1046 6 26V6C6 4.89543 6.89543 4 8 4Z" stroke="url(#gradient2)" stroke-width="2"/>
+                            <path d="M10 10H22M10 16H18M10 22H20" stroke="url(#gradient2)" stroke-width="2" stroke-linecap="round"/>
+                            <defs>
+                                <linearGradient id="gradient2" x1="6" y1="4" x2="26" y2="28" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#06b6d4"/>
+                                    <stop offset="1" stop-color="#3b82f6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Multi-Format Export</h3>
+                    <p class="feature-description">
+                        Export your research in Markdown, PDF, CSV, or JSON formats.
+                        Perfect for documentation, presentations, data analysis, or API integration.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Markdown with frontmatter</li>
+                        <li>Professional PDF reports</li>
+                        <li>CSV for data analysis</li>
+                        <li>JSON for API integration</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="16" cy="10" r="4" fill="url(#gradient3)"/>
+                            <path d="M16 16C12.6863 16 10 18.6863 10 22V26H22V22C22 18.6863 19.3137 16 16 16Z" fill="url(#gradient3)"/>
+                            <circle cx="24" cy="8" r="3" fill="url(#gradient3)" opacity="0.7"/>
+                            <defs>
+                                <linearGradient id="gradient3" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#ec4899"/>
+                                    <stop offset="1" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Prince Flowers AI Agent</h3>
+                    <p class="feature-description">
+                        Intelligent research agent that understands context, finds relevant sources,
+                        and synthesizes comprehensive reports tailored to your needs.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Context-aware queries</li>
+                        <li>Source validation</li>
+                        <li>Citation management</li>
+                        <li>Adaptive learning</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="6" y="6" width="8" height="8" rx="2" fill="url(#gradient4)"/>
+                            <rect x="18" y="6" width="8" height="8" rx="2" fill="url(#gradient4)" opacity="0.7"/>
+                            <rect x="6" y="18" width="8" height="8" rx="2" fill="url(#gradient4)" opacity="0.5"/>
+                            <rect x="18" y="18" width="8" height="8" rx="2" fill="url(#gradient4)" opacity="0.3"/>
+                            <defs>
+                                <linearGradient id="gradient4" x1="6" y1="6" x2="26" y2="26" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#10b981"/>
+                                    <stop offset="1" stop-color="#06b6d4"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Multi-LLM Support</h3>
+                    <p class="feature-description">
+                        Choose from Claude, DeepSeek, Ollama, or llama.cpp. Switch models on-the-fly
+                        based on task complexity, cost, or performance requirements.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Claude Sonnet 4 & Opus</li>
+                        <li>DeepSeek V3</li>
+                        <li>Ollama local models</li>
+                        <li>llama.cpp integration</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 6L20 12H12L16 6Z" fill="url(#gradient5)"/>
+                            <path d="M16 26L12 20H20L16 26Z" fill="url(#gradient5)" opacity="0.7"/>
+                            <circle cx="8" cy="16" r="3" fill="url(#gradient5)" opacity="0.5"/>
+                            <circle cx="24" cy="16" r="3" fill="url(#gradient5)" opacity="0.5"/>
+                            <defs>
+                                <linearGradient id="gradient5" x1="8" y1="6" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#f59e0b"/>
+                                    <stop offset="1" stop-color="#ef4444"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Real-Time Collaboration</h3>
+                    <p class="feature-description">
+                        WebSocket-powered real-time updates keep your team in sync.
+                        See progress, share insights, and collaborate seamlessly.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Live progress updates</li>
+                        <li>Multi-user sessions</li>
+                        <li>Instant notifications</li>
+                        <li>Shared workspaces</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="4" y="4" width="24" height="24" rx="4" stroke="url(#gradient6)" stroke-width="2"/>
+                            <path d="M12 16L15 19L21 13" stroke="url(#gradient6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <defs>
+                                <linearGradient id="gradient6" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#0ea5e9"/>
+                                    <stop offset="1" stop-color="#6366f1"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Azure Integration</h3>
+                    <p class="feature-description">
+                        Enterprise-grade Azure integration for secure deployments, scalable infrastructure,
+                        and seamless cloud-native operations.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Azure OpenAI Service</li>
+                        <li>Cosmos DB storage</li>
+                        <li>App Service hosting</li>
+                        <li>Active Directory auth</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Stack Section -->
+    <section id="technology" class="technology">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Built with Modern Technology</h2>
+                <p class="section-subtitle">Cutting-edge stack for performance, scalability, and developer experience</p>
+            </div>
+
+            <div class="tech-grid">
+                <div class="tech-category">
+                    <h3 class="tech-category-title">AI Models</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <div class="tech-icon">🤖</div>
+                            <div class="tech-name">Claude Sonnet 4</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">🧠</div>
+                            <div class="tech-name">DeepSeek V3</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">🦙</div>
+                            <div class="tech-name">Ollama</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">⚡</div>
+                            <div class="tech-name">llama.cpp</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-category">
+                    <h3 class="tech-category-title">Backend</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <div class="tech-icon">🟢</div>
+                            <div class="tech-name">Node.js</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">🚀</div>
+                            <div class="tech-name">Express.js</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">🔌</div>
+                            <div class="tech-name">WebSocket</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">📡</div>
+                            <div class="tech-name">REST API</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-category">
+                    <h3 class="tech-category-title">Frontend</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <div class="tech-icon">⚛️</div>
+                            <div class="tech-name">React 19</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">📘</div>
+                            <div class="tech-name">TypeScript</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">⚡</div>
+                            <div class="tech-name">Vite 6</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">🎨</div>
+                            <div class="tech-name">Tailwind CSS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-category">
+                    <h3 class="tech-category-title">Infrastructure</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <div class="tech-icon">☁️</div>
+                            <div class="tech-name">Azure Cloud</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">🐳</div>
+                            <div class="tech-name">Docker</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">🔄</div>
+                            <div class="tech-name">CI/CD</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-icon">📊</div>
+                            <div class="tech-name">Analytics</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Table -->
+    <section class="comparison">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Feature Comparison</h2>
+                <p class="section-subtitle">See how TORQ-CONSOLE compares across phases</p>
+            </div>
+
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Phase 3</th>
+                            <th>Phase 4</th>
+                            <th class="highlight-column">Phase 5 (Current)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Real-Time Tracking</strong></td>
+                            <td><span class="status-badge status-no">Basic</span></td>
+                            <td><span class="status-badge status-partial">3 Stages</span></td>
+                            <td class="highlight-column"><span class="status-badge status-yes">5 Stages</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Export Formats</strong></td>
+                            <td><span class="status-badge status-partial">Markdown</span></td>
+                            <td><span class="status-badge status-partial">MD, JSON</span></td>
+                            <td class="highlight-column"><span class="status-badge status-yes">MD, PDF, CSV, JSON</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>AI Agent</strong></td>
+                            <td><span class="status-badge status-no">Manual</span></td>
+                            <td><span class="status-badge status-partial">Basic</span></td>
+                            <td class="highlight-column"><span class="status-badge status-yes">Prince Flowers</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>LLM Support</strong></td>
+                            <td><span class="status-badge status-partial">Claude</span></td>
+                            <td><span class="status-badge status-partial">Claude, GPT</span></td>
+                            <td class="highlight-column"><span class="status-badge status-yes">4+ Models</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>WebSocket Sync</strong></td>
+                            <td><span class="status-badge status-no">No</span></td>
+                            <td><span class="status-badge status-partial">Polling</span></td>
+                            <td class="highlight-column"><span class="status-badge status-yes">Real-Time</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Azure Integration</strong></td>
+                            <td><span class="status-badge status-no">No</span></td>
+                            <td><span class="status-badge status-no">No</span></td>
+                            <td class="highlight-column"><span class="status-badge status-yes">Full Support</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Performance</strong></td>
+                            <td>~5s response</td>
+                            <td>~3s response</td>
+                            <td class="highlight-column"><strong>&lt;2s response</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Collaboration</strong></td>
+                            <td><span class="status-badge status-no">Single User</span></td>
+                            <td><span class="status-badge status-partial">Basic</span></td>
+                            <td class="highlight-column"><span class="status-badge status-yes">Multi-User</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Simple, Transparent Pricing</h2>
+                <p class="section-subtitle">Choose the plan that fits your needs</p>
+            </div>
+
+            <div class="pricing-grid">
+                <!-- Free Tier -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Developer</h3>
+                        <div class="pricing-price">
+                            <span class="price-currency">$</span>
+                            <span class="price-amount">0</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <p class="pricing-description">Perfect for individual developers and small projects</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span> 5-stage pipeline tracking</li>
+                        <li><span class="check">✓</span> 100 research queries/month</li>
+                        <li><span class="check">✓</span> Markdown & JSON export</li>
+                        <li><span class="check">✓</span> Claude Sonnet access</li>
+                        <li><span class="check">✓</span> Community support</li>
+                        <li><span class="cross">×</span> PDF export</li>
+                        <li><span class="cross">×</span> Priority support</li>
+                        <li><span class="cross">×</span> Azure integration</li>
+                    </ul>
+                    <a href="#get-started" class="btn btn-outline" onclick="trackEvent('Pricing', 'click', 'Developer Plan')">Get Started</a>
+                </div>
+
+                <!-- Pro Tier -->
+                <div class="pricing-card pricing-card-featured">
+                    <div class="pricing-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Professional</h3>
+                        <div class="pricing-price">
+                            <span class="price-currency">$</span>
+                            <span class="price-amount">49</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <p class="pricing-description">For professionals and growing teams</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span> Everything in Developer</li>
+                        <li><span class="check">✓</span> Unlimited research queries</li>
+                        <li><span class="check">✓</span> All export formats (PDF, CSV)</li>
+                        <li><span class="check">✓</span> All LLM models</li>
+                        <li><span class="check">✓</span> Real-time collaboration</li>
+                        <li><span class="check">✓</span> Priority support</li>
+                        <li><span class="check">✓</span> Advanced analytics</li>
+                        <li><span class="cross">×</span> Azure integration</li>
+                    </ul>
+                    <a href="#get-started" class="btn btn-primary" onclick="trackEvent('Pricing', 'click', 'Professional Plan')">Start Free Trial</a>
+                </div>
+
+                <!-- Enterprise Tier -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Enterprise</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">Custom</span>
+                        </div>
+                        <p class="pricing-description">For large teams and organizations</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span> Everything in Professional</li>
+                        <li><span class="check">✓</span> Unlimited team members</li>
+                        <li><span class="check">✓</span> Azure cloud integration</li>
+                        <li><span class="check">✓</span> Custom LLM models</li>
+                        <li><span class="check">✓</span> On-premise deployment</li>
+                        <li><span class="check">✓</span> 24/7 dedicated support</li>
+                        <li><span class="check">✓</span> SLA guarantees</li>
+                        <li><span class="check">✓</span> Custom integrations</li>
+                    </ul>
+                    <a href="#contact" class="btn btn-outline" onclick="trackEvent('Pricing', 'click', 'Enterprise Plan')">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo/Screenshots Section -->
+    <section id="demo" class="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">See It In Action</h2>
+                <p class="section-subtitle">Experience the power of real-time AI research</p>
+            </div>
+
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <div class="demo-screenshot">
+                        <div class="screenshot-placeholder">
+                            <div class="demo-visual-1">
+                                <div class="progress-stages">
+                                    <div class="stage stage-complete">
+                                        <div class="stage-icon">✓</div>
+                                        <div class="stage-label">Planning</div>
+                                    </div>
+                                    <div class="stage stage-complete">
+                                        <div class="stage-icon">✓</div>
+                                        <div class="stage-label">Gathering</div>
+                                    </div>
+                                    <div class="stage stage-active">
+                                        <div class="stage-icon loading-spinner"></div>
+                                        <div class="stage-label">Analyzing</div>
+                                    </div>
+                                    <div class="stage stage-pending">
+                                        <div class="stage-icon">○</div>
+                                        <div class="stage-label">Synthesizing</div>
+                                    </div>
+                                    <div class="stage stage-pending">
+                                        <div class="stage-icon">○</div>
+                                        <div class="stage-label">Exporting</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="demo-title">Real-Time Pipeline Tracking</h3>
+                    <p class="demo-description">Watch your research progress through each stage with live updates and detailed metrics.</p>
+                </div>
+
+                <div class="demo-item">
+                    <div class="demo-screenshot">
+                        <div class="screenshot-placeholder">
+                            <div class="demo-visual-2">
+                                <div class="export-options">
+                                    <div class="export-option">
+                                        <div class="export-icon">📄</div>
+                                        <div class="export-label">Markdown</div>
+                                    </div>
+                                    <div class="export-option">
+                                        <div class="export-icon">📕</div>
+                                        <div class="export-label">PDF</div>
+                                    </div>
+                                    <div class="export-option">
+                                        <div class="export-icon">📊</div>
+                                        <div class="export-label">CSV</div>
+                                    </div>
+                                    <div class="export-option">
+                                        <div class="export-icon">🔧</div>
+                                        <div class="export-label">JSON</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="demo-title">Multi-Format Export</h3>
+                    <p class="demo-description">Export your research in the format that works best for your workflow and team.</p>
+                </div>
+
+                <div class="demo-item">
+                    <div class="demo-screenshot">
+                        <div class="screenshot-placeholder">
+                            <div class="demo-visual-3">
+                                <div class="llm-selector">
+                                    <div class="llm-option llm-active">
+                                        <div class="llm-name">Claude Sonnet 4</div>
+                                        <div class="llm-badge">Active</div>
+                                    </div>
+                                    <div class="llm-option">
+                                        <div class="llm-name">DeepSeek V3</div>
+                                    </div>
+                                    <div class="llm-option">
+                                        <div class="llm-name">Ollama</div>
+                                    </div>
+                                    <div class="llm-option">
+                                        <div class="llm-name">llama.cpp</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="demo-title">Multi-LLM Support</h3>
+                    <p class="demo-description">Switch between models seamlessly to optimize for quality, speed, or cost.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="get-started" class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Transform Your Research Workflow?</h2>
+                <p class="cta-subtitle">
+                    Join developers and teams using TORQ-CONSOLE to accelerate their AI research and collaboration.
+                </p>
+                <div class="cta-buttons">
+                    <a href="https://github.com/yourusername/torq-console" class="btn btn-primary btn-lg" onclick="trackEvent('CTA', 'click', 'Get Started')">
+                        Get Started Free
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    <a href="https://github.com/yourusername/torq-console" class="btn btn-secondary btn-lg" onclick="trackEvent('CTA', 'click', 'View on GitHub')">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0110 4.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C17.137 18.165 20 14.418 20 10c0-5.523-4.477-10-10-10z"/>
+                        </svg>
+                        View on GitHub
+                    </a>
+                </div>
+                <p class="cta-note">No credit card required • Free forever for developers</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <div class="footer-logo">
+                        <span class="logo-icon">⚡</span>
+                        <span class="logo-text">TORQ-CONSOLE</span>
+                    </div>
+                    <p class="footer-description">
+                        Production-ready AI research platform with real-time tracking,
+                        multi-format export, and intelligent agents.
+                    </p>
+                    <div class="footer-social">
+                        <a href="https://github.com/yourusername/torq-console" aria-label="GitHub" onclick="trackEvent('Footer', 'click', 'GitHub')">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
+                        <a href="https://twitter.com/torqconsole" aria-label="Twitter" onclick="trackEvent('Footer', 'click', 'Twitter')">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                            </svg>
+                        </a>
+                        <a href="https://discord.gg/torqconsole" aria-label="Discord" onclick="trackEvent('Footer', 'click', 'Discord')">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-column">
+                    <h4 class="footer-title">Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#demo">Demo</a></li>
+                        <li><a href="https://docs.torq-console.dev">Documentation</a></li>
+                        <li><a href="https://github.com/yourusername/torq-console/releases">Changelog</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h4 class="footer-title">Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://docs.torq-console.dev/guides">Guides</a></li>
+                        <li><a href="https://docs.torq-console.dev/api">API Reference</a></li>
+                        <li><a href="https://github.com/yourusername/torq-console/examples">Examples</a></li>
+                        <li><a href="https://blog.torq-console.dev">Blog</a></li>
+                        <li><a href="https://status.torq-console.dev">Status</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h4 class="footer-title">Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="/about">About</a></li>
+                        <li><a href="/careers">Careers</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="/privacy">Privacy Policy</a></li>
+                        <li><a href="/terms">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-copyright">
+                    &copy; 2025 TORQ-CONSOLE. All rights reserved.
+                </p>
+                <div class="footer-badges">
+                    <span class="badge">Phase 5</span>
+                    <span class="badge">Production Ready</span>
+                    <span class="badge">Open Source</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Menu Script -->
+    <script>
+        // Mobile menu toggle
+        const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileMenuToggle.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href !== '#' && href !== '#get-started' && href !== '#contact') {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        // Close mobile menu if open
+                        mobileMenuToggle.classList.remove('active');
+                        navLinks.classList.remove('active');
+                    }
+                }
+            });
+        });
+
+        // Navbar scroll effect
+        let lastScroll = 0;
+        const navbar = document.querySelector('.navbar');
+
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+
+            if (currentScroll > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+
+            lastScroll = currentScroll;
+        });
+
+        // Terminal animation
+        const terminalLines = document.querySelectorAll('.terminal-line');
+        let currentLine = 0;
+
+        function animateTerminal() {
+            if (currentLine < terminalLines.length) {
+                terminalLines[currentLine].style.opacity = '1';
+                currentLine++;
+                setTimeout(animateTerminal, 800);
+            } else {
+                // Reset animation
+                setTimeout(() => {
+                    terminalLines.forEach(line => line.style.opacity = '0');
+                    currentLine = 0;
+                    setTimeout(animateTerminal, 1000);
+                }, 3000);
+            }
+        }
+
+        // Start terminal animation
+        setTimeout(animateTerminal, 1000);
+
+        // Intersection Observer for fade-in animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all feature cards and sections
+        document.querySelectorAll('.feature-card, .demo-item, .pricing-card').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

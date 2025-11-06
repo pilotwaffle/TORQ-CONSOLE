@@ -50,3 +50,11 @@ htmlcov/
 
 # Workspace
 demo_workspace/
+
+# Frontend
+frontend/node_modules/
+frontend/.vite/
+frontend/dist/
+
+# Test output
+test_output.txt

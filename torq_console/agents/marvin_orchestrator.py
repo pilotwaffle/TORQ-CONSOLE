@@ -483,6 +483,8 @@ def get_orchestrator(model: Optional[str] = None) -> MarvinAgentOrchestrator:
     global _global_orchestrator
 
     if _global_orchestrator is None:
-        _global_orchestrator = MarvinAgentOrchestrator(model=model)
+        # Use default model if None provided
+        default_model = model or "anthropic/claude-sonnet-4-20250514"
+        _global_orchestrator = MarvinAgentOrchestrator(model=default_model)
 
     return _global_orchestrator
