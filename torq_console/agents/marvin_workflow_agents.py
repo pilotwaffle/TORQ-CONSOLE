@@ -26,6 +26,7 @@ class WorkflowType(str, Enum):
     TESTING = "testing"
     ARCHITECTURE = "architecture"
     REFACTORING = "refactoring"
+    N8N_WORKFLOW_ARCHITECT = "n8n_workflow_architect"
 
 
 @dataclass
@@ -545,7 +546,7 @@ _workflow_agents: Dict[WorkflowType, Any] = {}
 def get_workflow_agent(
     workflow_type: WorkflowType,
     model: Optional[str] = None
-) -> Optional[Union['CodeGenerationAgent', 'DebuggingAgent', 'DocumentationAgent', 'TestingAgent', 'ArchitectureAgent']]:
+) -> Optional[Union['CodeGenerationAgent', 'DebuggingAgent', 'DocumentationAgent', 'TestingAgent', 'ArchitectureAgent', 'N8NWorkflowArchitectAgent']]:
     """
     Get a workflow agent (singleton per type).
 
@@ -556,6 +557,9 @@ def get_workflow_agent(
     Returns:
         Specialized workflow agent, or None if workflow_type is invalid
     """
+    # Import n8n architect agent lazily
+    from torq_console.agents.n8n_architect_agent import N8NWorkflowArchitectAgent
+
     if workflow_type not in _workflow_agents:
         agent_map = {
             WorkflowType.CODE_GENERATION: CodeGenerationAgent,
@@ -563,6 +567,7 @@ def get_workflow_agent(
             WorkflowType.DOCUMENTATION: DocumentationAgent,
             WorkflowType.TESTING: TestingAgent,
             WorkflowType.ARCHITECTURE: ArchitectureAgent,
+            WorkflowType.N8N_WORKFLOW_ARCHITECT: N8NWorkflowArchitectAgent,
         }
 
         agent_class = agent_map.get(workflow_type)
