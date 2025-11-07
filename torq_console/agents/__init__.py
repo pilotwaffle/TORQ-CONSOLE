@@ -42,6 +42,16 @@ try:
         list_workflow_agents
     )
 
+    # n8n Workflow Architect Agent
+    from .n8n_architect_agent import (
+        N8NWorkflowArchitectAgent,
+        create_n8n_architect_agent,
+        WorkflowRequirements,
+        WorkflowBlueprint,
+        WorkflowTriggerType,
+        ErrorHandlingStrategy
+    )
+
     # Agent orchestration
     from .marvin_orchestrator import (
         MarvinAgentOrchestrator,
@@ -91,6 +101,14 @@ try:
         'ArchitectureAgent',
         'get_workflow_agent',
         'list_workflow_agents',
+
+        # n8n Workflow Architect
+        'N8NWorkflowArchitectAgent',
+        'create_n8n_architect_agent',
+        'WorkflowRequirements',
+        'WorkflowBlueprint',
+        'WorkflowTriggerType',
+        'ErrorHandlingStrategy',
 
         # Orchestration
         'MarvinAgentOrchestrator',
