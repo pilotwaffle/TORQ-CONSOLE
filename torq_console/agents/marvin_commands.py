@@ -166,6 +166,9 @@ Example:
 
         # Get code generation agent
         code_agent = get_workflow_agent(WorkflowType.CODE_GENERATION, self.model)
+        if not code_agent:
+            return "ERROR: Code generation agent not available. Ensure Marvin is properly installed and configured."
+
         result = await code_agent.generate_code(requirements, language)
 
         # Record interaction
@@ -221,6 +224,9 @@ Example:
 
         # Get debugging agent
         debug_agent = get_workflow_agent(WorkflowType.DEBUGGING, self.model)
+        if not debug_agent:
+            return "ERROR: Debugging agent not available. Ensure Marvin is properly installed and configured."
+
         result = await debug_agent.debug_issue(code, error_message, language)
 
         # Record interaction
@@ -279,6 +285,9 @@ Example:
 
         # Get documentation agent
         doc_agent = get_workflow_agent(WorkflowType.DOCUMENTATION, self.model)
+        if not doc_agent:
+            return "ERROR: Documentation agent not available. Ensure Marvin is properly installed and configured."
+
         result = await doc_agent.generate_documentation(code, doc_type, language)
 
         # Record interaction
@@ -338,6 +347,9 @@ Example:
 
         # Get testing agent
         test_agent = get_workflow_agent(WorkflowType.TESTING, self.model)
+        if not test_agent:
+            return "ERROR: Testing agent not available. Ensure Marvin is properly installed and configured."
+
         result = await test_agent.generate_tests(code, framework, language)
 
         if not result.success:
@@ -388,6 +400,9 @@ Example:
 
         # Get architecture agent
         arch_agent = get_workflow_agent(WorkflowType.ARCHITECTURE, self.model)
+        if not arch_agent:
+            return "ERROR: Architecture agent not available. Ensure Marvin is properly installed and configured."
+
         result = await arch_agent.design_architecture(requirements, system_type)
 
         if not result.success:

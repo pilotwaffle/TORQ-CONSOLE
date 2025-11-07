@@ -6,7 +6,7 @@ debugging, documentation, testing, and architecture design.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
 import marvin
@@ -545,7 +545,7 @@ _workflow_agents: Dict[WorkflowType, Any] = {}
 def get_workflow_agent(
     workflow_type: WorkflowType,
     model: Optional[str] = None
-):
+) -> Optional[Union['CodeGenerationAgent', 'DebuggingAgent', 'DocumentationAgent', 'TestingAgent', 'ArchitectureAgent']]:
     """
     Get a workflow agent (singleton per type).
 
@@ -554,7 +554,7 @@ def get_workflow_agent(
         model: Optional LLM model override
 
     Returns:
-        Specialized workflow agent
+        Specialized workflow agent, or None if workflow_type is invalid
     """
     if workflow_type not in _workflow_agents:
         agent_map = {
