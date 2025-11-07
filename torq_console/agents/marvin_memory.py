@@ -17,6 +17,8 @@ from enum import Enum
 class InteractionType(str, Enum):
     """Types of agent interactions."""
     QUERY = "query"
+    RESEARCH = "research"  # Web search, information retrieval
+    IDEATION = "ideation"  # Brainstorming, exploring ideas
     CODE_GENERATION = "code_generation"
     DEBUG = "debug"
     DOCUMENTATION = "documentation"
