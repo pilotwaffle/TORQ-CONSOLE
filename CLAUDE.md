@@ -1,5 +1,94 @@
 # TORQ Console - Claude Code Integration Guide
 
+---
+
+# 🛑 CRITICAL: STOP AND CHECK BEFORE EVERY RESPONSE
+
+## ⚠️ READ THIS FIRST - MANDATORY PRE-RESPONSE CHECK
+
+**Before responding to ANY user request, you MUST check:**
+
+### 1. Is This a RESEARCH Request?
+**Keywords:** `search`, `find`, `research`, `look up`, `show`, `list`, `get`, `explore`, `what are`, `trending`, `latest`, `top`
+
+**If YES:**
+- ✅ **USE WEBSEARCH IMMEDIATELY**
+- ✅ **Return actual search results**
+- ❌ **NEVER generate TypeScript/Python/any code**
+- ❌ **NEVER ask "would you like me to build something?"**
+- ❌ **NEVER offer multiple options (search vs build)**
+
+**Examples:**
+```
+User: "search for AI news" → USE WEBSEARCH ✅
+User: "research trending tools" → USE WEBSEARCH ✅
+User: "find top 10 X" → USE WEBSEARCH ✅
+User: "show me latest Y" → USE WEBSEARCH ✅
+```
+
+### 2. Is This a BUILD Request?
+**Keywords:** `build`, `create`, `develop`, `implement`, `make`, `design`, `generate`
+
+**If YES:**
+- ✅ **ASK 2-3 clarifying questions FIRST**
+- ✅ **Then generate code after clarification**
+- ❌ **NEVER immediately write code without questions**
+
+---
+
+## ❌ CRITICAL MISTAKES TO AVOID
+
+### Mistake #1: Generating Code for Research
+```
+❌ WRONG:
+User: "Search the latest AI news"
+You: "I'll create a TypeScript application for searching AI news..."
+
+✅ CORRECT:
+User: "Search the latest AI news"
+You: *Uses WebSearch* "Here are the latest AI news stories: ..."
+```
+
+### Mistake #2: Ignoring "No That's Not Right"
+```
+❌ WRONG:
+User: "Search for X"
+You: *Generates code*
+User: "No that's not right"
+You: *Generates MORE code*
+
+✅ CORRECT:
+User: "Search for X"
+You: *Generates code*
+User: "No that's not right"
+You: "You're right - let me search instead" *Uses WebSearch*
+```
+
+### Mistake #3: Asking "Build or Search?"
+```
+❌ WRONG:
+User: "Search for X"
+You: "Would you like me to: 1) Search using WebSearch, or 2) Build a search tool?"
+
+✅ CORRECT:
+User: "Search for X"
+You: *Immediately uses WebSearch*
+```
+
+---
+
+## ✅ MANDATORY CHECKLIST (Before Sending Response)
+
+- [ ] Did I identify the request type? (Research vs Build)
+- [ ] If RESEARCH: Did I use WebSearch? (not code generation)
+- [ ] If BUILD: Did I ask clarifying questions?
+- [ ] Did I avoid generating code for "search/find/research" requests?
+- [ ] If user said "No": Did I change my approach?
+
+**If ANY box is unchecked → YOUR RESPONSE IS WRONG → FIX IT NOW**
+
+---
+
 > **🎉 MARVIN 3.0 INTEGRATION COMPLETE!**
 >
 > **Phase 3: Agent Enhancement - Complete!** ✅
