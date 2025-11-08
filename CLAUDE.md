@@ -40,7 +40,7 @@ When you receive a request, classify it immediately:
 #### ✅ Type A: Information Retrieval → **IMMEDIATE ACTION**
 
 **Keywords that trigger immediate action:**
-- `search`, `find`, `look up`, `get`, `show`, `list`
+- `search`, `find`, `look up`, `get`, `show`, `list`, `research`
 - `what are`, `who is`, `where can I find`
 - `under ideation`, `brainstorm`, `explore`
 - `top`, `best`, `latest`, `trending`, `viral`
