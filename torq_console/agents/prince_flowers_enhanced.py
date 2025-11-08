@@ -55,10 +55,14 @@ class EnhancedPrinceFlowers(MarvinPrinceFlowers):
         self.action_learning = get_action_learning()
         self.agent_memory = get_agent_memory()
 
+        # PHASE 2: Initialize feedback tracking
+        self._last_interaction_id = None
+        self._current_interaction_id = None
+
         # Override agent instructions to be more action-oriented
         self.agent.instructions = self._get_enhanced_instructions()
 
-        self.logger.info("Initialized Enhanced Prince Flowers with Action Learning")
+        self.logger.info("Initialized Enhanced Prince Flowers with Action Learning and Implicit Feedback Detection")
 
     def _get_enhanced_instructions(self) -> str:
         """Get enhanced instructions with action-oriented guidance."""
@@ -191,7 +195,7 @@ If you act when user wanted discussion:
         context: Optional[Dict[str, Any]] = None
     ) -> str:
         """
-        Enhanced chat with action-oriented decision making.
+        Enhanced chat with action-oriented decision making and implicit feedback detection.
 
         Args:
             message: User message
@@ -200,6 +204,13 @@ If you act when user wanted discussion:
         Returns:
             Agent response
         """
+        # PHASE 2: Detect implicit feedback from the user's message
+        # This happens BEFORE processing the new message
+        if hasattr(self, '_last_interaction_id') and self._last_interaction_id:
+            implicit_feedback = self._detect_implicit_feedback(message)
+            if implicit_feedback:
+                self._record_implicit_feedback(implicit_feedback)
+
         # Analyze the request to determine action
         action_analysis = self.action_learning.analyze_request(message)
 
@@ -234,6 +245,8 @@ If you act when user wanted discussion:
             }
         )
 
+        # Save for next iteration's feedback detection
+        self._last_interaction_id = self._current_interaction_id
         self._current_interaction_id = interaction_id
 
         return response
@@ -255,6 +268,139 @@ If you act when user wanted discussion:
             return InteractionType.DOCUMENTATION
 
         return InteractionType.GENERAL_CHAT
+
+    def _detect_implicit_feedback(self, message: str) -> Optional[Dict[str, Any]]:
+        """
+        Detect implicit feedback patterns in user messages.
+
+        PHASE 2: This automatically detects when users are expressing
+        dissatisfaction or satisfaction with the previous response.
+
+        Args:
+            message: Current user message
+
+        Returns:
+            Feedback dictionary if detected, None otherwise
+        """
+        message_lower = message.lower()
+
+        # Negative feedback patterns - user is correcting us
+        negative_patterns = [
+            # Direct corrections
+            ('no', 'i wanted you to', ActionDecision.IMMEDIATE_ACTION, 0.2),
+            ('no', 'just', ActionDecision.IMMEDIATE_ACTION, 0.2),
+            ('no', 'search', ActionDecision.IMMEDIATE_ACTION, 0.2),
+            ('wrong', '', ActionDecision.IMMEDIATE_ACTION, 0.3),
+            ('not what i', '', ActionDecision.IMMEDIATE_ACTION, 0.3),
+
+            # Action demands
+            ('just do it', '', ActionDecision.IMMEDIATE_ACTION, 0.2),
+            ('just search', '', ActionDecision.IMMEDIATE_ACTION, 0.2),
+            ('just find', '', ActionDecision.IMMEDIATE_ACTION, 0.2),
+            ("don't ask", '', ActionDecision.IMMEDIATE_ACTION, 0.2),
+            ("don't offer", '', ActionDecision.IMMEDIATE_ACTION, 0.2),
+
+            # Clarification rejection
+            ('i don\'t need', 'options', ActionDecision.IMMEDIATE_ACTION, 0.3),
+            ('i didn\'t ask', 'build', ActionDecision.IMMEDIATE_ACTION, 0.3),
+            ('i didn\'t want', 'tool', ActionDecision.IMMEDIATE_ACTION, 0.3),
+
+            # Frustration indicators
+            ('why are you asking', '', ActionDecision.IMMEDIATE_ACTION, 0.3),
+            ('why did you', '', ActionDecision.IMMEDIATE_ACTION, 0.3),
+            ('stop asking', '', ActionDecision.IMMEDIATE_ACTION, 0.2),
+        ]
+
+        # Check for negative feedback
+        for primary_keyword, secondary_keyword, expected_action, feedback_score in negative_patterns:
+            if primary_keyword in message_lower:
+                if not secondary_keyword or secondary_keyword in message_lower:
+                    self.logger.info(
+                        f"Detected negative implicit feedback: '{primary_keyword}' "
+                        f"(expected: {expected_action.value})"
+                    )
+                    return {
+                        'type': 'negative',
+                        'expected_action': expected_action,
+                        'feedback_score': feedback_score,
+                        'pattern': f"{primary_keyword} {secondary_keyword}".strip(),
+                        'comment': 'Implicit: User expressed dissatisfaction/correction'
+                    }
+
+        # Positive feedback patterns - user is satisfied
+        positive_patterns = [
+            'perfect',
+            'exactly',
+            'great',
+            'excellent',
+            'that\'s what i wanted',
+            'thank you',
+            'thanks',
+            'good job',
+            'well done',
+            'correct',
+            'yes, that\'s it',
+        ]
+
+        for pattern in positive_patterns:
+            if pattern in message_lower:
+                # Check if this is short message (likely just feedback, not a new request)
+                if len(message.split()) < 10:  # Short messages are more likely pure feedback
+                    self.logger.info(f"Detected positive implicit feedback: '{pattern}'")
+                    return {
+                        'type': 'positive',
+                        'expected_action': None,  # They liked what we did
+                        'feedback_score': 0.9,
+                        'pattern': pattern,
+                        'comment': 'Implicit: User expressed satisfaction'
+                    }
+
+        # No implicit feedback detected
+        return None
+
+    def _record_implicit_feedback(self, feedback: Dict[str, Any]):
+        """
+        Record detected implicit feedback.
+
+        Args:
+            feedback: Feedback dictionary from _detect_implicit_feedback
+        """
+        if not hasattr(self, '_last_interaction_id') or not self._last_interaction_id:
+            return
+
+        # Add feedback score to the LAST interaction (not current)
+        self.agent_memory.add_feedback(self._last_interaction_id, feedback['feedback_score'])
+
+        self.logger.info(
+            f"Recorded implicit {feedback['type']} feedback "
+            f"(score: {feedback['feedback_score']:.2f}, pattern: '{feedback['pattern']}')"
+        )
+
+        # If negative feedback with expected action, learn from it
+        if feedback['type'] == 'negative' and feedback['expected_action']:
+            # Try to get the last conversation turn
+            if self.state.conversation_history and len(self.state.conversation_history) >= 1:
+                last_turn = self.state.conversation_history[-1]
+
+                # Get what action we took
+                action_analysis = last_turn.context_used.get('action_analysis', {})
+                agent_action = ActionDecision(
+                    action_analysis.get('recommended_action', 'provide_options')
+                ) if action_analysis else ActionDecision.PROVIDE_OPTIONS
+
+                # Learn from the mismatch
+                self.action_learning.learn_from_feedback(
+                    user_request=last_turn.user_message,
+                    agent_action=agent_action,
+                    user_expected=feedback['expected_action'],
+                    feedback_score=feedback['feedback_score']
+                )
+
+                self.logger.info(
+                    f"Learning from implicit feedback: "
+                    f"User wanted {feedback['expected_action'].value}, "
+                    f"we did {agent_action.value}"
+                )
 
     def record_user_feedback(
         self,
