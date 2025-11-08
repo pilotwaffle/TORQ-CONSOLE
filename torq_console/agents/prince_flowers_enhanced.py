@@ -80,6 +80,7 @@ When users say:
 - "find X"
 - "look up X"
 - "get information about X"
+- "research X"
 - "under ideation: X"
 - "explore X"
 - "what are the top X"

@@ -60,7 +60,7 @@ class ActionOrientedLearning:
         ActionPattern(
             pattern_name="research_immediate_action",
             request_keywords=[
-                "search", "find", "look up", "get", "show me",
+                "search", "find", "look up", "get", "show me", "research",
                 "what are", "list", "top", "best", "latest",
                 "under ideation", "brainstorm", "explore ideas"
             ],
@@ -69,6 +69,7 @@ class ActionOrientedLearning:
             examples=[
                 "search for top viral TikTok videos",
                 "find the latest AI news",
+                "research new updates coming to GLM-4.6",
                 "under ideation: search for trending topics",
                 "show me the best React libraries",
                 "what are the top programming languages in 2025"
