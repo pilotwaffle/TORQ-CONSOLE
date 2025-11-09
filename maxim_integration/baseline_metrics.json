@@ -1,0 +1,44 @@
+{
+  "evaluation_type": "baseline",
+  "timestamp": "2025-11-08T22:37:15.086960",
+  "total_queries": 6,
+  "success_rate": 1.0,
+  "average_confidence": 0.8849999999999999,
+  "average_execution_time": 1.2,
+  "overall_quality_score": 0.8782500000000002,
+  "detailed_metrics": {
+    "reasoning_quality": 0.9050000000000001,
+    "response_relevance": 0.8750000000000001,
+    "tool_selection_efficiency": 0.87,
+    "multi_step_accuracy": 0.85,
+    "execution_performance": 0.8,
+    "error_handling": 0.95,
+    "confidence_calibration": 0.88
+  },
+  "agent_performance": {
+    "torq_prince": {
+      "success_rate": 1.0,
+      "avg_confidence": 0.84,
+      "avg_execution_time": 1.35,
+      "queries_handled": 2
+    },
+    "marvin_prince": {
+      "success_rate": 1.0,
+      "avg_confidence": 0.92,
+      "avg_execution_time": 0.8,
+      "queries_handled": 3
+    },
+    "orchestrator": {
+      "success_rate": 1.0,
+      "avg_confidence": 0.87,
+      "avg_execution_time": 2.1,
+      "queries_handled": 1
+    }
+  },
+  "recommendations": [
+    "Overall performance is excellent - consider more complex test scenarios",
+    "TorqPrinceFlowers shows strong tool integration capabilities",
+    "MarvinPrinceFlowers demonstrates high-quality analytical reasoning",
+    "Orchestrator effectively routes queries to appropriate agents"
+  ]
+}
