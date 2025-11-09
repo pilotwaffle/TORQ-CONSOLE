@@ -10,12 +10,22 @@ import asyncio
 import json
 import time
 import logging
+import sys
+import os
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 import statistics
 from datetime import datetime, timedelta
 import numpy as np
+
+# Add current directory and parent directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
 # Import TORQ Console agents
 try:

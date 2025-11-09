@@ -300,9 +300,9 @@ Please provide a comprehensive response considering the relevant information fro
                     if 'code' in m.get('content', '').lower() or 'function' in m.get('content', '').lower()
                 ]
 
-                response = await self.llm_provider.generate(
-                    prompt=enhanced_prompt,
-                    system_prompt="You are an expert code generator. Provide clean, well-documented code with examples."
+                response = await self.llm_provider.query(
+                    enhanced_prompt,
+                    system="You are an expert code generator. Provide clean, well-documented code with examples."
                 )
 
                 # Use Maxim tools for code review
@@ -350,9 +350,9 @@ Please provide a comprehensive response considering the relevant information fro
         """Execute research with memory context."""
         try:
             if self.llm_provider:
-                response = await self.llm_provider.generate(
-                    prompt=enhanced_prompt,
-                    system_prompt="You are a research assistant with access to previous relevant information."
+                response = await self.llm_provider.query(
+                    enhanced_prompt,
+                    system="You are a research assistant with access to previous relevant information."
                 )
 
                 # Use Maxim tools for sentiment analysis if relevant
@@ -398,9 +398,9 @@ Please provide a comprehensive response considering the relevant information fro
         """Execute analysis with memory context."""
         try:
             if self.llm_provider:
-                response = await self.llm_provider.generate(
-                    prompt=enhanced_prompt,
-                    system_prompt="You are an analytical assistant with access to previous interactions for context."
+                response = await self.llm_provider.query(
+                    enhanced_prompt,
+                    system="You are an analytical assistant with access to previous interactions for context."
                 )
 
                 return {
@@ -436,9 +436,9 @@ Please provide a comprehensive response considering the relevant information fro
         """Execute general query processing."""
         try:
             if self.llm_provider:
-                response = await self.llm_provider.generate(
-                    prompt=enhanced_prompt,
-                    system_prompt="You are an intelligent AI assistant with access to relevant previous information."
+                response = await self.llm_provider.query(
+                    enhanced_prompt,
+                    system="You are an intelligent AI assistant with access to relevant previous information."
                 )
 
                 return {
