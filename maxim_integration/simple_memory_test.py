@@ -189,7 +189,7 @@ async def test_maxim_tools():
         )
 
         if sentiment_result.success:
-            data = sentiment_result.result['data']
+            data = sentiment_result.result
             print(f"   [OK] Sentiment analysis: {data['sentiment']} (confidence: {data['confidence']:.2f})")
             print(f"      Positive words: {data['positive_count']}, Negative: {data['negative_count']}")
             results['sentiment_analysis'] = True
@@ -207,7 +207,7 @@ async def test_maxim_tools():
         )
 
         if pattern_result.success:
-            data = pattern_result.result['data']
+            data = pattern_result.result
             print(f"   [OK] Pattern extraction: Found {data['count']} {data['pattern_type']} patterns")
             for match in data['matches']:
                 print(f"      - {match}")

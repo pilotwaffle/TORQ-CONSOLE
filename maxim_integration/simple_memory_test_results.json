@@ -1,5 +1,5 @@
 {
-  "test_date": "2025-11-08T23:59:35.981177",
+  "test_date": "2025-11-09T00:08:47.295307",
   "memory_results": {
     "marvin_memory": false,
     "supabase_memory": false,
@@ -10,12 +10,13 @@
   "tools_results": {
     "tools_initialized": true,
     "tools_available": 6,
+    "sentiment_analysis": true,
     "maxim_tools_working": false
   },
   "scores": {
     "memory_score": 40.0,
-    "tools_score": 33.33333333333333,
-    "overall_score": 36.666666666666664
+    "tools_score": 50.0,
+    "overall_score": 45.0
   },
   "findings": {
     "agent_uses_memory": true,

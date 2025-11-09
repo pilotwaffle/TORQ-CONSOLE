@@ -5,34 +5,34 @@
         "test": "PrinceFlowersEvaluator Import & Init",
         "passed": true,
         "details": "Successfully imported and initialized with 7 criteria, 7 test cases",
-        "timestamp": "2025-11-08T23:12:00.994786"
+        "timestamp": "2025-11-09T00:08:28.098709"
       },
       {
         "test": "Actual Quality Evaluation",
         "passed": false,
         "details": "Failed to evaluate response quality",
-        "timestamp": "2025-11-08T23:12:00.994786",
+        "timestamp": "2025-11-09T00:08:28.098709",
         "error": "type object 'AgentType' has no attribute 'TORQ_PRINCE_FLOWERS'"
       },
       {
         "test": "Evaluation Criteria Validation",
         "passed": false,
         "details": "Failed to validate evaluation criteria",
-        "timestamp": "2025-11-08T23:12:00.994786",
+        "timestamp": "2025-11-09T00:08:28.098709",
         "error": "'EvaluationCriteria' object has no attribute 'dimension'"
       },
       {
         "test": "Test Case Execution",
         "passed": false,
         "details": "Failed to execute test cases",
-        "timestamp": "2025-11-08T23:12:00.994786",
+        "timestamp": "2025-11-09T00:08:28.098709",
         "error": "type object 'AgentType' has no attribute 'TORQ_PRINCE_FLOWERS'"
       },
       {
         "test": "Performance Benchmark",
         "passed": false,
         "details": "Performance benchmark failed",
-        "timestamp": "2025-11-08T23:12:00.994786",
+        "timestamp": "2025-11-09T00:08:28.098709",
         "error": "type object 'AgentType' has no attribute 'TORQ_PRINCE_FLOWERS'"
       }
     ],
@@ -52,26 +52,26 @@
         "test": "ExperimentManager Import & Init",
         "passed": true,
         "details": "Successfully imported and initialized ExperimentManager",
-        "timestamp": "2025-11-08T23:12:01.073378"
+        "timestamp": "2025-11-09T00:08:28.125823"
       },
       {
         "test": "Create Prompt Optimization Experiment",
         "passed": true,
-        "details": "Created experiment 2b5c619b... successfully",
-        "timestamp": "2025-11-08T23:12:01.073378"
+        "details": "Created experiment e3822f5c... successfully",
+        "timestamp": "2025-11-09T00:08:28.125823"
       },
       {
         "test": "A/B Testing Framework",
         "passed": false,
         "details": "Failed to create A/B test",
-        "timestamp": "2025-11-08T23:12:01.076889",
+        "timestamp": "2025-11-09T00:08:28.265128",
         "error": "'ABTestingFramework' object has no attribute 'ab_tests'"
       },
       {
         "test": "Version Control System",
         "passed": false,
         "details": "Failed to create version",
-        "timestamp": "2025-11-08T23:12:01.093348",
+        "timestamp": "2025-11-09T00:08:28.337648",
         "error": "'dict' object has no attribute 'category'"
       }
     ],
@@ -89,7 +89,7 @@
         "test": "ObserveSystem Import & Init",
         "passed": false,
         "details": "Failed to import ObserveSystem",
-        "timestamp": "2025-11-08T23:12:01.096269",
+        "timestamp": "2025-11-09T00:08:28.341342",
         "error": "cannot import name 'QualityCheckType' from 'observe_system' (E:\\TORQ-CONSOLE/maxim_integration\\observe_system.py)"
       }
     ],
@@ -104,7 +104,7 @@
     "passed": 3,
     "failed": 7,
     "total": 10,
-    "start_time": "2025-11-08T23:11:58.935057",
-    "end_time": "2025-11-08T23:12:01.096269"
+    "start_time": "2025-11-09T00:08:26.147990",
+    "end_time": "2025-11-09T00:08:28.341342"
   }
 }
