@@ -45,7 +45,9 @@ class EvaluationMetric(Enum):
     TOOL_SELECTION_EFFICIENCY = "tool_selection_efficiency"
     MULTI_STEP_ACCURACY = "multi_step_accuracy"
     EXECUTION_TIME = "execution_time"
+    EXECUTION_PERFORMANCE = "execution_performance"
     ERROR_RATE = "error_rate"
+    ERROR_HANDLING = "error_handling"
     CONFIDENCE_CALIBRATION = "confidence_calibration"
     USER_SATISFACTION = "user_satisfaction"
 
@@ -749,22 +751,22 @@ class PrinceFlowersEvaluator:
     def print_evaluation_summary(self, summary: EvaluationSummary):
         """Print a formatted evaluation summary"""
         print("\n" + "="*80)
-        print("🤖 PRINCE FLOWERS AGENT EVALUATION SUMMARY")
+        print("PRINCE FLOWERS AGENT EVALUATION SUMMARY")
         print("="*80)
 
-        print(f"\n📊 OVERALL PERFORMANCE:")
+        print(f"\nOVERALL PERFORMANCE:")
         print(f"   • Total Queries: {summary.total_queries}")
         print(f"   • Success Rate: {summary.success_rate:.1%}")
         print(f"   • Average Execution Time: {summary.average_execution_time:.2f}s")
         print(f"   • Average Confidence: {summary.average_confidence:.1%}")
         print(f"   • Overall Quality Score: {summary.overall_quality_score:.1%}")
 
-        print(f"\n🔍 DETAILED METRICS:")
+        print(f"\nDETAILED METRICS:")
         for metric, score in summary.metric_scores.items():
-            status = "✅" if score >= 0.8 else "⚠️" if score >= 0.6 else "❌"
+            status = "[OK]" if score >= 0.8 else "[WARN]" if score >= 0.6 else "[FAIL]"
             print(f"   {status} {metric.value.replace('_', ' ').title()}: {score:.1%}")
 
-        print(f"\n🤖 AGENT PERFORMANCE:")
+        print(f"\nAGENT PERFORMANCE:")
         for agent_type, performance in summary.agent_performance.items():
             print(f"   • {agent_type.value}:")
             print(f"     - Success Rate: {performance.get('success_rate', 0):.1%}")
@@ -772,17 +774,17 @@ class PrinceFlowersEvaluator:
             print(f"     - Avg Confidence: {performance.get('average_confidence', 0):.1%}")
             print(f"     - Total Queries: {performance.get('total_queries', 0)}")
 
-        print(f"\n💡 RECOMMENDATIONS:")
+        print(f"\nRECOMMENDATIONS:")
         for i, recommendation in enumerate(summary.recommendations, 1):
             print(f"   {i}. {recommendation}")
 
-        print(f"\n📅 Evaluation completed: {summary.evaluation_timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"\nEvaluation completed: {summary.evaluation_timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
         print("="*80)
 
 # Main execution function
 async def main():
     """Main execution function for Prince Flowers evaluation"""
-    print("🚀 Starting Prince Flowers Evaluation with Maxim AI Integration")
+    print("Starting Prince Flowers Evaluation with Maxim AI Integration")
 
     evaluator = PrinceFlowersEvaluator()
 
@@ -797,7 +799,7 @@ async def main():
 
     except Exception as e:
         logging.error(f"Evaluation failed: {e}")
-        print(f"❌ Evaluation failed: {e}")
+        print(f"[FAILED] Evaluation failed: {e}")
         return None
 
 if __name__ == "__main__":

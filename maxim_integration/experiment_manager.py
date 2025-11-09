@@ -750,7 +750,7 @@ class ExperimentManager:
         for treatment in summary.treatment_results:
             improvements = summary.improvement_percentages.get(treatment.variant_name, {})
             primary_improvement = improvements.get(experiment.hypothesis.primary_metric, 0)
-            status = "🏆 WINNER" if treatment.variant_name == summary.winning_variant else "  "
+            status = "[WINNER]" if treatment.variant_name == summary.winning_variant else "       "
             print(f"    {status} {treatment.variant_name}:")
             print(f"      Overall Quality: {treatment.metrics.get('overall_quality_score', 0):.1%} ({primary_improvement:+.1%})")
             print(f"      Success Rate: {treatment.success_rate:.1%}")
@@ -771,14 +771,14 @@ class ExperimentManager:
 # Main execution function for testing
 async def main():
     """Main execution function for testing experiment manager"""
-    print("🧪 Maxim AI - Phase 2: Experiment Management")
+    print("Maxim AI - Phase 2: Experiment Management")
     print("=" * 60)
 
     # Initialize experiment manager
     manager = ExperimentManager()
 
     # Example prompt optimization experiment
-    print("\n📝 Creating Prompt Optimization Experiment...")
+    print("\nCreating Prompt Optimization Experiment...")
 
     original_prompt = "You are Prince Flowers, an AI assistant. Please help the user with their request."
 
@@ -823,10 +823,10 @@ Your Response:""")
         test_queries=test_queries
     )
 
-    print(f"✅ Created experiment: {experiment_id}")
+    print(f"[OK] Created experiment: {experiment_id}")
 
     # Run experiment
-    print("\n🚀 Running experiment...")
+    print("\nRunning experiment...")
     summary = await manager.run_prompt_optimization_experiment(experiment_id, test_queries)
 
     # Print results
@@ -834,7 +834,7 @@ Your Response:""")
 
     # Print overall statistics
     stats = manager.get_experiment_statistics()
-    print(f"\n📊 Overall Statistics:")
+    print(f"\nOverall Statistics:")
     print(f"  Total Experiments: {stats['total_experiments']}")
     print(f"  Completed Experiments: {stats['completed_experiments']}")
     print(f"  Successful Experiments: {stats['successful_experiments']}")

@@ -1,0 +1,26 @@
+{
+  "test_date": "2025-11-08T23:59:35.981177",
+  "memory_results": {
+    "marvin_memory": false,
+    "supabase_memory": false,
+    "agent_memory_integrated": true,
+    "agent_processing": true,
+    "memory_retrieval": false
+  },
+  "tools_results": {
+    "tools_initialized": true,
+    "tools_available": 6,
+    "maxim_tools_working": false
+  },
+  "scores": {
+    "memory_score": 40.0,
+    "tools_score": 33.33333333333333,
+    "overall_score": 36.666666666666664
+  },
+  "findings": {
+    "agent_uses_memory": true,
+    "maxim_tools_working": false,
+    "memory_integration_complete": false,
+    "tools_integration_complete": false
+  }
+}
