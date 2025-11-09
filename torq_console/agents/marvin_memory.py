@@ -241,7 +241,11 @@ class MarvinAgentMemory:
         # Calculate statistics
         interactions_by_type = {}
         for interaction in self.interactions:
-            type_name = interaction.interaction_type.value
+            # Handle both string and enum types for backward compatibility
+            if hasattr(interaction.interaction_type, 'value'):
+                type_name = interaction.interaction_type.value
+            else:
+                type_name = str(interaction.interaction_type)
             interactions_by_type[type_name] = interactions_by_type.get(type_name, 0) + 1
 
         success_count = sum(1 for i in self.interactions if i.success)

@@ -42,6 +42,32 @@ try:
         list_workflow_agents
     )
 
+    # n8n Workflow Architect Agent
+    from .n8n_architect_agent import (
+        N8NWorkflowArchitectAgent,
+        create_n8n_architect_agent,
+        WorkflowRequirements,
+        WorkflowBlueprint,
+        WorkflowTriggerType,
+        ErrorHandlingStrategy
+    )
+
+    # Enhanced Prince Flowers with Action Learning
+    from .prince_flowers_enhanced import (
+        EnhancedPrinceFlowers,
+        create_enhanced_prince_flowers,
+        apply_tiktok_lesson
+    )
+
+    # Action-Oriented Learning
+    from .action_learning import (
+        ActionOrientedLearning,
+        get_action_learning,
+        ActionDecision,
+        ActionPattern,
+        RequestPattern
+    )
+
     # Agent orchestration
     from .marvin_orchestrator import (
         MarvinAgentOrchestrator,
@@ -91,6 +117,26 @@ try:
         'ArchitectureAgent',
         'get_workflow_agent',
         'list_workflow_agents',
+
+        # n8n Workflow Architect
+        'N8NWorkflowArchitectAgent',
+        'create_n8n_architect_agent',
+        'WorkflowRequirements',
+        'WorkflowBlueprint',
+        'WorkflowTriggerType',
+        'ErrorHandlingStrategy',
+
+        # Enhanced Prince Flowers
+        'EnhancedPrinceFlowers',
+        'create_enhanced_prince_flowers',
+        'apply_tiktok_lesson',
+
+        # Action Learning
+        'ActionOrientedLearning',
+        'get_action_learning',
+        'ActionDecision',
+        'ActionPattern',
+        'RequestPattern',
 
         # Orchestration
         'MarvinAgentOrchestrator',
