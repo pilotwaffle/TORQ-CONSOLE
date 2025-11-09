@@ -1,5 +1,5 @@
 {
-  "test_date": "2025-11-09T00:04:11.917665",
+  "test_date": "2025-11-09T00:08:54.185799",
   "test_type": "simple_zep_performance_test",
   "metrics": {
     "success_rate": 0.0,
@@ -22,7 +22,7 @@
         "context_retrieved": true,
         "confidence_improved": true
       },
-      "execution_time": 0.0,
+      "execution_time": 0.0009768009185791016,
       "session_id": "prince_flowers_default_session",
       "response_length": 52
     },
@@ -64,7 +64,7 @@
         "context_retrieved": true,
         "confidence_improved": true
       },
-      "execution_time": 0.0,
+      "execution_time": 0.00030732154846191406,
       "session_id": "prince_flowers_default_session",
       "response_length": 52
     },
