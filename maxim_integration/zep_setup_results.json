@@ -1,0 +1,12 @@
+{
+  "python_requirements": true,
+  "docker_installed": true,
+  "docker_running": true,
+  "zep_setup": true,
+  "zep_connection": true,
+  "environment_file": "E:/TORQ-CONSOLE/maxim_integration/.env.zep",
+  "requirements_file": "E:/TORQ-CONSOLE/maxim_integration/requirements_zep.txt",
+  "example_file": "E:/TORQ-CONSOLE/maxim_integration/zep_example_usage.py",
+  "timestamp": "2025-11-09T00:03:19.782851",
+  "overall_success": true
+}

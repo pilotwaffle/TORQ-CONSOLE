@@ -17,13 +17,13 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
 # Import all phases
-from prince_flowers_evaluator import PrinceFlowersEvaluator, EvaluationCriterion, EvaluationDimension
+from prince_flowers_evaluator import PrinceFlowersEvaluator, EvaluationCriteria, EvaluationMetric
 from experiment_manager import ExperimentManager, PromptTemplate, PromptVariant, ExperimentType, ExperimentStatus
 from ab_testing_framework import ABTestingFramework, TrafficSplitType
 from version_control import VersionControlSystem, VersionType, ChangeCategory
 from prompt_optimization_workflow import PromptOptimizationWorkflow, OptimizationStrategy, OptimizationObjective
 from experiment_tracker import ExperimentTracker
-from observe_system import ObserveSystem, MetricType, AlertSeverity, QualityCheckType
+from observe_system import ObserveSystem, MetricType, AlertSeverity, QualityCheck
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -60,7 +60,7 @@ class ComprehensiveTestSuite:
         self.test_results[phase]["total"] += 1
         self.test_results["overall"]["total"] += 1
 
-        status = "✅ PASS" if passed else "❌ FAIL"
+        status = "[PASS]" if passed else "[FAIL]"
         print(f"  {status} {test_name}")
         if details:
             print(f"    Details: {details}")
@@ -469,7 +469,7 @@ class ComprehensiveTestSuite:
 
 async def main():
     """Main test execution"""
-    print("🚀 Maxim AI Integration - Comprehensive Test Suite")
+    print("Maxim AI Integration - Comprehensive Test Suite")
     print("="*80)
     print("Testing all three phases: Evaluate, Experiment, Observe")
     print("="*80)

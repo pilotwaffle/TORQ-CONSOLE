@@ -1,0 +1,14 @@
+{
+  "test_date": "2025-11-09T00:03:42.857818",
+  "test_type": "zep_enhanced_agent_95_percent_target",
+  "results": {
+    "success": false,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 3: character maps to <undefined>",
+    "overall_score": 0.0
+  },
+  "recommendations": [
+    "Test failed - cannot generate recommendations"
+  ],
+  "target_95_percent_achieved": false,
+  "target_90_percent_achieved": false
+}
