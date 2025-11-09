@@ -44,8 +44,8 @@ async def test_memory_integration():
 
         # Get memory snapshot
         snapshot = memory.get_memory_snapshot()
-        print(f"   [OK] Memory snapshot: {snapshot['total_interactions']} interactions, "
-              f"{snapshot['success_rate']:.1%} success rate")
+        print(f"   [OK] Memory snapshot: {snapshot.total_interactions} interactions, "
+              f"{snapshot.success_rate:.1%} success rate")
 
         results['marvin_memory'] = True
 

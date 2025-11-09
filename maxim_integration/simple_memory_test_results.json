@@ -1,7 +1,7 @@
 {
-  "test_date": "2025-11-09T00:08:47.295307",
+  "test_date": "2025-11-09T00:14:40.883820",
   "memory_results": {
-    "marvin_memory": false,
+    "marvin_memory": true,
     "supabase_memory": false,
     "agent_memory_integrated": true,
     "agent_processing": true,
@@ -11,17 +11,20 @@
     "tools_initialized": true,
     "tools_available": 6,
     "sentiment_analysis": true,
-    "maxim_tools_working": false
+    "pattern_extraction": true,
+    "project_plan_schema": true,
+    "code_review_schema": true,
+    "maxim_tools_working": true
   },
   "scores": {
-    "memory_score": 40.0,
-    "tools_score": 50.0,
-    "overall_score": 45.0
+    "memory_score": 60.0,
+    "tools_score": 100.0,
+    "overall_score": 80.0
   },
   "findings": {
     "agent_uses_memory": true,
-    "maxim_tools_working": false,
+    "maxim_tools_working": true,
     "memory_integration_complete": false,
-    "tools_integration_complete": false
+    "tools_integration_complete": true
   }
 }
