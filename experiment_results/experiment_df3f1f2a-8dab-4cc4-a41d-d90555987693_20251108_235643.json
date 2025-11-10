@@ -1,0 +1,476 @@
+{
+  "experiment_id": "df3f1f2a-8dab-4cc4-a41d-d90555987693",
+  "status": "completed",
+  "control_result": {
+    "variant_id": "df3f1f2a-8dab-4cc4-a41d-d90555987693_original",
+    "variant_name": "Control",
+    "test_cases": [
+      {
+        "query": "Explain the benefits of async programming in Python",
+        "response": "Standard response to: You are Prince Flowers, an AI assistant. Please he... - Well-formulated answer addressing the query.",
+        "success": true,
+        "confidence": 0.85,
+        "execution_time": 0.646,
+        "metrics": {
+          "reasoning_quality": 0.9,
+          "response_relevance": 0.85,
+          "tool_selection_efficiency": 0.85,
+          "multi_step_accuracy": 0.83,
+          "execution_performance": 0.88,
+          "error_handling": 0.95,
+          "confidence_calibration": 0.82
+        }
+      },
+      {
+        "query": "Search for recent developments in quantum computing",
+        "response": "Standard response to: You are Prince Flowers, an AI assistant. Please he... - Well-formulated answer addressing the query.",
+        "success": true,
+        "confidence": 0.85,
+        "execution_time": 0.646,
+        "metrics": {
+          "reasoning_quality": 0.9,
+          "response_relevance": 0.85,
+          "tool_selection_efficiency": 0.85,
+          "multi_step_accuracy": 0.83,
+          "execution_performance": 0.88,
+          "error_handling": 0.95,
+          "confidence_calibration": 0.82
+        }
+      },
+      {
+        "query": "Create a simple REST API example",
+        "response": "Standard response to: You are Prince Flowers, an AI assistant. Please he... - Well-formulated answer addressing the query.",
+        "success": true,
+        "confidence": 0.85,
+        "execution_time": 0.627,
+        "metrics": {
+          "reasoning_quality": 0.9,
+          "response_relevance": 0.85,
+          "tool_selection_efficiency": 0.85,
+          "multi_step_accuracy": 0.83,
+          "execution_performance": 0.88,
+          "error_handling": 0.95,
+          "confidence_calibration": 0.82
+        }
+      },
+      {
+        "query": "What are your capabilities?",
+        "response": "Standard response to: You are Prince Flowers, an AI assistant. Please he... - Well-formulated answer addressing the query.",
+        "success": true,
+        "confidence": 0.85,
+        "execution_time": 0.622,
+        "metrics": {
+          "reasoning_quality": 0.9,
+          "response_relevance": 0.85,
+          "tool_selection_efficiency": 0.85,
+          "multi_step_accuracy": 0.83,
+          "execution_performance": 0.88,
+          "error_handling": 0.95,
+          "confidence_calibration": 0.82
+        }
+      },
+      {
+        "query": "Compare and contrast different machine learning approaches",
+        "response": "Standard response to: You are Prince Flowers, an AI assistant. Please he... - Well-formulated answer addressing the query.",
+        "success": true,
+        "confidence": 0.85,
+        "execution_time": 0.653,
+        "metrics": {
+          "reasoning_quality": 0.9,
+          "response_relevance": 0.85,
+          "tool_selection_efficiency": 0.85,
+          "multi_step_accuracy": 0.83,
+          "execution_performance": 0.88,
+          "error_handling": 0.95,
+          "confidence_calibration": 0.82
+        }
+      }
+    ],
+    "metrics": {
+      "reasoning_quality": 0.9,
+      "response_relevance": 0.85,
+      "tool_selection_efficiency": 0.85,
+      "multi_step_accuracy": 0.83,
+      "execution_performance": 0.88,
+      "error_handling": 0.95,
+      "confidence_calibration": 0.82,
+      "overall_quality_score": 0.8709999999999999,
+      "success_rate": 1.0,
+      "average_confidence": 0.85
+    },
+    "execution_time": 1.2363920211791992,
+    "success_rate": 1.0,
+    "confidence_scores": [
+      0.85,
+      0.85,
+      0.85,
+      0.85,
+      0.85
+    ],
+    "error_count": 0,
+    "qualitative_feedback": []
+  },
+  "treatment_results": [
+    {
+      "variant_id": "df3f1f2a-8dab-4cc4-a41d-d90555987693_treatment_1",
+      "variant_name": "Structured Prompt",
+      "test_cases": [
+        {
+          "query": "Explain the benefits of async programming in Python",
+          "response": "Standard response to: You are Prince Flowers, an advanced AI assistant.\n... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.763,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "Search for recent developments in quantum computing",
+          "response": "Standard response to: You are Prince Flowers, an advanced AI assistant.\n... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.763,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "Create a simple REST API example",
+          "response": "Standard response to: You are Prince Flowers, an advanced AI assistant.\n... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.744,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "What are your capabilities?",
+          "response": "Standard response to: You are Prince Flowers, an advanced AI assistant.\n... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.739,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "Compare and contrast different machine learning approaches",
+          "response": "Standard response to: You are Prince Flowers, an advanced AI assistant.\n... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.77,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        }
+      ],
+      "metrics": {
+        "reasoning_quality": 0.9,
+        "response_relevance": 0.85,
+        "tool_selection_efficiency": 0.85,
+        "multi_step_accuracy": 0.83,
+        "execution_performance": 0.88,
+        "error_handling": 0.95,
+        "confidence_calibration": 0.82,
+        "overall_quality_score": 0.8709999999999999,
+        "success_rate": 1.0,
+        "average_confidence": 0.85
+      },
+      "execution_time": 1.82012939453125,
+      "success_rate": 1.0,
+      "confidence_scores": [
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85
+      ],
+      "error_count": 0,
+      "qualitative_feedback": []
+    },
+    {
+      "variant_id": "df3f1f2a-8dab-4cc4-a41d-d90555987693_treatment_2",
+      "variant_name": "Concise Prompt",
+      "test_cases": [
+        {
+          "query": "Explain the benefits of async programming in Python",
+          "response": "Concise answer: Prince Flowers AI - Be direct and efficient.\n\nTask... - Key points summarized efficiently.",
+          "success": true,
+          "confidence": 0.82,
+          "execution_time": 0.665,
+          "metrics": {
+            "reasoning_quality": 0.87,
+            "response_relevance": 0.82,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.7999999999999999,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.7899999999999999
+          }
+        },
+        {
+          "query": "Search for recent developments in quantum computing",
+          "response": "Concise answer: Prince Flowers AI - Be direct and efficient.\n\nTask... - Key points summarized efficiently.",
+          "success": true,
+          "confidence": 0.82,
+          "execution_time": 0.665,
+          "metrics": {
+            "reasoning_quality": 0.87,
+            "response_relevance": 0.82,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.7999999999999999,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.7899999999999999
+          }
+        },
+        {
+          "query": "Create a simple REST API example",
+          "response": "Concise answer: Prince Flowers AI - Be direct and efficient.\n\nTask... - Key points summarized efficiently.",
+          "success": true,
+          "confidence": 0.82,
+          "execution_time": 0.646,
+          "metrics": {
+            "reasoning_quality": 0.87,
+            "response_relevance": 0.82,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.7999999999999999,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.7899999999999999
+          }
+        },
+        {
+          "query": "What are your capabilities?",
+          "response": "Concise answer: Prince Flowers AI - Be direct and efficient.\n\nTask... - Key points summarized efficiently.",
+          "success": true,
+          "confidence": 0.82,
+          "execution_time": 0.641,
+          "metrics": {
+            "reasoning_quality": 0.87,
+            "response_relevance": 0.82,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.7999999999999999,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.7899999999999999
+          }
+        },
+        {
+          "query": "Compare and contrast different machine learning approaches",
+          "response": "Concise answer: Prince Flowers AI - Be direct and efficient.\n\nTask... - Key points summarized efficiently.",
+          "success": true,
+          "confidence": 0.82,
+          "execution_time": 0.672,
+          "metrics": {
+            "reasoning_quality": 0.87,
+            "response_relevance": 0.82,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.7999999999999999,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.7899999999999999
+          }
+        }
+      ],
+      "metrics": {
+        "reasoning_quality": 0.87,
+        "response_relevance": 0.82,
+        "tool_selection_efficiency": 0.85,
+        "multi_step_accuracy": 0.7999999999999999,
+        "execution_performance": 0.88,
+        "error_handling": 0.95,
+        "confidence_calibration": 0.7899999999999999,
+        "overall_quality_score": 0.8514999999999999,
+        "success_rate": 1.0,
+        "average_confidence": 0.82
+      },
+      "execution_time": 1.3270573616027832,
+      "success_rate": 1.0,
+      "confidence_scores": [
+        0.82,
+        0.82,
+        0.82,
+        0.82,
+        0.82
+      ],
+      "error_count": 0,
+      "qualitative_feedback": []
+    },
+    {
+      "variant_id": "df3f1f2a-8dab-4cc4-a41d-d90555987693_treatment_3",
+      "variant_name": "Role-Based Prompt",
+      "test_cases": [
+        {
+          "query": "Explain the benefits of async programming in Python",
+          "response": "Standard response to: You are Prince Flowers, expert AI assistant with d... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.786,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "Search for recent developments in quantum computing",
+          "response": "Standard response to: You are Prince Flowers, expert AI assistant with d... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.786,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "Create a simple REST API example",
+          "response": "Standard response to: You are Prince Flowers, expert AI assistant with d... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.767,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "What are your capabilities?",
+          "response": "Standard response to: You are Prince Flowers, expert AI assistant with d... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.762,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        },
+        {
+          "query": "Compare and contrast different machine learning approaches",
+          "response": "Standard response to: You are Prince Flowers, expert AI assistant with d... - Well-formulated answer addressing the query.",
+          "success": true,
+          "confidence": 0.85,
+          "execution_time": 0.7929999999999999,
+          "metrics": {
+            "reasoning_quality": 0.9,
+            "response_relevance": 0.85,
+            "tool_selection_efficiency": 0.85,
+            "multi_step_accuracy": 0.83,
+            "execution_performance": 0.88,
+            "error_handling": 0.95,
+            "confidence_calibration": 0.82
+          }
+        }
+      ],
+      "metrics": {
+        "reasoning_quality": 0.9,
+        "response_relevance": 0.85,
+        "tool_selection_efficiency": 0.85,
+        "multi_step_accuracy": 0.83,
+        "execution_performance": 0.88,
+        "error_handling": 0.95,
+        "confidence_calibration": 0.82,
+        "overall_quality_score": 0.8709999999999999,
+        "success_rate": 1.0,
+        "average_confidence": 0.85
+      },
+      "execution_time": 1.9345426559448242,
+      "success_rate": 1.0,
+      "confidence_scores": [
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85
+      ],
+      "error_count": 0,
+      "qualitative_feedback": []
+    }
+  ],
+  "statistical_significance": {},
+  "winning_variant": null,
+  "improvement_percentages": {
+    "Structured Prompt": {
+      "reasoning_quality": 0.0,
+      "response_relevance": 0.0,
+      "overall_quality_score": 0.0
+    },
+    "Concise Prompt": {
+      "reasoning_quality": -0.03333333333333336,
+      "response_relevance": -0.03529411764705886,
+      "overall_quality_score": -0.022388059701492498
+    },
+    "Role-Based Prompt": {
+      "reasoning_quality": 0.0,
+      "response_relevance": 0.0,
+      "overall_quality_score": 0.0
+    }
+  },
+  "recommendations": [
+    "No variants met success criteria",
+    "Consider refining prompt templates or testing different approaches",
+    "Structured Prompt shows minimal improvement (0.0%) - consider reworking or discontinuing",
+    "Concise Prompt shows minimal improvement (-2.2%) - consider reworking or discontinuing",
+    "Role-Based Prompt shows minimal improvement (0.0%) - consider reworking or discontinuing"
+  ],
+  "analysis_timestamp": "2025-11-08T23:56:42.687002",
+  "next_steps": [
+    "Analyze why variants underperformed",
+    "Design new experiment with different approaches",
+    "Consider testing alternative optimization strategies",
+    "Document learnings and insights for future experiments",
+    "Update prompt template library with findings"
+  ]
+}

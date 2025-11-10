@@ -1,0 +1,63 @@
+{
+  "test_date": "2025-11-08T23:55:16.352338",
+  "test_type": "memory_enhanced_agent_local_95_percent_target",
+  "results": {
+    "initialization": {
+      "success": true,
+      "memory_enabled": false
+    },
+    "feedback_learning": true,
+    "performance_metrics": {
+      "agent_name": "Memory-Enhanced Prince Flowers",
+      "session_metrics": {
+        "uptime_seconds": 0.006277799606323242,
+        "total_interactions": 6,
+        "successful_interactions": 5,
+        "session_success_rate": 0.8333333333333334
+      },
+      "memory_performance": {
+        "session_metrics": {
+          "duration_seconds": 0.006277799606323242,
+          "total_interactions": 6,
+          "successful_interactions": 5,
+          "success_rate": 0.8333333333333334,
+          "avg_interactions_per_minute": 6.0
+        },
+        "long_term_metrics": {},
+        "memory_status": {
+          "marvin_memory_interactions": 6,
+          "supabase_enabled": false,
+          "cache_size": 8
+        },
+        "learning_status": {
+          "patterns_learned": 0,
+          "context_threshold": 0.7,
+          "learning_rate": 0.1
+        }
+      },
+      "tools_available": 6,
+      "learning_active": true,
+      "memory_integration_enabled": true
+    },
+    "overall_metrics": {
+      "total_tests": 6,
+      "success_rate": 0.8333333333333334,
+      "confidence_rate": 0.8333333333333334,
+      "memory_usage_rate": 0.0,
+      "learning_rate": 0.6666666666666666,
+      "performance_rate": 1.0,
+      "quality_rate": 1.0,
+      "overall_score": 0.6749999999999999,
+      "target_achieved": false
+    }
+  },
+  "recommendations": [
+    "HIGH: Memory usage below 50% - memory integration not functioning properly",
+    "CRITICAL: Overall score below 80% - requires immediate attention",
+    "Improve overall query success rate - check error handling and routing logic",
+    "Boost confidence scores - improve context relevance and memory retrieval",
+    "Increase memory utilization - improve memory storage and retrieval mechanisms",
+    "Configure Supabase memory for full long-term learning capabilities"
+  ],
+  "target_achieved": false
+}
