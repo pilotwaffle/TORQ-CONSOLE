@@ -17,6 +17,7 @@ from .marvin_query_router import (
     AgentCapability
 )
 from .marvin_prince_flowers import MarvinPrinceFlowers
+from .prince_flowers_enhanced import create_enhanced_prince_flowers, apply_tiktok_lesson
 from .marvin_workflow_agents import (
     WorkflowType,
     WorkflowResult,
@@ -73,9 +74,18 @@ class MarvinAgentOrchestrator:
         """
         self.logger = logging.getLogger("TORQ.Agents.Orchestrator")
 
+        # Apply TikTok lesson on first initialization
+        try:
+            apply_tiktok_lesson()
+            self.logger.info("TikTok lesson applied - Enhanced Prince will use action-oriented patterns")
+        except Exception as e:
+            self.logger.warning(f"Could not apply TikTok lesson: {e}")
+
         # Initialize components
         self.router = MarvinQueryRouter(model=model)
-        self.prince_flowers = MarvinPrinceFlowers(model=model)
+
+        # Use Enhanced Prince Flowers by default for better action-oriented behavior
+        self.prince_flowers = create_enhanced_prince_flowers(model=model)
 
         # Initialize TorqPrinceFlowers for tool-based capabilities (async)
         self.torq_prince = None

@@ -13,6 +13,7 @@ import logging
 from .providers.deepseek import DeepSeekProvider
 from .providers.claude import ClaudeProvider
 from .providers.ollama import OllamaProvider
+from .providers.glm import GLMProvider
 
 # Session 3: Make llama_cpp optional
 try:
@@ -50,6 +51,7 @@ class LLMManager:
         self._init_deepseek()
         self._init_ollama()
         self._init_llama_cpp()
+        self._init_glm()
 
         # Session 3: Initialize codebase indexer (optional)
         self.semantic_search = None
@@ -62,6 +64,9 @@ class LLMManager:
             'sonnet': 'claude',
             'deepseek': 'deepseek',
             'deepseek-chat': 'deepseek',
+            'glm': 'glm',
+            'glm-4.6': 'glm',
+            'glm-4': 'glm',
             'ollama': 'ollama',
             'local': 'ollama',
             'llama': 'ollama',
@@ -180,6 +185,25 @@ class LLMManager:
             self.logger.info("Install with: pip install llama-cpp-python")
         except Exception as e:
             self.logger.error(f"Failed to initialize llama.cpp provider: {e}", exc_info=True)
+
+    def _init_glm(self):
+        """Initialize GLM-4.6 provider from Z.AI."""
+        try:
+            # Try to get from environment
+            api_key = os.getenv('GLM_API_KEY')
+            model = self.config.get('glm_model', 'glm-4.6')
+
+            provider = GLMProvider(api_key=api_key, model=model)
+            self.providers['glm'] = provider
+
+            if provider.is_configured():
+                self.logger.info(f"GLM provider configured successfully with model: {model}")
+            else:
+                self.logger.warning("GLM provider not properly configured (missing GLM_API_KEY)")
+                self.logger.info("To enable GLM-4.6, set GLM_API_KEY in .env or environment")
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialize GLM provider: {e}")
 
     def _init_codebase_indexer(self):
         """
