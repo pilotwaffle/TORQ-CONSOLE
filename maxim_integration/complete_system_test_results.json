@@ -1,0 +1,137 @@
+{
+  "test_date": "2025-11-09T00:17:40.840093",
+  "test_type": "complete_system_with_llm_95_percent_target",
+  "llm_provider": {
+    "type": "Claude",
+    "model": "claude-sonnet-4-5-20250929",
+    "configured": true
+  },
+  "metrics": {
+    "success_rate": 1.0,
+    "confidence_rate": 0.8970173056196066,
+    "memory_usage_rate": 1.0,
+    "learning_rate": 1.0,
+    "overall_score": 0.9742543264049017
+  },
+  "target_95_percent_achieved": true,
+  "target_90_percent_achieved": true,
+  "target_85_percent_achieved": true,
+  "test_results": [
+    {
+      "query": "What is artificial intelligence and how does it work?",
+      "success": true,
+      "confidence": 1.0,
+      "memory_used": 1,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 8.514980554580688,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 5273,
+      "tools_used": [
+        "llm",
+        "zep_memory"
+      ],
+      "response_preview": "Of course. I can provide a comprehensive answer to your question.\n\n**Artificial Intelligence (AI)** ..."
+    },
+    {
+      "query": "Generate a Python function for sentiment analysis",
+      "success": true,
+      "confidence": 0.9080016816143498,
+      "memory_used": 2,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 10.317220211029053,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 7133,
+      "tools_used": [
+        "llm",
+        "zep_memory"
+      ],
+      "response_preview": "Of course. Based on your request, I will provide a Python function for sentiment analysis.\n\nGiven th..."
+    },
+    {
+      "query": "Explain the key differences between SQL and NoSQL databases",
+      "success": true,
+      "confidence": 0.930666163603562,
+      "memory_used": 4,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 8.472341060638428,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 5298,
+      "tools_used": [
+        "llm",
+        "zep_memory",
+        "sentiment_analysis"
+      ],
+      "response_preview": "Of course. I can provide a comprehensive answer to your question, drawing on the structure of our pr..."
+    },
+    {
+      "query": "What is artificial intelligence and how does it work?",
+      "success": true,
+      "confidence": 0.883813927712859,
+      "memory_used": 5,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 11.225223302841187,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 4542,
+      "tools_used": [
+        "llm",
+        "zep_memory"
+      ],
+      "response_preview": "Of course. I can provide a comprehensive answer to your question, drawing on the structure of our pr..."
+    },
+    {
+      "query": "Create a sorting algorithm in Python",
+      "success": true,
+      "confidence": 0.8318800696411247,
+      "memory_used": 5,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 8.933218240737915,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 5881,
+      "tools_used": [
+        "llm",
+        "zep_memory"
+      ],
+      "response_preview": "Of course. Based on your request to \"Create a sorting algorithm in Python,\" I will provide a compreh..."
+    },
+    {
+      "query": "How do neural networks learn from data?",
+      "success": true,
+      "confidence": 0.827741991145744,
+      "memory_used": 5,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 12.93115782737732,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 6398,
+      "tools_used": [
+        "llm",
+        "zep_memory"
+      ],
+      "response_preview": "Of course. Building on our previous discussions about Artificial Intelligence, let's dive into a spe..."
+    }
+  ],
+  "total_tests": 6
+}

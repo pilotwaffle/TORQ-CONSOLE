@@ -1,0 +1,101 @@
+{
+  "test_date": "2025-11-09T00:08:54.185799",
+  "test_type": "simple_zep_performance_test",
+  "metrics": {
+    "success_rate": 0.0,
+    "confidence_rate": 0.23214285714285712,
+    "memory_usage_rate": 1.0,
+    "learning_rate": 1.0,
+    "overall_score": 0.5080357142857144
+  },
+  "target_95_percent_achieved": false,
+  "target_90_percent_achieved": false,
+  "target_85_percent_achieved": false,
+  "test_results": [
+    {
+      "query": "What is artificial intelligence?",
+      "success": false,
+      "confidence": 0.25,
+      "memory_used": 1,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 0.0009768009185791016,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 52
+    },
+    {
+      "query": "Generate a Python function for data analysis",
+      "success": false,
+      "confidence": 0.25,
+      "memory_used": 1,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 0.0,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 52
+    },
+    {
+      "query": "Explain machine learning concepts",
+      "success": false,
+      "confidence": 0.25,
+      "memory_used": 1,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 0.0,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 44
+    },
+    {
+      "query": "What is artificial intelligence?",
+      "success": false,
+      "confidence": 0.25,
+      "memory_used": 2,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 0.00030732154846191406,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 52
+    },
+    {
+      "query": "Create a sorting algorithm",
+      "success": false,
+      "confidence": 0.14285714285714285,
+      "memory_used": 2,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 0.0,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 52
+    },
+    {
+      "query": "How do neural networks work?",
+      "success": false,
+      "confidence": 0.25,
+      "memory_used": 1,
+      "learning_applied": {
+        "memory_enhanced": true,
+        "context_retrieved": true,
+        "confidence_improved": true
+      },
+      "execution_time": 0.0,
+      "session_id": "prince_flowers_default_session",
+      "response_length": 52
+    }
+  ],
+  "total_tests": 6
+}

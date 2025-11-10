@@ -1,0 +1,175 @@
+{
+  "analysis_date": "2025-11-09T00:09:45.954962",
+  "baseline": {
+    "evaluation_type": "baseline",
+    "timestamp": "2025-11-08T23:59:05.228534",
+    "total_queries": 6,
+    "success_rate": 1.0,
+    "average_confidence": 0.8849999999999999,
+    "average_execution_time": 1.2,
+    "overall_quality_score": 0.8782500000000002,
+    "detailed_metrics": {
+      "reasoning_quality": 0.9050000000000001,
+      "response_relevance": 0.8750000000000001,
+      "tool_selection_efficiency": 0.87,
+      "multi_step_accuracy": 0.85,
+      "execution_performance": 0.8,
+      "error_handling": 0.95,
+      "confidence_calibration": 0.88
+    },
+    "agent_performance": {
+      "torq_prince": {
+        "success_rate": 1.0,
+        "avg_confidence": 0.84,
+        "avg_execution_time": 1.35,
+        "queries_handled": 2
+      },
+      "marvin_prince": {
+        "success_rate": 1.0,
+        "avg_confidence": 0.92,
+        "avg_execution_time": 0.8,
+        "queries_handled": 3
+      },
+      "orchestrator": {
+        "success_rate": 1.0,
+        "avg_confidence": 0.87,
+        "avg_execution_time": 2.1,
+        "queries_handled": 1
+      }
+    },
+    "recommendations": [
+      "Overall performance is excellent - consider more complex test scenarios",
+      "TorqPrinceFlowers shows strong tool integration capabilities",
+      "MarvinPrinceFlowers demonstrates high-quality analytical reasoning",
+      "Orchestrator effectively routes queries to appropriate agents"
+    ]
+  },
+  "current_zep": {
+    "test_date": "2025-11-09T00:08:54.185799",
+    "test_type": "simple_zep_performance_test",
+    "metrics": {
+      "success_rate": 0.0,
+      "confidence_rate": 0.23214285714285712,
+      "memory_usage_rate": 1.0,
+      "learning_rate": 1.0,
+      "overall_score": 0.5080357142857144
+    },
+    "target_95_percent_achieved": false,
+    "target_90_percent_achieved": false,
+    "target_85_percent_achieved": false,
+    "test_results": [
+      {
+        "query": "What is artificial intelligence?",
+        "success": false,
+        "confidence": 0.25,
+        "memory_used": 1,
+        "learning_applied": {
+          "memory_enhanced": true,
+          "context_retrieved": true,
+          "confidence_improved": true
+        },
+        "execution_time": 0.0009768009185791016,
+        "session_id": "prince_flowers_default_session",
+        "response_length": 52
+      },
+      {
+        "query": "Generate a Python function for data analysis",
+        "success": false,
+        "confidence": 0.25,
+        "memory_used": 1,
+        "learning_applied": {
+          "memory_enhanced": true,
+          "context_retrieved": true,
+          "confidence_improved": true
+        },
+        "execution_time": 0.0,
+        "session_id": "prince_flowers_default_session",
+        "response_length": 52
+      },
+      {
+        "query": "Explain machine learning concepts",
+        "success": false,
+        "confidence": 0.25,
+        "memory_used": 1,
+        "learning_applied": {
+          "memory_enhanced": true,
+          "context_retrieved": true,
+          "confidence_improved": true
+        },
+        "execution_time": 0.0,
+        "session_id": "prince_flowers_default_session",
+        "response_length": 44
+      },
+      {
+        "query": "What is artificial intelligence?",
+        "success": false,
+        "confidence": 0.25,
+        "memory_used": 2,
+        "learning_applied": {
+          "memory_enhanced": true,
+          "context_retrieved": true,
+          "confidence_improved": true
+        },
+        "execution_time": 0.00030732154846191406,
+        "session_id": "prince_flowers_default_session",
+        "response_length": 52
+      },
+      {
+        "query": "Create a sorting algorithm",
+        "success": false,
+        "confidence": 0.14285714285714285,
+        "memory_used": 2,
+        "learning_applied": {
+          "memory_enhanced": true,
+          "context_retrieved": true,
+          "confidence_improved": true
+        },
+        "execution_time": 0.0,
+        "session_id": "prince_flowers_default_session",
+        "response_length": 52
+      },
+      {
+        "query": "How do neural networks work?",
+        "success": false,
+        "confidence": 0.25,
+        "memory_used": 1,
+        "learning_applied": {
+          "memory_enhanced": true,
+          "context_retrieved": true,
+          "confidence_improved": true
+        },
+        "execution_time": 0.0,
+        "session_id": "prince_flowers_default_session",
+        "response_length": 52
+      }
+    ],
+    "total_tests": 6
+  },
+  "current_memory": {
+    "test_date": "2025-11-09T00:08:47.295307",
+    "memory_results": {
+      "marvin_memory": false,
+      "supabase_memory": false,
+      "agent_memory_integrated": true,
+      "agent_processing": true,
+      "memory_retrieval": false
+    },
+    "tools_results": {
+      "tools_initialized": true,
+      "tools_available": 6,
+      "sentiment_analysis": true,
+      "maxim_tools_working": false
+    },
+    "scores": {
+      "memory_score": 40.0,
+      "tools_score": 50.0,
+      "overall_score": 45.0
+    },
+    "findings": {
+      "agent_uses_memory": true,
+      "maxim_tools_working": false,
+      "memory_integration_complete": false,
+      "tools_integration_complete": false
+    }
+  }
+}
