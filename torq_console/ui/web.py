@@ -601,6 +601,19 @@ class WebUI:
     def _setup_routes(self):
         """Setup FastAPI routes."""
 
+        # Simple health endpoint for Railway/production healthchecks
+        @self.app.get("/health")
+        async def simple_health():
+            """
+            Simple health check that returns immediately.
+            Used by Railway and other platforms for startup healthchecks.
+            """
+            return {
+                "status": "ok",
+                "service": "TORQ Console",
+                "version": "0.80.0"
+            }
+
         @self.app.get("/", response_class=HTMLResponse)
         async def dashboard(request: Request):
             """Main dashboard."""
@@ -2178,17 +2191,33 @@ How else can I assist you with "{query}"?"""
         self.logger.info(f"API Documentation: http://{host}:{port}/docs")
 
         try:
-            # Initialize chat manager
-            await self.chat_manager.initialize()
+            # Initialize chat manager (non-fatal if it fails)
+            try:
+                await self.chat_manager.initialize()
+                self.logger.info("✅ Chat manager initialized")
+            except Exception as e:
+                self.logger.warning(f"⚠️  Chat manager initialization failed: {e}")
 
-            # Initialize command palette
-            await self.command_palette.initialize()
+            # Initialize command palette (non-fatal if it fails)
+            try:
+                await self.command_palette.initialize()
+                self.logger.info("✅ Command palette initialized")
+            except Exception as e:
+                self.logger.warning(f"⚠️  Command palette initialization failed: {e}")
 
-            # Start message processor
-            await self._start_message_processor()
+            # Start message processor (non-fatal if it fails)
+            try:
+                await self._start_message_processor()
+                self.logger.info("✅ Message processor started")
+            except Exception as e:
+                self.logger.warning(f"⚠️  Message processor failed: {e}")
 
-            # Auto-connect to MCP servers
-            await self.console._auto_connect_mcp()
+            # Auto-connect to MCP servers (non-fatal if it fails)
+            try:
+                await self.console._auto_connect_mcp()
+                self.logger.info("✅ MCP servers auto-connected")
+            except Exception as e:
+                self.logger.warning(f"⚠️  MCP auto-connect failed: {e}")
 
             # Setup Socket.IO app if available
             if self.sio:
