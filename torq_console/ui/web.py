@@ -234,6 +234,7 @@ class WebUI:
                 llm_providers = {
                     "claude": "operational" if os.getenv('ANTHROPIC_API_KEY') else "not_configured",
                     "deepseek": "operational" if os.getenv('DEEPSEEK_API_KEY') else "not_configured",
+                    "glm": "operational" if os.getenv('GLM_API_KEY') else "not_configured",
                     "ollama": "operational",  # Assume available if local
                     "llama_cpp": "operational"
                 }

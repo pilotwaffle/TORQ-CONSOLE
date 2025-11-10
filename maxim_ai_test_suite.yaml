@@ -1,0 +1,397 @@
+# Enhanced Prince Flowers - Maxim.ai Test Suite
+# Test scenarios for evaluating action-oriented behavior
+
+## Test Suite 1: Type A Requests (Research/Information Retrieval)
+# Expected Behavior: Immediate WebSearch, NO code generation
+
+test_scenarios_type_a:
+  - id: "type_a_001"
+    name: "Basic Search Query"
+    user_input: "search for top AI tools"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_002"
+    name: "Research Query"
+    user_input: "research new updates to GPT-5"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_003"
+    name: "Find Query"
+    user_input: "find the best React libraries"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_004"
+    name: "Latest News Query"
+    user_input: "Search the latest AI news"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+    notes: "This was a failure case - should NOT generate TypeScript"
+
+  - id: "type_a_005"
+    name: "Show Me Query"
+    user_input: "show me trending GitHub repos"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_006"
+    name: "List Query"
+    user_input: "list top programming languages"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_007"
+    name: "Under Ideation Query"
+    user_input: "under ideation: search for design patterns"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_008"
+    name: "Explore Query"
+    user_input: "explore AI agent frameworks"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_009"
+    name: "What Are Query"
+    user_input: "what are the best databases"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+  - id: "type_a_010"
+    name: "Top X Query"
+    user_input: "top 10 viral TikTok videos"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    should_generate_code: false
+    evaluation_criteria:
+      - uses_websearch: true
+      - generates_code: false
+      - asks_clarification: false
+      - returns_actual_results: true
+
+## Test Suite 2: Type B Requests (Build/Implementation)
+# Expected Behavior: Ask clarifying questions, THEN generate code
+
+test_scenarios_type_b:
+  - id: "type_b_001"
+    name: "Build Todo App"
+    user_input: "build a todo app"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    should_generate_code: false  # Not immediately
+    should_ask_questions: true
+    evaluation_criteria:
+      - uses_websearch: false
+      - asks_clarification: true
+      - asks_about_features: true
+      - asks_about_tech_stack: true
+      - question_count_min: 2
+      - question_count_max: 4
+
+  - id: "type_b_002"
+    name: "Create Application"
+    user_input: "create an e-commerce site"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    should_generate_code: false
+    should_ask_questions: true
+    evaluation_criteria:
+      - asks_clarification: true
+      - asks_about_architecture: true
+      - asks_about_database: true
+      - asks_about_scale: true
+
+  - id: "type_b_003"
+    name: "Develop System"
+    user_input: "develop a task management system"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    should_generate_code: false
+    should_ask_questions: true
+    evaluation_criteria:
+      - asks_clarification: true
+      - asks_about_requirements: true
+
+  - id: "type_b_004"
+    name: "Implement Feature"
+    user_input: "implement a search feature"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    should_generate_code: false
+    should_ask_questions: true
+    evaluation_criteria:
+      - asks_clarification: true
+      - asks_about_scope: true
+
+  - id: "type_b_005"
+    name: "Make Application"
+    user_input: "make a weather app"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    should_generate_code: false
+    should_ask_questions: true
+    evaluation_criteria:
+      - asks_clarification: true
+      - asks_about_features: true
+
+  - id: "type_b_006"
+    name: "Build Game"
+    user_input: "build a tic-tac-toe game"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    should_generate_code: false
+    should_ask_questions: true
+    evaluation_criteria:
+      - asks_clarification: true
+      - asks_about_game_details: true
+
+  - id: "type_b_007"
+    name: "Complex Application"
+    user_input: "create a video streaming platform"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    should_generate_code: false
+    should_ask_questions: true
+    evaluation_criteria:
+      - asks_clarification: true
+      - asks_about_architecture: true
+      - asks_about_scale: true
+      - asks_about_budget: true
+      - question_count_min: 3
+
+## Test Suite 3: Implicit Feedback Detection
+# Expected Behavior: Detect correction and change approach
+
+test_scenarios_feedback:
+  - id: "feedback_001"
+    name: "Negative Feedback - No"
+    conversation:
+      - user: "search for AI tools"
+        agent_response: "[generates code]"
+      - user: "No that's not right"
+        expected_agent_behavior: "acknowledge_mistake_and_search"
+        expected_action: "IMMEDIATE_ACTION"
+        should_change_approach: true
+        should_use_websearch: true
+        should_generate_more_code: false
+    evaluation_criteria:
+      - detects_negative_feedback: true
+      - changes_approach: true
+      - uses_websearch_after_correction: true
+      - does_not_generate_more_code: true
+
+  - id: "feedback_002"
+    name: "Negative Feedback - Wrong"
+    conversation:
+      - user: "find trending topics"
+        agent_response: "[generates code]"
+      - user: "That's wrong"
+        expected_agent_behavior: "acknowledge_and_correct"
+        should_change_approach: true
+    evaluation_criteria:
+      - detects_negative_feedback: true
+      - changes_approach: true
+
+  - id: "feedback_003"
+    name: "Negative Feedback - Just Do It"
+    conversation:
+      - user: "research AI news"
+        agent_response: "[asks clarification]"
+      - user: "Just do it"
+        expected_agent_behavior: "immediate_action"
+        should_use_websearch: true
+    evaluation_criteria:
+      - detects_action_demand: true
+      - takes_immediate_action: true
+
+  - id: "feedback_004"
+    name: "Positive Feedback - Perfect"
+    conversation:
+      - user: "search for top tools"
+        agent_response: "[uses websearch and returns results]"
+      - user: "Perfect!"
+        expected_agent_behavior: "acknowledge_success"
+    evaluation_criteria:
+      - detects_positive_feedback: true
+      - records_success: true
+
+## Test Suite 4: Edge Cases
+
+test_scenarios_edge_cases:
+  - id: "edge_001"
+    name: "Mixed Intent - Search First"
+    user_input: "search and then build a tool"
+    expected_behavior: "prioritize_first_action"
+    expected_action: "IMMEDIATE_ACTION"  # Search comes first
+    evaluation_criteria:
+      - uses_websearch: true
+      - prioritizes_search: true
+
+  - id: "edge_002"
+    name: "Vague Build Request"
+    user_input: "build me an app"
+    expected_behavior: "ask_clarification"
+    expected_action: "ASK_CLARIFICATION"
+    evaluation_criteria:
+      - asks_clarification: true
+      - asks_about_purpose: true
+      - asks_about_requirements: true
+
+  - id: "edge_003"
+    name: "Capitalization Variation"
+    user_input: "SEARCH FOR TOP AI NEWS"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    evaluation_criteria:
+      - handles_caps: true
+      - uses_websearch: true
+
+  - id: "edge_004"
+    name: "Special Characters"
+    user_input: "search for #trending topics"
+    expected_behavior: "immediate_websearch"
+    expected_action: "IMMEDIATE_ACTION"
+    evaluation_criteria:
+      - handles_special_chars: true
+      - uses_websearch: true
+
+## Evaluation Metrics
+
+evaluation_metrics:
+  type_a_success_rate:
+    description: "Percentage of research queries that trigger WebSearch"
+    target: 100%
+    critical_threshold: 95%
+
+  type_b_success_rate:
+    description: "Percentage of build queries that ask clarification"
+    target: 100%
+    critical_threshold: 95%
+
+  code_generation_for_research:
+    description: "Should be 0% - never generate code for research"
+    target: 0%
+    critical_threshold: 5%
+
+  feedback_detection_rate:
+    description: "Percentage of negative feedback correctly detected"
+    target: 90%
+    critical_threshold: 80%
+
+  response_change_after_feedback:
+    description: "Agent changes approach after 'No that's not right'"
+    target: 100%
+    critical_threshold: 90%
+
+## User Personas for Testing
+
+user_personas:
+  - name: "Researcher"
+    typical_queries:
+      - "search for X"
+      - "research Y"
+      - "find Z"
+    expected_satisfaction: "immediate_results"
+
+  - name: "Developer"
+    typical_queries:
+      - "build X"
+      - "create Y"
+      - "implement Z"
+    expected_satisfaction: "thorough_questions_then_code"
+
+  - name: "Corrector"
+    behavior: "Provides negative feedback when response is wrong"
+    typical_feedback:
+      - "No that's not right"
+      - "Just search"
+      - "Wrong approach"
+    expected_satisfaction: "agent_learns_and_corrects"
+
+## Critical Test Cases (From User Feedback)
+
+critical_tests:
+  - id: "critical_001"
+    name: "User's Exact Failure Case"
+    user_input: "Search the latest AI news 11/08/25"
+    historical_behavior: "Generated 500+ lines of TypeScript code"
+    expected_behavior: "Use WebSearch immediately"
+    severity: "CRITICAL"
+    notes: "This exact query failed 3 times in a row - must pass now"
+
+  - id: "critical_002"
+    name: "Negative Feedback Ignored"
+    conversation:
+      - user: "Search for X"
+        agent: "[generates code]"
+      - user: "No that's not right"
+        agent: "[generated MORE code]"
+    historical_behavior: "Ignored negative feedback"
+    expected_behavior: "Change approach immediately to WebSearch"
+    severity: "CRITICAL"
+    notes: "Failed to detect implicit negative feedback"
+
+  - id: "critical_003"
+    name: "Research Keyword Missing"
+    user_input: "Research new updates coming to GLM-4.6"
+    historical_behavior: "Generated TypeScript application"
+    expected_behavior: "Use WebSearch immediately"
+    severity: "CRITICAL"
+    notes: "Was fixed by adding 'research' keyword to Type A patterns"

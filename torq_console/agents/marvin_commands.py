@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Optional
 
 from .marvin_query_router import MarvinQueryRouter, AgentCapability
 from .marvin_prince_flowers import MarvinPrinceFlowers
+from .prince_flowers_enhanced import create_enhanced_prince_flowers, apply_tiktok_lesson
 from .marvin_orchestrator import MarvinAgentOrchestrator, OrchestrationMode, get_orchestrator
 from .marvin_workflow_agents import WorkflowType, get_workflow_agent
 from .marvin_memory import MarvinAgentMemory, InteractionType, get_agent_memory
