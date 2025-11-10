@@ -1010,14 +1010,17 @@
             <!-- Model Selector -->
             <select x-model="selectedModel" @change="updateModel()"
                     class="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-sm focus:outline-none focus:border-blue-500">
+                <!-- Anthropic Models (requires ANTHROPIC_API_KEY) -->
                 <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (Latest)</option>
                 <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                 <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
-                <option value="gpt-4o">GPT-4o</option>
+
+                <!-- DeepSeek Models (requires DEEPSEEK_API_KEY) -->
                 <option value="deepseek-chat">DeepSeek Chat</option>
-                <option value="llama-3.1-405b">Llama 3.1 405B</option>
-                <option value="gemini-pro">Gemini Pro</option>
+
+                <!-- Local Models (requires Ollama running) -->
+                <option value="llama-3.1-405b">Llama 3.1 405B (Ollama)</option>
+                <option value="deepseek-r1:7b">DeepSeek R1 7B (Ollama)</option>
             </select>
         </div>
     </header>
