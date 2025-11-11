@@ -10,6 +10,7 @@ import logging
 import re
 import json
 import hashlib
+import sys
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Set, Tuple, Callable
 from dataclasses import dataclass, field
@@ -141,16 +142,44 @@ class LRUCache:
             lru_key = next(iter(self.cache))
             self._remove_entry(lru_key)
 
-    def _estimate_size(self, value: Any) -> int:
-        """Estimate memory size of value."""
+    def _estimate_size(self, value: Any, seen: Optional[set] = None) -> int:
+        """
+        Accurately estimate memory size of value using sys.getsizeof.
+
+        Recursively estimates size for containers to prevent underestimation.
+        Uses memoization (seen set) to avoid counting shared objects twice.
+        """
+        if seen is None:
+            seen = set()
+
+        # Avoid counting same object multiple times
+        obj_id = id(value)
+        if obj_id in seen:
+            return 0
+        seen.add(obj_id)
+
         try:
-            if isinstance(value, str):
-                return len(value.encode('utf-8'))
-            elif isinstance(value, (list, dict)):
-                return len(str(value).encode('utf-8'))
-            else:
-                return len(str(value).encode('utf-8'))
-        except Exception:
+            size = sys.getsizeof(value)
+
+            # Recursively estimate container sizes
+            if isinstance(value, dict):
+                size += sum(self._estimate_size(k, seen) + self._estimate_size(v, seen)
+                           for k, v in value.items())
+            elif isinstance(value, (list, tuple, set, frozenset)):
+                size += sum(self._estimate_size(item, seen) for item in value)
+            elif hasattr(value, '__dict__'):
+                # Objects with __dict__ (custom classes)
+                size += self._estimate_size(value.__dict__, seen)
+            elif hasattr(value, '__slots__'):
+                # Objects with __slots__
+                size += sum(self._estimate_size(getattr(value, slot, None), seen)
+                           for slot in value.__slots__ if hasattr(value, slot))
+
+            return size
+
+        except Exception as e:
+            # Fallback to conservative estimate
+            self.logger.debug(f"Error estimating size: {e}")
             return 1024  # Default size estimate
 
     def clear(self) -> None:
