@@ -90,8 +90,8 @@ class SelfCorrectingIntentDetector:
                 last_updated=datetime.now().isoformat()
             ),
             'research_general': IntentPattern(
-                keywords=['research', 'find', 'search', 'look up', 'information about', 'tell me about'],
-                context_markers=['web for', 'online', 'internet', 'latest', 'current', 'recent'],
+                keywords=['research', 'find', 'search', 'look up', 'information about', 'tell me about', 'latest', 'top', 'trending', 'best', 'new', 'show', 'get', 'news', 'article', 'what are', 'list'],
+                context_markers=['web for', 'online', 'internet', 'current', 'recent', 'today', 'this week', 'this month'],
                 confidence=0.85,
                 success_count=0,
                 failure_count=0,
@@ -195,7 +195,7 @@ class SelfCorrectingIntentDetector:
         # Check each pattern type
         for pattern_name, pattern in self.patterns.items():
             score = self._calculate_pattern_score(query_lower, pattern)
-            if score > 0.1:  # Minimum threshold (lowered from 0.3 to catch "search" queries)
+            if score > 0.05:  # Minimum threshold (lowered from 0.1 to catch queries like "Latest AI news")
                 scores[pattern_name] = score
                 matched_patterns[pattern_name] = self._explain_match(query_lower, pattern)
 
