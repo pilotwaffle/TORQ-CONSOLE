@@ -181,6 +181,24 @@ class WebUI:
         # Message processing task
         self._message_processor_task: Optional[asyncio.Task] = None
 
+        # Cache provider availability flags (env vars don't change at runtime)
+        self._cached_llm_providers = self._init_llm_providers()
+
+    def _init_llm_providers(self) -> Dict[str, str]:
+        """
+        Initialize and cache LLM provider availability.
+
+        Optimization: Cache provider flags since environment variables
+        don't change at runtime. Eliminates os.getenv() calls on every request.
+        """
+        return {
+            "claude": "operational" if os.getenv('ANTHROPIC_API_KEY') else "not_configured",
+            "deepseek": "operational" if os.getenv('DEEPSEEK_API_KEY') else "not_configured",
+            "glm": "operational" if os.getenv('GLM_API_KEY') else "not_configured",
+            "ollama": "operational",  # Assume available if local
+            "llama_cpp": "operational"
+        }
+
     def _generate_api_key(self) -> str:
         """Generate a secure API key."""
         return secrets.token_urlsafe(32)
@@ -219,10 +237,15 @@ class WebUI:
         @self.app.get("/api/health")
         async def health_check():
             """
-            Health check endpoint for system status.
+            Health check endpoint for system status (optimized).
+
+            Optimization: Uses cached LLM provider flags to avoid repeated
+            os.getenv() calls. Calculates timestamp once for reuse.
 
             Returns comprehensive system health including agents, LLM providers, and resources.
             """
+            timestamp = datetime.now().isoformat()  # Calculate once
+
             try:
                 # Get swarm orchestrator status
                 swarm_status = await self.console.swarm_orchestrator.health_check()
@@ -230,26 +253,17 @@ class WebUI:
                 # Get agent statuses
                 agent_statuses = await self.console.swarm_orchestrator.get_swarm_status()
 
-                # Determine LLM provider statuses
-                llm_providers = {
-                    "claude": "operational" if os.getenv('ANTHROPIC_API_KEY') else "not_configured",
-                    "deepseek": "operational" if os.getenv('DEEPSEEK_API_KEY') else "not_configured",
-                    "glm": "operational" if os.getenv('GLM_API_KEY') else "not_configured",
-                    "ollama": "operational",  # Assume available if local
-                    "llama_cpp": "operational"
-                }
-
                 return {
                     "status": "healthy" if swarm_status.get('status') == 'healthy' else "degraded",
                     "version": "0.80.0",
                     "service": "TORQ Console",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": timestamp,
                     "agents": {
                         "total": len(agent_statuses.get('agents', {})),
                         "active": len([a for a in agent_statuses.get('agents', {}).values() if a.get('status') == 'ready']),
                         "available": list(agent_statuses.get('agents', {}).keys())
                     },
-                    "llm_providers": llm_providers,
+                    "llm_providers": self._cached_llm_providers,  # Use cached providers
                     "resources": {
                         "codebase_vectors": getattr(self.console.context_manager, 'vector_count', 0),
                         "memory_entries": agent_statuses.get('memory_system', {}).get('agent_memories', 0)
@@ -262,7 +276,7 @@ class WebUI:
                     "status": "unhealthy",
                     "version": "0.80.0",
                     "service": "TORQ Console",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": timestamp,
                     "error": str(e)
                 }
 
