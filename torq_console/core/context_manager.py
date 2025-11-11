@@ -32,6 +32,7 @@ except ImportError:
 
 from .config import TorqConfig
 from .logger import setup_logger
+from .executor_pool import get_executor
 
 
 @dataclass
@@ -396,14 +397,61 @@ class AtSymbolParser:
 
 
 class KeywordRetriever:
-    """Keyword-based context retrieval."""
+    """
+    Keyword-based context retrieval with inverted index.
+
+    Uses an inverted index (keyword -> [(file, lines)]) for O(m + k) search
+    instead of O(n * terms) file scanning.
+    """
 
     def __init__(self, cache: LRUCache):
         self.cache = cache
         self.logger = logging.getLogger(__name__)
+        self.executor = get_executor()
+
+        # Inverted index: keyword -> {file_path: [line_numbers]}
+        self.inverted_index: Dict[str, Dict[Path, List[int]]] = {}
+        self.index_timestamp: Optional[datetime] = None
+        self.index_lock = asyncio.Lock()
+        # Rebuild index every 5 minutes or on first search
+        self.index_ttl_seconds = 300
+
+    async def _ensure_index_built(self, root_path: Path, file_patterns: List[str] = None) -> None:
+        """Ensure inverted index is built and up-to-date."""
+        async with self.index_lock:
+            # Check if index needs rebuild
+            if self.index_timestamp is None or \
+               (datetime.now() - self.index_timestamp).total_seconds() > self.index_ttl_seconds:
+
+                self.logger.info("Building inverted index...")
+                start_time = datetime.now()
+
+                files_to_index = await self._get_files_to_search(root_path, file_patterns)
+                new_index: Dict[str, Dict[Path, List[int]]] = defaultdict(lambda: defaultdict(list))
+
+                # Process files in batches
+                for file_path in files_to_index[:500]:  # Index up to 500 files
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            for line_num, line in enumerate(f, 1):
+                                line_lower = line.lower()
+                                # Extract words and index them
+                                words = re.findall(r'\b\w+\b', line_lower)
+                                for word in words:
+                                    if len(word) > 2:  # Skip very short words
+                                        new_index[word][file_path].append(line_num)
+                    except Exception:
+                        continue  # Skip problematic files
+
+                self.inverted_index = dict(new_index)
+                self.index_timestamp = datetime.now()
+
+                elapsed = (datetime.now() - start_time).total_seconds()
+                self.logger.info(f"Inverted index built in {elapsed:.2f}s "
+                               f"({len(self.inverted_index)} keywords, {len(files_to_index)} files)")
 
     async def search(self, query: str, root_path: Path, file_patterns: List[str] = None) -> List[ContextMatch]:
-        """Search for keyword matches."""
+        """Search for keyword matches using inverted index."""
         cache_key = f"keyword:{hashlib.md5(f'{query}:{root_path}:{file_patterns}'.encode()).hexdigest()}"
 
         # Check cache first
@@ -418,23 +466,39 @@ class KeywordRetriever:
             return matches
 
         try:
-            # Search files
-            files_to_search = await self._get_files_to_search(root_path, file_patterns)
+            # Ensure index is built
+            await self._ensure_index_built(root_path, file_patterns)
 
-            # Use thread pool for file I/O
-            with ThreadPoolExecutor(max_workers=4) as executor:
-                tasks = [
-                    asyncio.get_event_loop().run_in_executor(
-                        executor, self._search_file, file_path, search_terms
-                    )
-                    for file_path in files_to_search[:100]  # Limit for performance
-                ]
+            # Use inverted index for O(m + k) lookup instead of O(n * terms) scan
+            candidate_files: Dict[Path, Set[int]] = defaultdict(set)
 
-                results = await asyncio.gather(*tasks, return_exceptions=True)
+            for term in search_terms:
+                term_lower = term.lower()
+                if term_lower in self.inverted_index:
+                    for file_path, line_numbers in self.inverted_index[term_lower].items():
+                        candidate_files[file_path].update(line_numbers)
 
-                for result in results:
-                    if isinstance(result, list):
-                        matches.extend(result)
+            # Read only the relevant lines from candidate files
+            for file_path, line_numbers in candidate_files.items():
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        lines = f.readlines()
+                        for line_num in sorted(line_numbers)[:10]:  # Top 10 lines per file
+                            if 0 < line_num <= len(lines):
+                                line_content = lines[line_num - 1].strip()
+                                # Calculate relevance score
+                                score = sum(1 for term in search_terms if term.lower() in line_content.lower())
+                                if score > 0:
+                                    matches.append(ContextMatch(
+                                        pattern=query,
+                                        match_type='keyword',
+                                        content=line_content,
+                                        file_path=file_path,
+                                        line_number=line_num,
+                                        score=float(score) / len(search_terms)
+                                    ))
+                except Exception:
+                    continue
 
             # Sort by relevance score
             matches.sort(key=lambda x: x.score, reverse=True)
@@ -646,8 +710,8 @@ class ContextManager:
         self.active_contexts: Dict[str, List[ContextMatch]] = {}
         self.context_history: List[Dict[str, Any]] = []
 
-        # Threading
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        # Use shared thread pool
+        self.executor = get_executor()
 
         self.logger.info(f"ContextManager initialized at {self.root_path}")
 

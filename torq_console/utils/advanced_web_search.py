@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 import hashlib
 import time
+from collections import OrderedDict
 
 import httpx
 
@@ -70,6 +71,63 @@ class SearchQuery:
             self.engines = [SearchEngine.DUCKDUCKGO]
 
 
+class LRUCache:
+    """
+    LRU (Least Recently Used) cache with size limit and TTL.
+
+    Optimization: Bounded cache prevents unlimited growth, OrderedDict
+    provides O(1) access and eviction.
+    """
+
+    def __init__(self, max_size: int = 1000, ttl: timedelta = timedelta(hours=1)):
+        self.max_size = max_size
+        self.ttl = ttl
+        self.cache = OrderedDict()  # Maintains insertion order
+        self.logger = logging.getLogger(__name__)
+
+    def get(self, key: str) -> Optional[Dict[str, Any]]:
+        """Get item from cache, return None if expired or missing."""
+        if key not in self.cache:
+            return None
+
+        entry = self.cache[key]
+        cache_time = entry.get('cached_at')
+
+        # Check TTL
+        if not cache_time or datetime.now() - cache_time > self.ttl:
+            del self.cache[key]
+            return None
+
+        # Move to end (most recently used)
+        self.cache.move_to_end(key)
+
+        result = entry['result'].copy()
+        result['from_cache'] = True
+        return result
+
+    def put(self, key: str, value: Dict[str, Any]):
+        """Add item to cache with LRU eviction."""
+        # Update existing entry
+        if key in self.cache:
+            self.cache.move_to_end(key)
+
+        # Add new entry
+        self.cache[key] = {
+            'result': value,
+            'cached_at': datetime.now()
+        }
+
+        # Evict oldest if over capacity
+        if len(self.cache) > self.max_size:
+            evicted_key = next(iter(self.cache))
+            del self.cache[evicted_key]
+            self.logger.debug(f"Evicted cache entry: {evicted_key[:16]}...")
+
+    def clear(self):
+        """Clear all cache entries."""
+        self.cache.clear()
+
+
 class AdvancedWebSearchEngine:
     """
     Advanced multi-provider web search engine with ranking and filtering.
@@ -78,16 +136,18 @@ class AdvancedWebSearchEngine:
     - Multiple search engine support (DuckDuckGo, Brave, Bing, etc.)
     - Result ranking and deduplication
     - Semantic search and relevance scoring
-    - Search result caching and optimization
-    - Rate limiting and error handling
+    - LRU cache with size limits and TTL
+    - Exponential backoff for rate limiting
+    - Connection pooling and reuse
     """
 
-    def __init__(self):
+    def __init__(self, max_cache_size: int = 1000, cache_ttl_hours: int = 1):
         self.logger = logging.getLogger(__name__)
 
-        # HTTP client with proper headers
+        # HTTP client with connection pooling for better performance
         self.client = httpx.AsyncClient(
             timeout=30.0,
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
             headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
@@ -98,23 +158,28 @@ class AdvancedWebSearchEngine:
             SearchEngine.DUCKDUCKGO: {
                 'base_url': 'https://api.duckduckgo.com/',
                 'rate_limit': 1.0,  # seconds between requests
-                'enabled': True
+                'enabled': True,
+                'retry_count': 0,
+                'max_retries': 3
             },
             SearchEngine.SEARX: {
                 'base_url': 'https://searx.org/',
                 'rate_limit': 0.5,
-                'enabled': True
+                'enabled': True,
+                'retry_count': 0,
+                'max_retries': 3
             },
             SearchEngine.BRAVE: {
                 'base_url': 'https://search.brave.com/',
                 'rate_limit': 1.5,
-                'enabled': False  # Requires API key
+                'enabled': False,  # Requires API key
+                'retry_count': 0,
+                'max_retries': 3
             }
         }
 
-        # Result caching
-        self.cache = {}
-        self.cache_ttl = timedelta(hours=1)
+        # LRU cache with size limit
+        self.cache = LRUCache(max_size=max_cache_size, ttl=timedelta(hours=cache_ttl_hours))
 
         # Rate limiting
         self.last_requests = {}
@@ -152,9 +217,9 @@ class AdvancedWebSearchEngine:
             search_query = query
 
         try:
-            # Check cache first
+            # Check LRU cache first
             cache_key = self._get_cache_key(search_query)
-            cached_result = self._get_cached_result(cache_key)
+            cached_result = self.cache.get(cache_key)
             if cached_result:
                 return cached_result
 
@@ -217,8 +282,8 @@ class AdvancedWebSearchEngine:
                 }
             }
 
-            # Cache the result
-            self._cache_result(cache_key, result)
+            # Cache the result with LRU eviction
+            self.cache.put(cache_key, result)
 
             return result
 
@@ -233,23 +298,33 @@ class AdvancedWebSearchEngine:
             }
 
     async def _search_single_engine(self, engine: SearchEngine, query: SearchQuery) -> Dict[str, Any]:
-        """Search using a single search engine."""
+        """Search using a single search engine with exponential backoff."""
 
-        # Rate limiting
+        # Rate limiting with exponential backoff
         await self._rate_limit(engine)
 
         try:
+            result = None
             if engine == SearchEngine.DUCKDUCKGO:
-                return await self._search_duckduckgo(query)
+                result = await self._search_duckduckgo(query)
             elif engine == SearchEngine.SEARX:
-                return await self._search_searx(query)
+                result = await self._search_searx(query)
             elif engine == SearchEngine.BRAVE:
-                return await self._search_brave(query)
+                result = await self._search_brave(query)
             else:
-                return {'success': False, 'error': f'Engine {engine.value} not implemented'}
+                result = {'success': False, 'error': f'Engine {engine.value} not implemented'}
+
+            # Record success/failure for exponential backoff
+            if result and result.get('success'):
+                self._record_success(engine)
+            else:
+                self._record_failure(engine)
+
+            return result
 
         except Exception as e:
             self.logger.error(f"Search failed for {engine.value}: {e}")
+            self._record_failure(engine)
             return {'success': False, 'error': str(e)}
 
     async def _search_duckduckgo(self, query: SearchQuery) -> Dict[str, Any]:
@@ -417,9 +492,18 @@ class AdvancedWebSearchEngine:
         }
 
     async def _rate_limit(self, engine: SearchEngine):
-        """Implement rate limiting for search engines."""
+        """
+        Implement rate limiting with exponential backoff on failures.
+
+        Optimization: Structured exponential backoff reduces unnecessary
+        retries and adapts to API availability.
+        """
         config = self.engine_configs.get(engine, {})
-        rate_limit = config.get('rate_limit', 1.0)
+        base_rate_limit = config.get('rate_limit', 1.0)
+        retry_count = config.get('retry_count', 0)
+
+        # Exponential backoff: base_delay * (2 ^ retry_count)
+        rate_limit = base_rate_limit * (2 ** min(retry_count, 5))  # Cap at 2^5 = 32x
 
         now = time.time()
         last_request = self.last_requests.get(engine, 0)
@@ -430,6 +514,18 @@ class AdvancedWebSearchEngine:
             await asyncio.sleep(sleep_time)
 
         self.last_requests[engine] = time.time()
+
+    def _record_success(self, engine: SearchEngine):
+        """Reset retry count on successful request."""
+        if engine in self.engine_configs:
+            self.engine_configs[engine]['retry_count'] = 0
+
+    def _record_failure(self, engine: SearchEngine):
+        """Increment retry count on failed request."""
+        if engine in self.engine_configs:
+            config = self.engine_configs[engine]
+            config['retry_count'] = min(config.get('retry_count', 0) + 1,
+                                       config.get('max_retries', 3))
 
     def _get_cache_key(self, query: SearchQuery) -> str:
         """Generate cache key for search query."""
@@ -442,44 +538,6 @@ class AdvancedWebSearchEngine:
         }
         content = json.dumps(query_data, sort_keys=True)
         return hashlib.md5(content.encode()).hexdigest()
-
-    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """Get cached search result if still valid."""
-        if cache_key not in self.cache:
-            return None
-
-        cached_entry = self.cache[cache_key]
-        cache_time = cached_entry.get('cached_at')
-
-        if not cache_time or datetime.now() - cache_time > self.cache_ttl:
-            del self.cache[cache_key]
-            return None
-
-        result = cached_entry['result'].copy()
-        result['from_cache'] = True
-        return result
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]):
-        """Cache search result."""
-        self.cache[cache_key] = {
-            'result': result,
-            'cached_at': datetime.now()
-        }
-
-        # Clean old cache entries
-        self._cleanup_cache()
-
-    def _cleanup_cache(self):
-        """Remove expired cache entries."""
-        cutoff_time = datetime.now() - self.cache_ttl
-        expired_keys = []
-
-        for key, entry in self.cache.items():
-            if entry.get('cached_at', datetime.min) < cutoff_time:
-                expired_keys.append(key)
-
-        for key in expired_keys:
-            del self.cache[key]
 
     async def semantic_search(
         self,
