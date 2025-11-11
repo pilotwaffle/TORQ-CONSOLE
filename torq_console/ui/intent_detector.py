@@ -195,7 +195,7 @@ class SelfCorrectingIntentDetector:
         # Check each pattern type
         for pattern_name, pattern in self.patterns.items():
             score = self._calculate_pattern_score(query_lower, pattern)
-            if score > 0.1:  # Minimum threshold (lowered from 0.3 to catch "search" queries)
+            if score > 0.05:  # Minimum threshold (lowered from 0.1 to catch queries like "Latest AI news")
                 scores[pattern_name] = score
                 matched_patterns[pattern_name] = self._explain_match(query_lower, pattern)
 
