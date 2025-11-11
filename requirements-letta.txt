@@ -1,0 +1,31 @@
+# Letta Memory Integration Dependencies
+# Optional: Install these for enhanced memory features
+
+# Core Letta
+letta==0.13.0
+
+# Document Processing
+llama-index==0.14.8
+
+# Web Scraping
+trafilatura==2.0.0
+
+# Document Conversion
+markitdown==0.1.3
+
+# Additional dependencies that might be needed
+# (Letta will install these automatically)
+aiomultiprocess>=0.9.1
+anthropic>=0.71.0
+openai>=2.5.0
+pydantic>=2.11.9
+sqlalchemy>=2.0.0
+httpx>=0.27.0
+tqdm>=4.66.0
+
+# OpenTelemetry for monitoring (optional)
+opentelemetry-api>=1.30.0
+opentelemetry-sdk>=1.38.0
+opentelemetry-exporter-otlp
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-sqlalchemy
