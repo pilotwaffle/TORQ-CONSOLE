@@ -90,8 +90,8 @@ class SelfCorrectingIntentDetector:
                 last_updated=datetime.now().isoformat()
             ),
             'research_general': IntentPattern(
-                keywords=['research', 'find', 'search', 'look up', 'information about', 'tell me about'],
-                context_markers=['web for', 'online', 'internet', 'latest', 'current', 'recent'],
+                keywords=['research', 'find', 'search', 'look up', 'information about', 'tell me about', 'latest', 'top', 'trending', 'best', 'new', 'show', 'get', 'news', 'article', 'what are', 'list'],
+                context_markers=['web for', 'online', 'internet', 'current', 'recent', 'today', 'this week', 'this month'],
                 confidence=0.85,
                 success_count=0,
                 failure_count=0,
