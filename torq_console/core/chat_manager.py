@@ -36,6 +36,7 @@ import shutil
 from .config import TorqConfig
 from .context_manager import ContextManager, ContextMatch
 from .logger import setup_logger
+from .executor_pool import get_executor, shutdown_executor
 
 
 class ChatTabStatus(Enum):
@@ -713,14 +714,14 @@ class ChatManager:
         # Session isolation for parallel execution
         self.isolated_sessions: Dict[str, Dict[str, Any]] = {}  # tab_id -> session_state
         self.session_locks: Dict[str, asyncio.Lock] = {}  # tab_id -> lock
-        self.parallel_executors: Dict[str, ThreadPoolExecutor] = {}  # tab_id -> executor
+        # Removed parallel_executors - now using shared executor
 
         # WebSocket connections for real-time updates
         self.websocket_connections: Dict[str, weakref.ReferenceType] = {}
         self.websocket_callbacks: List[Callable] = []
 
-        # Threading for background operations
-        self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="chat_mgr")
+        # Use shared thread pool for background operations
+        self.executor = get_executor()
         self._cleanup_task: Optional[asyncio.Task] = None
 
         # Message processing queue for parallel execution
@@ -1334,12 +1335,7 @@ class ChatManager:
 
                 self.isolated_sessions[tab_id] = session_state
 
-                # Create dedicated executor for this session
-                if tab_id not in self.parallel_executors:
-                    self.parallel_executors[tab_id] = ThreadPoolExecutor(
-                        max_workers=2,
-                        thread_name_prefix=f"tab_{tab_id[:8]}"
-                    )
+                # Use shared executor for all sessions (no per-tab executors)
 
                 # Start processing task for this tab
                 if tab_id not in self.processing_tasks:
@@ -1589,12 +1585,7 @@ class ChatManager:
             # Flush and shutdown batched persistence
             await self.persistence.shutdown()
 
-            # Shutdown main executor
-            self.executor.shutdown(wait=True)
-
-            # Shutdown remaining parallel executors
-            for executor in self.parallel_executors.values():
-                executor.shutdown(wait=False)
+            # Note: Not shutting down shared executor - it's managed globally
 
             # Clear state
             self.active_tabs.clear()
@@ -1602,7 +1593,6 @@ class ChatManager:
             self.websocket_callbacks.clear()
             self.isolated_sessions.clear()
             self.session_locks.clear()
-            self.parallel_executors.clear()
             self.processing_tasks.clear()
 
             self.logger.info("ChatManager shutdown completed")

@@ -32,6 +32,7 @@ except ImportError:
 
 from .config import TorqConfig
 from .logger import setup_logger
+from .executor_pool import get_executor
 
 
 @dataclass
@@ -421,11 +422,11 @@ class KeywordRetriever:
             # Search files
             files_to_search = await self._get_files_to_search(root_path, file_patterns)
 
-            # Use thread pool for file I/O
-            with ThreadPoolExecutor(max_workers=4) as executor:
-                tasks = [
-                    asyncio.get_event_loop().run_in_executor(
-                        executor, self._search_file, file_path, search_terms
+            # Use shared thread pool for file I/O
+            executor = self.executor  # Use shared executor instead of creating new one
+            tasks = [
+                asyncio.get_event_loop().run_in_executor(
+                    executor, self._search_file, file_path, search_terms
                     )
                     for file_path in files_to_search[:100]  # Limit for performance
                 ]
@@ -646,8 +647,8 @@ class ContextManager:
         self.active_contexts: Dict[str, List[ContextMatch]] = {}
         self.context_history: List[Dict[str, Any]] = []
 
-        # Threading
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        # Use shared thread pool
+        self.executor = get_executor()
 
         self.logger.info(f"ContextManager initialized at {self.root_path}")
 
