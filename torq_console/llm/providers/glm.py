@@ -9,14 +9,14 @@ import os
 import logging
 from typing import Optional, Dict, Any, List
 
-from .base import LLMProvider
+from .base import BaseLLMProvider
 from ..glm_client import GLMClient
 
 
 logger = logging.getLogger("TORQ.LLM.Providers.GLM")
 
 
-class GLMProvider(LLMProvider):
+class GLMProvider(BaseLLMProvider):
     """
     Z.AI GLM-4.6 provider for TORQ Console.
 
@@ -171,6 +171,20 @@ class GLMProvider(LLMProvider):
                 "Cost-sensitive coding tasks"
             ]
         }
+
+    # Abstract method implementations required by BaseLLMProvider
+    async def generate_response(self, prompt: str, **kwargs) -> str:
+        """Generate a response from the LLM (BaseLLMProvider interface)."""
+        return await self.chat(prompt, **kwargs)
+
+    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        """Generate a chat completion response (BaseLLMProvider interface)."""
+        response = await self.generate(messages, **kwargs)
+        return response if isinstance(response, str) else str(response)
+
+    async def query(self, prompt: str, **kwargs) -> str:
+        """Simple query interface for single prompts (BaseLLMProvider interface)."""
+        return await self.chat(prompt, **kwargs)
 
     def __str__(self) -> str:
         """String representation."""
