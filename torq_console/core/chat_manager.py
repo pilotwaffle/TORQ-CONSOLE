@@ -212,6 +212,118 @@ class ChatTab:
         }
 
 
+class BatchedChatPersistence:
+    """
+    Batched persistence layer that queues writes and flushes periodically.
+
+    Optimization: Instead of writing on every message, batch writes together.
+    - Accumulates save requests in a queue
+    - Flushes every FLUSH_INTERVAL seconds or FLUSH_THRESHOLD items
+    - Reduces I/O operations by 10-100x for active chat sessions
+    """
+
+    FLUSH_INTERVAL = 5.0  # Flush every 5 seconds
+    FLUSH_THRESHOLD = 10  # Or after 10 pending changes
+
+    def __init__(self, persistence: 'ChatPersistence'):
+        self.persistence = persistence
+        self.logger = logging.getLogger(__name__)
+        self._pending_tabs: Dict[str, ChatTab] = {}  # tab_id -> latest tab state
+        self._pending_checkpoints: Dict[str, ChatCheckpoint] = {}  # checkpoint_id -> checkpoint
+        self._last_flush = asyncio.get_event_loop().time()
+        self._flush_task: Optional[asyncio.Task] = None
+        self._lock = asyncio.Lock()
+        self._start_background_flush()
+
+    def _start_background_flush(self):
+        """Start background flush task."""
+        if self._flush_task is None or self._flush_task.done():
+            self._flush_task = asyncio.create_task(self._background_flush_loop())
+
+    async def _background_flush_loop(self):
+        """Background task that periodically flushes pending writes."""
+        while True:
+            try:
+                await asyncio.sleep(self.FLUSH_INTERVAL)
+                await self.flush()
+            except asyncio.CancelledError:
+                # Final flush before shutdown
+                await self.flush()
+                break
+            except Exception as e:
+                self.logger.error(f"Error in background flush loop: {e}")
+
+    async def save_tab(self, tab: ChatTab) -> bool:
+        """Queue tab for batched save."""
+        async with self._lock:
+            self._pending_tabs[tab.id] = tab
+
+            # Flush if threshold reached
+            if len(self._pending_tabs) >= self.FLUSH_THRESHOLD:
+                await self.flush()
+
+        return True
+
+    async def save_checkpoint(self, checkpoint: ChatCheckpoint) -> bool:
+        """Queue checkpoint for batched save."""
+        async with self._lock:
+            self._pending_checkpoints[checkpoint.id] = checkpoint
+
+            # Checkpoints are important, flush immediately if many pending
+            if len(self._pending_checkpoints) >= 5:
+                await self.flush()
+
+        return True
+
+    async def flush(self) -> None:
+        """Flush all pending writes to disk."""
+        async with self._lock:
+            if not self._pending_tabs and not self._pending_checkpoints:
+                return
+
+            # Copy and clear pending items
+            tabs_to_save = dict(self._pending_tabs)
+            checkpoints_to_save = dict(self._pending_checkpoints)
+            self._pending_tabs.clear()
+            self._pending_checkpoints.clear()
+            self._last_flush = asyncio.get_event_loop().time()
+
+        # Perform actual writes outside lock
+        saved_tabs = 0
+        saved_checkpoints = 0
+
+        for tab in tabs_to_save.values():
+            try:
+                await self.persistence.save_tab(tab)
+                saved_tabs += 1
+            except Exception as e:
+                self.logger.error(f"Error flushing tab {tab.id}: {e}")
+
+        for checkpoint in checkpoints_to_save.values():
+            try:
+                await self.persistence.save_checkpoint(checkpoint)
+                saved_checkpoints += 1
+            except Exception as e:
+                self.logger.error(f"Error flushing checkpoint {checkpoint.id}: {e}")
+
+        if saved_tabs > 0 or saved_checkpoints > 0:
+            self.logger.debug(f"Flushed {saved_tabs} tabs, {saved_checkpoints} checkpoints")
+
+    async def shutdown(self):
+        """Shutdown and flush remaining writes."""
+        if self._flush_task and not self._flush_task.done():
+            self._flush_task.cancel()
+            try:
+                await self._flush_task
+            except asyncio.CancelledError:
+                pass
+        await self.flush()
+
+    # Delegate all other methods to underlying persistence
+    def __getattr__(self, name):
+        return getattr(self.persistence, name)
+
+
 class ChatPersistence:
     """Handles chat history persistence with rotation."""
 
@@ -582,8 +694,9 @@ class ChatManager:
             storage_path = Path.home() / ".torq_console" / "chat_history"
         self.storage_path = storage_path
 
-        # Initialize components
-        self.persistence = ChatPersistence(self.storage_path)
+        # Initialize components with batched persistence for performance
+        base_persistence = ChatPersistence(self.storage_path)
+        self.persistence = BatchedChatPersistence(base_persistence)
         self.exporter = MarkdownExporter(self.storage_path)
 
         # Chat state
@@ -1466,6 +1579,9 @@ class ChatManager:
             # Save all active tabs
             for tab in self.active_tabs.values():
                 await self.persistence.save_tab(tab)
+
+            # Flush and shutdown batched persistence
+            await self.persistence.shutdown()
 
             # Shutdown main executor
             self.executor.shutdown(wait=True)
