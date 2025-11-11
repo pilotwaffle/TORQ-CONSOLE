@@ -15,6 +15,9 @@ import numpy as np
 from queue import Queue, Empty
 import json
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from core.executor_pool import get_executor
 
 class WorkerType(Enum):
     """Types of workers in the asynchronous system."""
@@ -79,9 +82,8 @@ class AsyncTrainingSystem:
         # Worker management
         self.rollout_workers: Dict[str, AsyncWorker] = {}
         self.training_workers: Dict[str, AsyncWorker] = {}
-        self.executor = ThreadPoolExecutor(
-            max_workers=self.max_rollout_workers + self.max_training_workers
-        )
+        # Use shared executor instead of creating dedicated pool
+        self.executor = get_executor()
 
         # Task queues
         self.rollout_queue = Queue(maxsize=self.max_queue_size)

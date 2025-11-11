@@ -38,6 +38,7 @@ import hashlib
 
 from ..core.config import TorqConfig
 from ..core.context_manager import ContextManager, ContextMatch
+from ..core.executor_pool import get_executor
 from ..core.chat_manager import ChatManager, ChatTab, MessageType
 from .inline_editor import InlineEditor, EditMode, EditAction
 from ..core.logger import setup_logger
@@ -542,8 +543,8 @@ class CommandPalette:
         self.current_context: Dict[str, Any] = {}
         self.context_watchers: List[Callable] = []
 
-        # Command execution
-        self.executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cmd_palette")
+        # Use shared thread pool for command execution
+        self.executor = get_executor()
         self.executing_commands: Dict[str, asyncio.Task] = {}
 
         # Built-in command categories
