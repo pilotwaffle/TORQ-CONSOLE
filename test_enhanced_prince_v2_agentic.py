@@ -41,7 +41,7 @@ class EnhancedPrinceV2TestSuite:
             # Load modules directly
             import importlib.util as iu
 
-            # Load all dependencies (including original Enhanced Prince Flowers deps)
+            # Load all dependencies (including original Enhanced Prince Flowers deps + v2.1 systems)
             deps = [
                 ("conversation_session", "torq_console/agents/conversation_session.py"),
                 ("preference_learning", "torq_console/agents/preference_learning.py"),
@@ -51,6 +51,8 @@ class EnhancedPrinceV2TestSuite:
                 ("meta_learning_engine", "torq_console/agents/meta_learning_engine.py"),
                 ("multi_agent_debate", "torq_console/agents/multi_agent_debate.py"),
                 ("self_evaluation_system", "torq_console/agents/self_evaluation_system.py"),
+                ("adaptive_quality_manager", "torq_console/agents/adaptive_quality_manager.py"),  # NEW v2.1
+                ("improved_debate_activation", "torq_console/agents/improved_debate_activation.py"),  # NEW v2.1
             ]
 
             for mod_name, mod_path in deps:
