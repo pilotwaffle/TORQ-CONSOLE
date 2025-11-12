@@ -1,0 +1,32 @@
+
+================================================================================
+ENHANCED PRINCE FLOWERS V2 - AGENTIC TEST SUITE
+================================================================================
+
+📦 Initializing Enhanced Prince Flowers v2...
+❌ Initialization failed: attempted relative import with no known parent package
+Traceback (most recent call last):
+  File "/home/user/TORQ-CONSOLE/test_enhanced_prince_v2_agentic.py", line 65, in initialize_agent
+    spec.loader.exec_module(v2_module)
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/user/TORQ-CONSOLE/torq_console/agents/enhanced_prince_flowers_v2.py", line 29, in <module>
+    from .conversation_session import ConversationSession, SessionManager
+ImportError: attempted relative import with no known parent package
+Traceback (most recent call last):
+  File "/home/user/TORQ-CONSOLE/test_enhanced_prince_v2_agentic.py", line 635, in <module>
+    exit_code = asyncio.run(main())
+                ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/user/TORQ-CONSOLE/test_enhanced_prince_v2_agentic.py", line 631, in main
+    return 0 if pass_rate >= 85 else 1
+                ^^^^^^^^^^^^^^^
+TypeError: '>=' not supported between instances of 'NoneType' and 'int'

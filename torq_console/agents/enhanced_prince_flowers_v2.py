@@ -25,34 +25,70 @@ except ImportError:
     LETTA_AVAILABLE = False
     LettaMemoryManager = None
 
-# Agent modules (original)
-from .conversation_session import ConversationSession, SessionManager
-from .preference_learning import PreferenceLearning
-from .feedback_learning import FeedbackLearning
+# Agent modules (original) - optional
+try:
+    from .conversation_session import ConversationSession, SessionManager
+    from .preference_learning import PreferenceLearning
+    from .feedback_learning import FeedbackLearning
+except ImportError:
+    # Allow standalone usage without these modules
+    ConversationSession = None
+    SessionManager = None
+    PreferenceLearning = None
+    FeedbackLearning = None
 
 # State-of-the-Art AI Systems (NEW)
-from .advanced_memory_system import (
-    get_enhanced_memory_system,
-    EnhancedMemorySystem,
-    MemoryType
-)
-from .hierarchical_task_planner import (
-    get_hierarchical_planner,
-    HierarchicalTaskPlanner
-)
-from .meta_learning_engine import (
-    get_meta_learning_engine,
-    MetaLearningEngine
-)
-from .multi_agent_debate import (
-    get_multi_agent_debate,
-    MultiAgentDebate
-)
-from .self_evaluation_system import (
-    get_self_evaluation_system,
-    SelfEvaluationSystem,
-    ResponseTrajectory
-)
+try:
+    from .advanced_memory_system import (
+        get_enhanced_memory_system,
+        EnhancedMemorySystem,
+        MemoryType
+    )
+    from .hierarchical_task_planner import (
+        get_hierarchical_planner,
+        HierarchicalTaskPlanner
+    )
+    from .meta_learning_engine import (
+        get_meta_learning_engine,
+        MetaLearningEngine
+    )
+    from .multi_agent_debate import (
+        get_multi_agent_debate,
+        MultiAgentDebate
+    )
+    from .self_evaluation_system import (
+        get_self_evaluation_system,
+        SelfEvaluationSystem,
+        ResponseTrajectory
+    )
+except ImportError:
+    # Try absolute imports for standalone usage
+    try:
+        from torq_console.agents.advanced_memory_system import (
+            get_enhanced_memory_system,
+            EnhancedMemorySystem,
+            MemoryType
+        )
+        from torq_console.agents.hierarchical_task_planner import (
+            get_hierarchical_planner,
+            HierarchicalTaskPlanner
+        )
+        from torq_console.agents.meta_learning_engine import (
+            get_meta_learning_engine,
+            MetaLearningEngine
+        )
+        from torq_console.agents.multi_agent_debate import (
+            get_multi_agent_debate,
+            MultiAgentDebate
+        )
+        from torq_console.agents.self_evaluation_system import (
+            get_self_evaluation_system,
+            SelfEvaluationSystem,
+            ResponseTrajectory
+        )
+    except ImportError:
+        # Fallback for testing - modules will be injected
+        pass
 
 logger = logging.getLogger(__name__)
 
