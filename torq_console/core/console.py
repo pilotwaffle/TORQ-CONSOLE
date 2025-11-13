@@ -363,6 +363,9 @@ class TorqConsole:
         """
         Handle queries or edit commands.
 
+        Routes conversational queries to Prince Flowers by default.
+        Only routes to edit handler for explicit code commands.
+
         Args:
             command: The command/query string
 
@@ -370,13 +373,30 @@ class TorqConsole:
             Response string
         """
         try:
-            # Check if it's a web search query
-            if any(term in command.lower() for term in ['search', 'find', 'latest', 'what is', 'how to']):
-                return await self._handle_search_query(command)
+            command_lower = command.lower()
 
-            # Otherwise, treat as edit command
-            success = await self.edit_files(message=command)
-            return f"Edit {'succeeded' if success else 'failed'}"
+            # Check if it's an explicit code/edit command
+            code_commands = ['build', 'create', 'implement', 'write', 'add', 'fix',
+                           'update', 'modify', 'refactor', 'generate code', 'write code']
+            is_code_command = any(cmd in command_lower for cmd in code_commands)
+
+            # Check if it's a web search query
+            search_terms = ['search', 'find', 'look up', 'get', 'show me']
+            is_search_query = any(term in command_lower for term in search_terms)
+
+            # Route decision:
+            # 1. Explicit search queries → search handler
+            # 2. Explicit code commands → edit handler
+            # 3. Everything else (conversational) → Prince Flowers
+
+            if is_search_query:
+                return await self._handle_search_query(command)
+            elif is_code_command:
+                success = await self.edit_files(message=command)
+                return f"Edit {'succeeded' if success else 'failed'}"
+            else:
+                # Route conversational queries to Prince Flowers
+                return await self.handle_prince_command(f"prince {command}")
 
         except Exception as e:
             self.logger.error(f"Error handling query/edit: {e}")
