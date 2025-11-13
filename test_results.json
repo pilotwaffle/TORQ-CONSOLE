@@ -1,0 +1,12 @@
+{
+  "phase1": {
+    "success": true
+  },
+  "phase2": {
+    "success": false
+  },
+  "phase3": {
+    "success": true
+  },
+  "timestamp": 1763057137.5840945
+}
