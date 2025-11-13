@@ -9,8 +9,11 @@ Advanced agent capabilities:
 5. Distributed agent execution
 
 These enhancements build on the existing Prince Flowers agent system.
+
+Phase A.4: Error handling and logging for production reliability
 """
 
+import logging
 from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -18,6 +21,9 @@ from enum import Enum
 import json
 from pathlib import Path
 import statistics
+
+# Logger for error handling
+logger = logging.getLogger(__name__)
 
 
 class AgentRole(Enum):
@@ -87,39 +93,70 @@ class CrossAgentLearning:
 
     def _load_knowledge(self):
         """Load shared knowledge from storage."""
-        if self.knowledge_file.exists():
+        # Phase A.4: Error handling for file operations
+        if not self.knowledge_file.exists():
+            logger.info(f"Knowledge file does not exist yet: {self.knowledge_file}")
+            return
+
+        try:
             with open(self.knowledge_file, 'r') as f:
                 data = json.load(f)
                 for kid, kdata in data.items():
-                    self.knowledge_base[kid] = KnowledgeItem(
-                        knowledge_id=kid,
-                        source_agent=kdata['source_agent'],
-                        knowledge_type=kdata['knowledge_type'],
-                        content=kdata['content'],
-                        confidence=kdata['confidence'],
-                        usage_count=kdata.get('usage_count', 0),
-                        success_rate=kdata.get('success_rate', 0.0),
-                        created_at=datetime.fromisoformat(kdata['created_at']),
-                        metadata=kdata.get('metadata', {})
-                    )
+                    try:
+                        self.knowledge_base[kid] = KnowledgeItem(
+                            knowledge_id=kid,
+                            source_agent=kdata['source_agent'],
+                            knowledge_type=kdata['knowledge_type'],
+                            content=kdata['content'],
+                            confidence=kdata['confidence'],
+                            usage_count=kdata.get('usage_count', 0),
+                            success_rate=kdata.get('success_rate', 0.0),
+                            created_at=datetime.fromisoformat(kdata['created_at']),
+                            metadata=kdata.get('metadata', {})
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to load knowledge item {kid}: {e}")
+                        # Continue loading other items
+                        continue
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in knowledge file: {e}")
+            # Start with empty knowledge base
+            self.knowledge_base = {}
+        except Exception as e:
+            logger.error(f"Failed to load knowledge: {e}", exc_info=True)
+            # Start with empty knowledge base
+            self.knowledge_base = {}
 
     def _save_knowledge(self):
         """Save shared knowledge to storage."""
-        data = {}
-        for kid, knowledge in self.knowledge_base.items():
-            data[kid] = {
-                'source_agent': knowledge.source_agent,
-                'knowledge_type': knowledge.knowledge_type,
-                'content': knowledge.content,
-                'confidence': knowledge.confidence,
-                'usage_count': knowledge.usage_count,
-                'success_rate': knowledge.success_rate,
-                'created_at': knowledge.created_at.isoformat(),
-                'metadata': knowledge.metadata
-            }
+        # Phase A.4: Error handling for file operations
+        try:
+            data = {}
+            for kid, knowledge in self.knowledge_base.items():
+                try:
+                    data[kid] = {
+                        'source_agent': knowledge.source_agent,
+                        'knowledge_type': knowledge.knowledge_type,
+                        'content': knowledge.content,
+                        'confidence': knowledge.confidence,
+                        'usage_count': knowledge.usage_count,
+                        'success_rate': knowledge.success_rate,
+                        'created_at': knowledge.created_at.isoformat(),
+                        'metadata': knowledge.metadata
+                    }
+                except Exception as e:
+                    logger.error(f"Failed to serialize knowledge item {kid}: {e}")
+                    # Continue saving other items
+                    continue
 
-        with open(self.knowledge_file, 'w') as f:
-            json.dump(data, f, indent=2)
+            with open(self.knowledge_file, 'w') as f:
+                json.dump(data, f, indent=2)
+
+        except IOError as e:
+            logger.error(f"Failed to write knowledge file: {e}")
+        except Exception as e:
+            logger.error(f"Failed to save knowledge: {e}", exc_info=True)
 
     def share_knowledge(
         self,
