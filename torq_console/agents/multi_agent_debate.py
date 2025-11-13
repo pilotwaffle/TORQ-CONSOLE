@@ -434,13 +434,31 @@ class MultiAgentDebate:
             # Calculate overall consensus
             final_consensus = sum(r.consensus_score for r in rounds if r) / len(rounds)
 
+            # FIX: Preserve all debate information for evaluation handoff
+            # Group arguments by agent role to preserve perspectives
+            agent_contributions = {}
+            for arg in all_arguments:
+                role = arg.agent_role.value
+                if role not in agent_contributions:
+                    agent_contributions[role] = []
+                agent_contributions[role].append(arg.content)
+
             return {
                 "content": final_content,
                 "confidence": final_confidence,
                 "consensus_score": final_consensus,
                 "debate_rounds": len(rounds),
                 "total_arguments": len(all_arguments),
-                "improvement_estimate": "+25-30% accuracy"
+                "improvement_estimate": "+25-30% accuracy",
+                # NEW: Preserve full debate context
+                "all_rounds": rounds,  # Full DebateRound objects
+                "all_arguments": all_arguments,  # Full DebateArgument objects
+                "agent_contributions": agent_contributions,  # Organized by role
+                "debate_metadata": {
+                    "rounds_conducted": len(rounds),
+                    "agents_participated": len(agent_contributions),
+                    "consensus_achieved": final_consensus > 0.8
+                }
             }
 
         except Exception as e:
