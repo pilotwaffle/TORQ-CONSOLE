@@ -17,9 +17,13 @@ Phase A.2: Async/await support for integration with async agent system
 """
 
 import asyncio
+import logging
 from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass
 import re
+
+# Logger for error handling
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -122,9 +126,27 @@ class SmartContextCompressor:
         Returns:
             SemanticContext with compressed content and metadata
         """
-        original_length = len(content)
+        # Phase A.3: Input validation
+        if not content:
+            logger.warning("compress_context: Empty content provided")
+            return SemanticContext(
+                key_entities=set(),
+                key_concepts=set(),
+                relationships=[],
+                importance_scores={},
+                compressed_content="",
+                original_length=0,
+                compression_ratio=1.0
+            )
 
-        if original_length <= target_length:
+        if target_length <= 0:
+            logger.error(f"compress_context: Invalid target_length: {target_length}")
+            target_length = 2000  # Fallback to default
+
+        try:
+            original_length = len(content)
+
+            if original_length <= target_length:
             # No compression needed
             return SemanticContext(
                 key_entities=self.entity_extractor.extract_entities(content),
@@ -169,18 +191,35 @@ class SmartContextCompressor:
                     compressed.append((sentence[:remaining] + "...", score))
                     break
 
-        # Reconstruct in original order (approximately)
-        compressed_text = ". ".join(sent for sent, _ in compressed) + "."
+            # Reconstruct in original order (approximately)
+            compressed_text = ". ".join(sent for sent, _ in compressed) + "."
 
-        return SemanticContext(
-            key_entities=entities,
-            key_concepts=concepts,
-            relationships=self._extract_relationships(entities, concepts, content),
-            importance_scores={sent: score for sent, score in compressed},
-            compressed_content=compressed_text,
-            original_length=original_length,
-            compression_ratio=len(compressed_text) / original_length
-        )
+            # Phase A.3: Safe division with zero check
+            compression_ratio = len(compressed_text) / original_length if original_length > 0 else 1.0
+
+            return SemanticContext(
+                key_entities=entities,
+                key_concepts=concepts,
+                relationships=self._extract_relationships(entities, concepts, content),
+                importance_scores={sent: score for sent, score in compressed},
+                compressed_content=compressed_text,
+                original_length=original_length,
+                compression_ratio=compression_ratio
+            )
+
+        except Exception as e:
+            # Phase A.3: Error handling with fallback
+            logger.error(f"compress_context failed: {e}", exc_info=True)
+            # Return original content (no compression)
+            return SemanticContext(
+                key_entities=set(),
+                key_concepts=set(),
+                relationships=[],
+                importance_scores={},
+                compressed_content=content[:target_length],  # Simple truncation fallback
+                original_length=len(content),
+                compression_ratio=target_length / len(content) if len(content) > 0 else 1.0
+            )
 
     def _score_sentence(
         self,
@@ -294,8 +333,28 @@ class AdaptiveHandoffOptimizer:
         Returns:
             Optimized context dictionary
         """
-        # Analyze query complexity
-        query_complexity = self._analyze_query_complexity(query)
+        # Phase A.3: Input validation
+        if not memories:
+            logger.warning("optimize_memory_context: No memories provided")
+            return {
+                'memories': [],
+                'total_length': 0,
+                'query_complexity': 0.0,
+                'optimization_applied': False,
+                'context_utilization': 0.0
+            }
+
+        if not query:
+            logger.warning("optimize_memory_context: Empty query provided")
+            query = ""  # Use empty string for processing
+
+        if max_length <= 0:
+            logger.error(f"optimize_memory_context: Invalid max_length: {max_length}")
+            max_length = 2000  # Fallback to default
+
+        try:
+            # Analyze query complexity
+            query_complexity = self._analyze_query_complexity(query)
 
         # Adjust context size based on complexity
         if query_complexity > 0.7:  # Complex query
@@ -348,13 +407,32 @@ class AdaptiveHandoffOptimizer:
                 })
                 total_length += len(content)
 
-        return {
-            'memories': optimized_memories,
-            'total_length': total_length,
-            'query_complexity': query_complexity,
-            'optimization_applied': True,
-            'context_utilization': total_length / context_length
-        }
+            # Phase A.3: Safe division for context utilization
+            context_utilization = (
+                total_length / context_length
+                if context_length > 0 else 0.0
+            )
+
+            return {
+                'memories': optimized_memories,
+                'total_length': total_length,
+                'query_complexity': query_complexity,
+                'optimization_applied': True,
+                'context_utilization': context_utilization
+            }
+
+        except Exception as e:
+            # Phase A.3: Error handling with fallback
+            logger.error(f"optimize_memory_context failed: {e}", exc_info=True)
+            # Return unoptimized memories as fallback
+            return {
+                'memories': memories[:5],  # Simple fallback: first 5 memories
+                'total_length': sum(len(m.get('content', '')) for m in memories[:5]),
+                'query_complexity': 0.5,
+                'optimization_applied': False,
+                'context_utilization': 0.5,
+                'error': str(e)
+            }
 
     def _analyze_query_complexity(self, query: str) -> float:
         """Analyze query complexity (0-1 scale)."""
@@ -432,30 +510,50 @@ class AdaptiveHandoffOptimizer:
         Returns:
             Quality score (0-1)
         """
-        # Extract entities from both
-        orig_entities = self.entity_extractor.extract_entities(original_content)
-        pres_entities = self.entity_extractor.extract_entities(preserved_content)
+        # Phase A.3: Input validation
+        if not original_content or not preserved_content:
+            logger.warning("calculate_preservation_quality: Empty content provided")
+            return 0.0 if not preserved_content else 1.0
 
-        # Extract concepts
-        orig_concepts = self.entity_extractor.extract_key_concepts(original_content)
-        pres_concepts = self.entity_extractor.extract_key_concepts(preserved_content)
+        try:
+            # Extract entities from both
+            orig_entities = self.entity_extractor.extract_entities(original_content)
+            pres_entities = self.entity_extractor.extract_entities(preserved_content)
 
-        # Calculate preservation scores
-        entity_preservation = len(pres_entities & orig_entities) / len(orig_entities) if orig_entities else 1.0
-        concept_preservation = len(pres_concepts & orig_concepts) / len(orig_concepts) if orig_concepts else 1.0
+            # Extract concepts
+            orig_concepts = self.entity_extractor.extract_key_concepts(original_content)
+            pres_concepts = self.entity_extractor.extract_key_concepts(preserved_content)
 
-        # Length ratio (penalize too much compression)
-        length_ratio = len(preserved_content) / len(original_content) if original_content else 1.0
-        length_score = min(length_ratio / 0.5, 1.0)  # Target at least 50% of original length
+            # Calculate preservation scores with safe division
+            entity_preservation = (
+                len(pres_entities & orig_entities) / len(orig_entities)
+                if orig_entities else 1.0  # Perfect if no entities to preserve
+            )
+            concept_preservation = (
+                len(pres_concepts & orig_concepts) / len(orig_concepts)
+                if orig_concepts else 1.0  # Perfect if no concepts to preserve
+            )
 
-        # Weighted average
-        quality = (
-            entity_preservation * 0.5 +  # Entities are most important
-            concept_preservation * 0.3 +  # Concepts are important
-            length_score * 0.2  # Length is less important
-        )
+            # Length ratio (penalize too much compression) with safe division
+            length_ratio = (
+                len(preserved_content) / len(original_content)
+                if len(original_content) > 0 else 1.0
+            )
+            length_score = min(length_ratio / 0.5, 1.0)  # Target at least 50% of original length
 
-        return min(quality, 1.0)
+            # Weighted average
+            quality = (
+                entity_preservation * 0.5 +  # Entities are most important
+                concept_preservation * 0.3 +  # Concepts are important
+                length_score * 0.2  # Length is less important
+            )
+
+            return min(quality, 1.0)
+
+        except Exception as e:
+            # Phase A.3: Error handling
+            logger.error(f"calculate_preservation_quality failed: {e}", exc_info=True)
+            return 0.5  # Default to medium quality on error
 
 
 # Global optimizer instance
