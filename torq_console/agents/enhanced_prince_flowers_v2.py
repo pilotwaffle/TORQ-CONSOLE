@@ -500,11 +500,25 @@ class EnhancedPrinceFlowers:
         if self.self_evaluator:
             trajectory_steps.append({"step": "self_evaluation", "action": "assess_quality"})
 
+            # FIX: Pass full debate context to evaluation for information preservation
+            debate_context_for_eval = None
+            if debate_decision and debate_decision.should_activate and 'debate_result' in locals():
+                refined_response_data = debate_result.get("refined_response", {})
+                debate_context_for_eval = {
+                    "all_rounds": refined_response_data.get("all_rounds", []),
+                    "all_arguments": refined_response_data.get("all_arguments", []),
+                    "agent_contributions": refined_response_data.get("agent_contributions", {}),
+                    "consensus_score": debate_result.get("consensus_score", 0.0),
+                    "debate_rounds": debate_result.get("debate_rounds", 0),
+                    "debate_metadata": refined_response_data.get("debate_metadata", {})
+                }
+
             eval_result = await self.self_evaluator.evaluate_response(
                 user_message,
                 final_response,
                 trajectory,
-                context={"session_id": session_id}
+                context={"session_id": session_id},
+                debate_context=debate_context_for_eval  # NEW: Pass full debate context
             )
 
             quality_score = eval_result.quality_score

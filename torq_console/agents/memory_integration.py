@@ -336,12 +336,13 @@ class MemoryIntegration:
             self.logger.error(f"Failed to get entity: {e}")
             return None
 
-    def format_context_for_prompt(self, context: Dict[str, Any]) -> str:
+    def format_context_for_prompt(self, context: Dict[str, Any], preserve_full_context: bool = True) -> str:
         """
         Format retrieved context for LLM prompt.
 
         Args:
             context: Context from get_relevant_context()
+            preserve_full_context: If True, include full content (no truncation)
 
         Returns:
             Formatted string for prompt injection
@@ -353,9 +354,21 @@ class MemoryIntegration:
 
         if context.get('memories'):
             prompt += "### Previous Knowledge:\n"
-            for mem in context['memories'][:3]:  # Top 3 most relevant
+            # Increased from 3 to 5 memories for better context
+            for mem in context['memories'][:5]:
                 similarity = mem.get('similarity', 0) * 100
-                prompt += f"- [{similarity:.0f}% match] {mem.get('content', '')[:200]}...\n"
+                content = mem.get('content', '')
+
+                # FIX: Preserve full context instead of truncating to 200 chars
+                if preserve_full_context:
+                    # Include full content with smart formatting
+                    max_length = 1000  # Increased from 200 to 1000
+                    if len(content) > max_length:
+                        content = content[:max_length] + "..."
+                else:
+                    content = content[:200] + "..."
+
+                prompt += f"- [{similarity:.0f}% match] {content}\n"
             prompt += "\n"
 
         if context.get('patterns'):
@@ -363,10 +376,40 @@ class MemoryIntegration:
             for pattern in context['patterns']:
                 pattern_type = pattern.get('pattern_type', 'unknown')
                 success_rate = pattern.get('success_rate', 0) * 100
-                prompt += f"- {pattern_type} (success rate: {success_rate:.0f}%)\n"
+                # FIX: Include pattern content details
+                pattern_content = pattern.get('pattern_content', {})
+                if isinstance(pattern_content, dict) and pattern_content:
+                    details = ', '.join(f"{k}: {v}" for k, v in list(pattern_content.items())[:3])
+                    prompt += f"- {pattern_type} (success rate: {success_rate:.0f}%) - {details}\n"
+                else:
+                    prompt += f"- {pattern_type} (success rate: {success_rate:.0f}%)\n"
             prompt += "\n"
 
         return prompt
+
+    def get_structured_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Get context as structured data for handoffs.
+
+        Preserves full information for Memory → Planning handoffs.
+
+        Args:
+            context: Context from get_relevant_context()
+
+        Returns:
+            Structured context with full preservation
+        """
+        return {
+            'memories': context.get('memories', []),
+            'patterns': context.get('patterns', []),
+            'full_content': [mem.get('content', '') for mem in context.get('memories', [])],
+            'similarity_scores': [mem.get('similarity', 0) for mem in context.get('memories', [])],
+            'metadata': {
+                'memory_count': len(context.get('memories', [])),
+                'pattern_count': len(context.get('patterns', [])),
+                'retrieval_method': 'semantic_search'
+            }
+        }
 
 
 # Singleton instance for easy access

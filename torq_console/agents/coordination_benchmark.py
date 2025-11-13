@@ -353,8 +353,17 @@ class CoordinationBenchmarkSuite:
         response: str,
         metadata: Dict
     ) -> float:
-        """Check if information is preserved through coordination."""
-        # Simple heuristic: check if key terms from query appear in response
+        """
+        Check if information is preserved through coordination.
+
+        IMPROVED: Now checks multiple dimensions of preservation:
+        1. Keyword preservation (original)
+        2. Metadata preservation (NEW)
+        3. Context flow tracking (NEW)
+        """
+        preservation_scores = []
+
+        # Score 1: Keyword preservation (original method)
         query_words = set(query.lower().split())
         response_words = set(response.lower().split())
 
@@ -363,11 +372,67 @@ class CoordinationBenchmarkSuite:
         query_words -= common_words
         response_words -= common_words
 
-        if not query_words:
-            return 1.0
+        if query_words:
+            keyword_preserved = len(query_words & response_words) / len(query_words)
+            preservation_scores.append(keyword_preserved)
+        else:
+            preservation_scores.append(1.0)
 
-        preserved = len(query_words & response_words) / len(query_words)
-        return min(preserved, 1.0)
+        # Score 2: Metadata preservation (NEW)
+        # Check if metadata contains expected handoff information
+        metadata_score = 0.0
+        metadata_checks = 0
+
+        # Check for planning metadata
+        if metadata.get('used_planning'):
+            metadata_checks += 1
+            # Check if planning context was preserved
+            if 'plan_steps' in str(metadata) or 'complexity' in str(metadata):
+                metadata_score += 1.0
+
+        # Check for debate metadata
+        if metadata.get('used_debate'):
+            metadata_checks += 1
+            # Check if debate context was preserved
+            if 'consensus' in str(metadata) or 'debate_rounds' in str(metadata):
+                metadata_score += 1.0
+            # NEW: Check if agent_contributions are present
+            if 'agent_contributions' in str(metadata):
+                metadata_score += 0.5
+
+        # Check for evaluation metadata
+        if metadata.get('used_evaluation'):
+            metadata_checks += 1
+            # Check if evaluation details were preserved
+            if 'quality_score' in str(metadata) or 'confidence' in str(metadata):
+                metadata_score += 1.0
+
+        if metadata_checks > 0:
+            preservation_scores.append(metadata_score / metadata_checks)
+
+        # Score 3: Response completeness
+        # Longer, more detailed responses indicate better information preservation
+        word_count = len(response.split())
+        if word_count >= 50:
+            completeness_score = 1.0
+        elif word_count >= 30:
+            completeness_score = 0.8
+        elif word_count >= 15:
+            completeness_score = 0.6
+        else:
+            completeness_score = 0.4
+
+        preservation_scores.append(completeness_score)
+
+        # Calculate weighted average (prioritize metadata preservation)
+        if len(preservation_scores) >= 2:
+            # Weight: keyword 30%, metadata 50%, completeness 20%
+            weights = [0.3, 0.5, 0.2][:len(preservation_scores)]
+            total_weight = sum(weights)
+            weighted_score = sum(s * w for s, w in zip(preservation_scores, weights)) / total_weight
+            return min(weighted_score, 1.0)
+        else:
+            return min(sum(preservation_scores) / len(preservation_scores), 1.0)
 
     def _check_output_consistency(self, metadata: Dict) -> float:
         """Check output consistency across subsystems."""

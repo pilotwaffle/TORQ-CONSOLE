@@ -446,7 +446,8 @@ class SelfEvaluationSystem:
         query: str,
         response: str,
         trajectory: Optional[ResponseTrajectory] = None,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
+        debate_context: Optional[Dict] = None  # NEW: Full debate context
     ) -> EvaluationResult:
         """
         Perform comprehensive self-evaluation.
@@ -456,6 +457,7 @@ class SelfEvaluationSystem:
             response: Generated response
             trajectory: Response generation trajectory
             context: Additional context
+            debate_context: Full debate context (all rounds, arguments, etc.)
 
         Returns:
             Evaluation result with recommendations
@@ -463,19 +465,45 @@ class SelfEvaluationSystem:
         try:
             self.evaluations_performed += 1
 
+            # FIX: Use debate context if available to improve confidence estimation
+            # Extract alternative responses from debate for uncertainty quantification
+            alternatives = []
+            if debate_context:
+                all_arguments = debate_context.get("all_arguments", [])
+                alternatives = [arg.content for arg in all_arguments if hasattr(arg, 'content')]
+
             # Estimate confidence
             confidence = await self.confidence_estimator.estimate(
                 query, response, trajectory
             )
 
-            # Quantify uncertainty
+            # FIX: Boost confidence if debate achieved high consensus
+            if debate_context:
+                consensus_score = debate_context.get("consensus_score", 0)
+                if consensus_score > 0.8:
+                    confidence = min(confidence * 1.1, 1.0)  # 10% boost for high consensus
+
+            # Quantify uncertainty with debate alternatives
             uncertainty = 0.5  # Default
             if trajectory:
-                uncertainty = await self.uncertainty_quantifier.calculate(trajectory)
+                uncertainty = await self.uncertainty_quantifier.calculate(trajectory, alternatives)
 
-            # Assess quality
+            # FIX: Lower uncertainty if debate had strong agreement
+            if debate_context:
+                consensus_score = debate_context.get("consensus_score", 0)
+                if consensus_score > 0.8:
+                    uncertainty = uncertainty * 0.8  # Reduce uncertainty by 20%
+
+            # Assess quality with full context
+            enhanced_context = context or {}
+            if debate_context:
+                # Include debate metadata in quality assessment
+                enhanced_context["debate_rounds"] = debate_context.get("debate_rounds", 0)
+                enhanced_context["debate_consensus"] = debate_context.get("consensus_score", 0)
+                enhanced_context["agent_contributions"] = debate_context.get("agent_contributions", {})
+
             quality_breakdown = await self.quality_assessor.evaluate(
-                query, response, context
+                query, response, enhanced_context
             )
 
             # Calculate overall quality score
