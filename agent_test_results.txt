@@ -1,0 +1,105 @@
+
+================================================================================
+FOCUSED HANDOFF SCENARIO TESTS
+================================================================================
+
+Testing scenarios that specifically exercise handoff improvements
+
+1. Loading agent modules...
+   ✅ Modules loaded
+
+2. Initializing Enhanced Prince Flowers v2...
+Letta not available, basic memory features disabled
+   ✅ Agent initialized
+
+3. Running 7 handoff-focused tests...
+--------------------------------------------------------------------------------
+
+[1/7] Memory Context Preservation
+Query: Build a secure authentication system with OAuth, JWT tokens, and refresh token r...
+  ✅ Planning activated
+  ✅ Evaluation activated
+     • Quality: 0.89
+  📊 Information preservation: 0.0%
+  ✅ PASS (2/2 expectations met)
+
+[2/7] Complex Multi-Step Planning
+Query: Create a comprehensive microservices architecture with API gateway, service mesh...
+  ✅ Planning activated
+  ✅ Evaluation activated
+     • Quality: 0.89
+  📊 Information preservation: 0.0%
+  ✅ PASS (2/2 expectations met)
+
+[3/7] Architectural Decision Debate
+Query: Should I use microservices or monolithic architecture for a new e-commerce platf...
+  ✅ Debate activated
+     • Consensus: 0.85
+  ✅ Evaluation activated
+     • Quality: 0.61
+  📊 Information preservation: 50.0%
+  ✅ PASS (2/2 expectations met)
+
+[4/7] Technology Comparison Debate
+Query: Compare PostgreSQL versus MongoDB for a real-time analytics dashboard with compl...
+  ✅ Debate activated
+     • Consensus: 0.85
+  ✅ Evaluation activated
+     • Quality: 0.61
+  📊 Information preservation: 50.0%
+  ✅ PASS (2/2 expectations met)
+
+[5/7] Design Pattern Decision
+Query: Should I use repository pattern or active record for a Django application with c...
+  ✅ Debate activated
+     • Consensus: 0.85
+  ✅ Evaluation activated
+     • Quality: 0.61
+  📊 Information preservation: 50.0%
+  ✅ PASS (2/2 expectations met)
+
+[6/7] Full Pipeline: Design → Debate → Evaluate
+Query: Design a distributed caching system, compare Redis vs Memcached, evaluate the be...
+  ✅ Planning activated
+  ✅ Debate activated
+     • Consensus: 0.85
+  ✅ Evaluation activated
+     • Quality: 0.59
+  📊 Information preservation: 25.0%
+  ✅ PASS (3/3 expectations met)
+
+[7/7] Full Pipeline: Build → Analyze → Decide
+Query: Build a recommendation engine using collaborative filtering, analyze different s...
+  ✅ Planning activated
+  ✅ Debate activated
+     • Consensus: 0.85
+  ✅ Evaluation activated
+     • Quality: 0.59
+  📊 Information preservation: 25.0%
+  ✅ PASS (3/3 expectations met)
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+📊 Overall Performance:
+  Tests Passed: 7/7 (100.0%)
+  Average Quality: 0.68
+  Average Info Preservation: 28.6%
+
+📋 By Scenario Type:
+  Memory → Planning: 2/2 (100%)
+  Debate → Evaluation: 3/3 (100%)
+  Full Pipeline: 2/2 (100%)
+
+🔍 Handoff Quality Indicators:
+  Debate Context Preserved: 5/5 (100%)
+  Planning Context Preserved: 0/4 (0%)
+
+================================================================================
+VERDICT
+================================================================================
+
+✅ EXCELLENT - 100% pass rate
+   Handoff improvements are working effectively!
+⚠️  Information preservation: 29% (needs improvement)
