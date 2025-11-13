@@ -147,49 +147,49 @@ class SmartContextCompressor:
             original_length = len(content)
 
             if original_length <= target_length:
-            # No compression needed
-            return SemanticContext(
-                key_entities=self.entity_extractor.extract_entities(content),
-                key_concepts=self.entity_extractor.extract_key_concepts(content),
-                relationships=[],
-                importance_scores={},
-                compressed_content=content,
-                original_length=original_length,
-                compression_ratio=1.0
-            )
+                # No compression needed
+                return SemanticContext(
+                    key_entities=self.entity_extractor.extract_entities(content),
+                    key_concepts=self.entity_extractor.extract_key_concepts(content),
+                    relationships=[],
+                    importance_scores={},
+                    compressed_content=content,
+                    original_length=original_length,
+                    compression_ratio=1.0
+                )
 
-        # Extract entities and concepts
-        entities = self.entity_extractor.extract_entities(content)
-        concepts = self.entity_extractor.extract_key_concepts(content)
+            # Extract entities and concepts
+            entities = self.entity_extractor.extract_entities(content)
+            concepts = self.entity_extractor.extract_key_concepts(content)
 
-        # Split into sentences
-        sentences = re.split(r'[.!?]+', content)
-        sentences = [s.strip() for s in sentences if s.strip()]
+            # Split into sentences
+            sentences = re.split(r'[.!?]+', content)
+            sentences = [s.strip() for s in sentences if s.strip()]
 
-        # Score sentences by importance
-        sentence_scores = []
-        for sentence in sentences:
-            score = self._score_sentence(sentence, entities, concepts)
-            sentence_scores.append((sentence, score))
+            # Score sentences by importance
+            sentence_scores = []
+            for sentence in sentences:
+                score = self._score_sentence(sentence, entities, concepts)
+                sentence_scores.append((sentence, score))
 
-        # Sort by importance
-        sentence_scores.sort(key=lambda x: x[1], reverse=True)
+            # Sort by importance
+            sentence_scores.sort(key=lambda x: x[1], reverse=True)
 
-        # Select sentences until target length
-        compressed = []
-        current_length = 0
+            # Select sentences until target length
+            compressed = []
+            current_length = 0
 
-        for sentence, score in sentence_scores:
-            sentence_length = len(sentence) + 2  # +2 for punctuation and space
-            if current_length + sentence_length <= target_length:
-                compressed.append((sentence, score))
-                current_length += sentence_length
-            elif current_length < target_length * 0.8:  # Fill at least 80%
-                # Truncate sentence if needed
-                remaining = target_length - current_length - 3  # -3 for "..."
-                if remaining > 50:  # Only if meaningful
-                    compressed.append((sentence[:remaining] + "...", score))
-                    break
+            for sentence, score in sentence_scores:
+                sentence_length = len(sentence) + 2  # +2 for punctuation and space
+                if current_length + sentence_length <= target_length:
+                    compressed.append((sentence, score))
+                    current_length += sentence_length
+                elif current_length < target_length * 0.8:  # Fill at least 80%
+                    # Truncate sentence if needed
+                    remaining = target_length - current_length - 3  # -3 for "..."
+                    if remaining > 50:  # Only if meaningful
+                        compressed.append((sentence[:remaining] + "...", score))
+                        break
 
             # Reconstruct in original order (approximately)
             compressed_text = ". ".join(sent for sent, _ in compressed) + "."
@@ -356,56 +356,56 @@ class AdaptiveHandoffOptimizer:
             # Analyze query complexity
             query_complexity = self._analyze_query_complexity(query)
 
-        # Adjust context size based on complexity
-        if query_complexity > 0.7:  # Complex query
-            context_length = max_length
-        elif query_complexity > 0.4:  # Medium query
-            context_length = int(max_length * 0.7)
-        else:  # Simple query
-            context_length = int(max_length * 0.5)
+            # Adjust context size based on complexity
+            if query_complexity > 0.7:  # Complex query
+                context_length = max_length
+            elif query_complexity > 0.4:  # Medium query
+                context_length = int(max_length * 0.7)
+            else:  # Simple query
+                context_length = int(max_length * 0.5)
 
-        # Extract query entities for relevance filtering
-        query_entities = self.entity_extractor.extract_entities(query)
-        query_concepts = self.entity_extractor.extract_key_concepts(query)
+            # Extract query entities for relevance filtering
+            query_entities = self.entity_extractor.extract_entities(query)
+            query_concepts = self.entity_extractor.extract_key_concepts(query)
 
-        # Re-rank memories by relevance to query
-        ranked_memories = self._rank_memories_by_relevance(
-            memories,
-            query_entities,
-            query_concepts
-        )
+            # Re-rank memories by relevance to query
+            ranked_memories = self._rank_memories_by_relevance(
+                memories,
+                query_entities,
+                query_concepts
+            )
 
-        # Compress and combine
-        optimized_memories = []
-        total_length = 0
+            # Compress and combine
+            optimized_memories = []
+            total_length = 0
 
-        for memory in ranked_memories:
-            content = memory.get('content', '')
+            for memory in ranked_memories:
+                content = memory.get('content', '')
 
-            # Compress if needed
-            if total_length + len(content) > context_length:
-                remaining = context_length - total_length
-                if remaining > 100:  # Only if meaningful space left
-                    semantic_ctx = self.compressor.compress_context(content, remaining)
+                # Compress if needed
+                if total_length + len(content) > context_length:
+                    remaining = context_length - total_length
+                    if remaining > 100:  # Only if meaningful space left
+                        semantic_ctx = self.compressor.compress_context(content, remaining)
+                        optimized_memories.append({
+                            'content': semantic_ctx.compressed_content,
+                            'entities': semantic_ctx.key_entities,
+                            'concepts': semantic_ctx.key_concepts,
+                            'compressed': True,
+                            'original_length': semantic_ctx.original_length,
+                            'compression_ratio': semantic_ctx.compression_ratio
+                        })
+                        total_length += len(semantic_ctx.compressed_content)
+                    break
+                else:
+                    # Keep as-is
                     optimized_memories.append({
-                        'content': semantic_ctx.compressed_content,
-                        'entities': semantic_ctx.key_entities,
-                        'concepts': semantic_ctx.key_concepts,
-                        'compressed': True,
-                        'original_length': semantic_ctx.original_length,
-                        'compression_ratio': semantic_ctx.compression_ratio
+                        'content': content,
+                        'entities': self.entity_extractor.extract_entities(content),
+                        'concepts': self.entity_extractor.extract_key_concepts(content),
+                        'compressed': False
                     })
-                    total_length += len(semantic_ctx.compressed_content)
-                break
-            else:
-                # Keep as-is
-                optimized_memories.append({
-                    'content': content,
-                    'entities': self.entity_extractor.extract_entities(content),
-                    'concepts': self.entity_extractor.extract_key_concepts(content),
-                    'compressed': False
-                })
-                total_length += len(content)
+                    total_length += len(content)
 
             # Phase A.3: Safe division for context utilization
             context_utilization = (

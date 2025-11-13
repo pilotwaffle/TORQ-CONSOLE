@@ -11,5 +11,53 @@
     "success_rate": 1.0,
     "created_at": "2025-11-13T00:38:15.723663",
     "metadata": {}
+  },
+  "k_20251113_025442_683016": {
+    "source_agent": "test_agent",
+    "knowledge_type": "pattern",
+    "content": {
+      "test": "data"
+    },
+    "confidence": 0.9,
+    "usage_count": 0,
+    "success_rate": 0.0,
+    "created_at": "2025-11-13T02:54:42.683036",
+    "metadata": {}
+  },
+  "k_20251113_025525_067156": {
+    "source_agent": "test_agent",
+    "knowledge_type": "pattern",
+    "content": {
+      "test": "data"
+    },
+    "confidence": 0.9,
+    "usage_count": 0,
+    "success_rate": 0.0,
+    "created_at": "2025-11-13T02:55:25.067190",
+    "metadata": {}
+  },
+  "k_20251113_025615_078276": {
+    "source_agent": "test_agent",
+    "knowledge_type": "pattern",
+    "content": {
+      "test": "data"
+    },
+    "confidence": 0.9,
+    "usage_count": 0,
+    "success_rate": 0.0,
+    "created_at": "2025-11-13T02:56:15.078307",
+    "metadata": {}
+  },
+  "k_20251113_025639_773956": {
+    "source_agent": "test_agent",
+    "knowledge_type": "pattern",
+    "content": {
+      "test": "data"
+    },
+    "confidence": 0.9,
+    "usage_count": 0,
+    "success_rate": 0.0,
+    "created_at": "2025-11-13T02:56:39.773980",
+    "metadata": {}
   }
 }
