@@ -1,0 +1,38 @@
+
+================================================================================
+PHASE 1: ADVANCED HANDOFF OPTIMIZATION
+Testing semantic preservation and adaptive handoffs
+================================================================================
+
+================================================================================
+PHASE 1: ADVANCED HANDOFF OPTIMIZATION TESTS
+================================================================================
+Traceback (most recent call last):
+  File "/home/user/TORQ-CONSOLE/test_phase1_handoff_optimization.py", line 328, in <module>
+    success = asyncio.run(main())
+              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/user/TORQ-CONSOLE/test_phase1_handoff_optimization.py", line 305, in main
+    unit_success = await test_phase1_optimizer()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/TORQ-CONSOLE/test_phase1_handoff_optimization.py", line 30, in test_phase1_optimizer
+    from torq_console.agents.handoff_optimizer import (
+  File "/home/user/TORQ-CONSOLE/torq_console/__init__.py", line 12, in <module>
+    from .core.console import TorqConsole
+  File "/home/user/TORQ-CONSOLE/torq_console/core/__init__.py", line 3, in <module>
+    from .console import TorqConsole
+  File "/home/user/TORQ-CONSOLE/torq_console/core/console.py", line 23, in <module>
+    from ..mcp.client import MCPClient
+  File "/home/user/TORQ-CONSOLE/torq_console/mcp/__init__.py", line 3, in <module>
+    from .client import MCPClient
+  File "/home/user/TORQ-CONSOLE/torq_console/mcp/client.py", line 15, in <module>
+    import httpx
+ModuleNotFoundError: No module named 'httpx'
