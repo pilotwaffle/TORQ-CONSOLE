@@ -71,6 +71,23 @@ try:
         ImprovedDebateActivation,
         DebateProtocol
     )
+    # Phase 1: Handoff Optimization (NEW)
+    from .handoff_optimizer import (
+        get_handoff_optimizer,
+        AdaptiveHandoffOptimizer
+    )
+    from .handoff_context import (
+        MemoryContext,
+        DebateContext,
+        EvaluationContext
+    )
+    # Phase 3: Agent System Enhancements (NEW)
+    from .agent_system_enhancements import (
+        get_cross_agent_learning,
+        get_performance_monitor,
+        get_advanced_coordinator,
+        AgentRole
+    )
 except ImportError:
     # Try absolute imports for standalone usage
     try:
@@ -105,6 +122,23 @@ except ImportError:
             get_improved_debate_activation,
             ImprovedDebateActivation,
             DebateProtocol
+        )
+        # Phase 1: Handoff Optimization (NEW)
+        from torq_console.agents.handoff_optimizer import (
+            get_handoff_optimizer,
+            AdaptiveHandoffOptimizer
+        )
+        from torq_console.agents.handoff_context import (
+            MemoryContext,
+            DebateContext,
+            EvaluationContext
+        )
+        # Phase 3: Agent System Enhancements (NEW)
+        from torq_console.agents.agent_system_enhancements import (
+            get_cross_agent_learning,
+            get_performance_monitor,
+            get_advanced_coordinator,
+            AgentRole
         )
     except ImportError:
         # Fallback for testing - modules will be injected
@@ -237,10 +271,31 @@ class EnhancedPrinceFlowers:
                 self.debate_activator = get_improved_debate_activation()
                 self.logger.info("✅ Improved Debate Activation initialized")
 
+                # Phase 1: Handoff Optimizer (NEW!)
+                self.handoff_optimizer = get_handoff_optimizer()
+                self.logger.info("✅ Handoff Optimizer initialized")
+
+                # Phase 3: Agent System Enhancements (NEW!)
+                self.cross_agent_learning = get_cross_agent_learning()
+                self.performance_monitor = get_performance_monitor()
+                self.advanced_coordinator = get_advanced_coordinator()
+
+                # Register this agent with the coordinator
+                self.agent_id = "prince_flowers_v2"
+                self.advanced_coordinator.register_agent(self.agent_id, AgentRole.GENERALIST)
+
+                self.logger.info("✅ Agent System Enhancements initialized (Learning, Monitoring, Coordination)")
+
                 self.logger.info("🎉 All state-of-the-art AI systems initialized successfully!")
 
             except Exception as e:
                 self.logger.error(f"Error initializing advanced AI systems: {e}")
+                # Set fallback None values for safety
+                self.handoff_optimizer = None
+                self.cross_agent_learning = None
+                self.performance_monitor = None
+                self.advanced_coordinator = None
+                self.agent_id = "prince_flowers_v2_fallback"
                 # Try to initialize new systems even if others failed
                 try:
                     self.quality_manager = get_adaptive_quality_manager()
@@ -362,9 +417,46 @@ class EnhancedPrinceFlowers:
                 performance_score=metadata.get("quality_score", 0.8)
             )
 
-        # Return comprehensive response
+        # Calculate response time
         response_time = (datetime.now() - start_time).total_seconds()
 
+        # Phase 3: Record performance metrics
+        if self.performance_monitor:
+            try:
+                self.performance_monitor.record_metric(
+                    agent_id=self.agent_id,
+                    metric_name="response_latency",
+                    value=response_time,
+                    context={"query_length": len(user_message)}
+                )
+                self.performance_monitor.record_metric(
+                    agent_id=self.agent_id,
+                    metric_name="quality_score",
+                    value=metadata.get("quality_score", 0.8)
+                )
+            except Exception as e:
+                self.logger.error(f"Error recording performance metrics: {e}")
+
+        # Phase 3: Share knowledge with other agents
+        if self.cross_agent_learning and metadata.get("quality_score", 0.8) > 0.8:
+            try:
+                # Share high-quality patterns
+                knowledge_id = self.cross_agent_learning.share_knowledge(
+                    source_agent=self.agent_id,
+                    knowledge_type="successful_response",
+                    content={
+                        "query": user_message,
+                        "response": response,
+                        "quality": metadata.get("quality_score", 0.8),
+                        "task_type": metadata.get("task_type", "general")
+                    },
+                    confidence=metadata.get("confidence", 0.8)
+                )
+                self.logger.debug(f"Shared knowledge: {knowledge_id}")
+            except Exception as e:
+                self.logger.error(f"Error sharing knowledge: {e}")
+
+        # Return comprehensive response
         return {
             "response": response,
             "session_id": session_id,
@@ -653,7 +745,11 @@ class EnhancedPrinceFlowers:
         session_id: str,
         max_memories: int = 5
     ) -> List[Dict[str, Any]]:
-        """Retrieve relevant context from memory (enhanced with advanced memory)."""
+        """
+        Retrieve relevant context from memory (enhanced with advanced memory).
+
+        Phase 1 Integration: Uses handoff optimizer for intelligent context optimization.
+        """
         context = []
 
         # Get from Letta memory
@@ -700,6 +796,43 @@ class EnhancedPrinceFlowers:
 
         # Sort by importance
         unique_context.sort(key=lambda x: x.get("importance", 0.5), reverse=True)
+
+        # Phase 1: Apply handoff optimization (Memory → Planning handoff)
+        if self.handoff_optimizer:
+            try:
+                # Use async handoff optimizer for intelligent context sizing
+                optimized_result = await self.handoff_optimizer.optimize_memory_context_async(
+                    memories=unique_context[:max_memories],
+                    query=query,
+                    max_length=2000  # Phase 1: Increased from 1000 to 2000
+                )
+
+                # Record performance metrics (Phase 3)
+                if self.performance_monitor:
+                    self.performance_monitor.record_metric(
+                        agent_id=self.agent_id,
+                        metric_name="memory_context_size",
+                        value=optimized_result['total_length']
+                    )
+                    self.performance_monitor.record_metric(
+                        agent_id=self.agent_id,
+                        metric_name="context_utilization",
+                        value=optimized_result['context_utilization']
+                    )
+
+                self.logger.debug(
+                    f"Handoff optimization applied: {len(optimized_result['memories'])} memories, "
+                    f"{optimized_result['total_length']} chars, "
+                    f"{optimized_result['context_utilization']:.1%} utilization"
+                )
+
+                # Use optimized memories
+                return optimized_result['memories']
+
+            except Exception as e:
+                self.logger.error(f"Handoff optimization failed, using fallback: {e}")
+                # Fallback to original context
+                return unique_context[:max_memories]
 
         return unique_context[:max_memories]
 
