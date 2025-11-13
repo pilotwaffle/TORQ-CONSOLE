@@ -141,8 +141,28 @@ except ImportError:
             AgentRole
         )
     except ImportError:
-        # Fallback for testing - modules will be injected
-        pass
+        # Fallback for testing - modules will be injected or set to None
+        get_enhanced_memory_system = lambda: None
+        get_hierarchical_planner = lambda: None
+        get_meta_learning_engine = lambda: None
+        get_multi_agent_debate = lambda: None
+        get_self_evaluation_system = lambda: None
+        get_adaptive_quality_manager = lambda: None
+        get_improved_debate_activation = lambda: None
+        get_handoff_optimizer = lambda: None
+        get_cross_agent_learning = lambda: None
+        get_performance_monitor = lambda: None
+        get_advanced_coordinator = lambda: None
+        AgentRole = type('AgentRole', (), {'GENERALIST': 'generalist'})
+        EnhancedMemorySystem = None
+        HierarchicalTaskPlanner = None
+        MetaLearningEngine = None
+        MultiAgentDebate = None
+        SelfEvaluationSystem = None
+        AdaptiveQualityManager = None
+        ImprovedDebateActivation = None
+        AdaptiveHandoffOptimizer = None
+        MemoryType = type('MemoryType', (), {'EPISODIC': 'episodic', 'SEMANTIC': 'semantic', 'PROCEDURAL': 'procedural'})
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +293,10 @@ class EnhancedPrinceFlowers:
 
                 # Phase 1: Handoff Optimizer (NEW!)
                 self.handoff_optimizer = get_handoff_optimizer()
-                self.logger.info("✅ Handoff Optimizer initialized")
+                if self.handoff_optimizer:
+                    self.logger.info("✅ Handoff Optimizer initialized")
+                else:
+                    self.logger.warning("⚠️  Handoff Optimizer not available")
 
                 # Phase 3: Agent System Enhancements (NEW!)
                 self.cross_agent_learning = get_cross_agent_learning()
@@ -282,9 +305,11 @@ class EnhancedPrinceFlowers:
 
                 # Register this agent with the coordinator
                 self.agent_id = "prince_flowers_v2"
-                self.advanced_coordinator.register_agent(self.agent_id, AgentRole.GENERALIST)
-
-                self.logger.info("✅ Agent System Enhancements initialized (Learning, Monitoring, Coordination)")
+                if self.advanced_coordinator:
+                    self.advanced_coordinator.register_agent(self.agent_id, AgentRole.GENERALIST)
+                    self.logger.info("✅ Agent System Enhancements initialized (Learning, Monitoring, Coordination)")
+                else:
+                    self.logger.warning("⚠️  Agent System Enhancements not available")
 
                 self.logger.info("🎉 All state-of-the-art AI systems initialized successfully!")
 
