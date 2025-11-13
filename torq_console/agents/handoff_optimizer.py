@@ -12,8 +12,11 @@ New features:
 3. Smart context compression (entity preservation)
 4. Adaptive handoff parameters
 5. Context quality scoring
+
+Phase A.2: Async/await support for integration with async agent system
 """
 
+import asyncio
 from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass
 import re
@@ -248,6 +251,31 @@ class AdaptiveHandoffOptimizer:
     def __init__(self):
         self.compressor = SmartContextCompressor()
         self.entity_extractor = EntityExtractor()
+
+    async def optimize_memory_context_async(
+        self,
+        memories: List[Dict[str, Any]],
+        query: str,
+        max_length: int = 2000
+    ) -> Dict[str, Any]:
+        """
+        Async version of optimize_memory_context for use in async agent systems.
+
+        Args:
+            memories: List of memory objects
+            query: Current query
+            max_length: Maximum context length
+
+        Returns:
+            Optimized context dictionary
+        """
+        # Run CPU-bound optimization in thread pool to avoid blocking event loop
+        return await asyncio.to_thread(
+            self.optimize_memory_context,
+            memories,
+            query,
+            max_length
+        )
 
     def optimize_memory_context(
         self,
