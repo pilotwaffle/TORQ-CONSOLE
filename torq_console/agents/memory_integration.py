@@ -336,12 +336,16 @@ class MemoryIntegration:
             self.logger.error(f"Failed to get entity: {e}")
             return None
 
-    def format_context_for_prompt(self, context: Dict[str, Any]) -> str:
+    def format_context_for_prompt(self, context: Dict[str, Any], preserve_full_context: bool = True,
+                                    query: Optional[str] = None, use_optimizer: bool = True) -> str:
         """
         Format retrieved context for LLM prompt.
 
         Args:
             context: Context from get_relevant_context()
+            preserve_full_context: If True, include full content (no truncation)
+            query: Current query for Phase 1 adaptive optimization
+            use_optimizer: Whether to use Phase 1 handoff optimizer
 
         Returns:
             Formatted string for prompt injection
@@ -349,13 +353,49 @@ class MemoryIntegration:
         if not context.get('memories') and not context.get('patterns'):
             return ""
 
+        # Phase 1 Optimization: Use adaptive handoff optimizer
+        if use_optimizer and query:
+            try:
+                from .handoff_optimizer import get_handoff_optimizer
+                optimizer = get_handoff_optimizer()
+
+                # Optimize memory context
+                optimized = optimizer.optimize_memory_context(
+                    memories=context.get('memories', []),
+                    query=query,
+                    max_length=2000  # Phase 1: Increased from 1000 to 2000
+                )
+
+                # Use optimized memories
+                memories = optimized['memories']
+            except Exception as e:
+                self.logger.warning(f"Handoff optimizer failed, using fallback: {e}")
+                memories = context.get('memories', [])[:5]
+        else:
+            memories = context.get('memories', [])[:5]
+
         prompt = "\n## Relevant Context from Memory\n\n"
 
-        if context.get('memories'):
+        if memories:
             prompt += "### Previous Knowledge:\n"
-            for mem in context['memories'][:3]:  # Top 3 most relevant
+            for mem in memories:
+                content = mem.get('content', '')
                 similarity = mem.get('similarity', 0) * 100
-                prompt += f"- [{similarity:.0f}% match] {mem.get('content', '')[:200]}...\n"
+
+                # Phase 1: Smart context preservation
+                if preserve_full_context:
+                    max_length = 2000  # Phase 1: Increased from 1000 to 2000
+                    if len(content) > max_length:
+                        content = content[:max_length] + "..."
+                else:
+                    content = content[:200] + "..."
+
+                # Show optimization info if available
+                if mem.get('compressed'):
+                    ratio = mem.get('compression_ratio', 1.0)
+                    prompt += f"- [{similarity:.0f}% match, {ratio:.1%} compressed] {content}\n"
+                else:
+                    prompt += f"- [{similarity:.0f}% match] {content}\n"
             prompt += "\n"
 
         if context.get('patterns'):
@@ -363,10 +403,39 @@ class MemoryIntegration:
             for pattern in context['patterns']:
                 pattern_type = pattern.get('pattern_type', 'unknown')
                 success_rate = pattern.get('success_rate', 0) * 100
-                prompt += f"- {pattern_type} (success rate: {success_rate:.0f}%)\n"
+                pattern_content = pattern.get('pattern_content', {})
+                if isinstance(pattern_content, dict) and pattern_content:
+                    details = ', '.join(f"{k}: {v}" for k, v in list(pattern_content.items())[:3])
+                    prompt += f"- {pattern_type} (success rate: {success_rate:.0f}%) - {details}\n"
+                else:
+                    prompt += f"- {pattern_type} (success rate: {success_rate:.0f}%)\n"
             prompt += "\n"
 
         return prompt
+
+    def get_structured_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Get context as structured data for handoffs.
+
+        Preserves full information for Memory → Planning handoffs.
+
+        Args:
+            context: Context from get_relevant_context()
+
+        Returns:
+            Structured context with full preservation
+        """
+        return {
+            'memories': context.get('memories', []),
+            'patterns': context.get('patterns', []),
+            'full_content': [mem.get('content', '') for mem in context.get('memories', [])],
+            'similarity_scores': [mem.get('similarity', 0) for mem in context.get('memories', [])],
+            'metadata': {
+                'memory_count': len(context.get('memories', [])),
+                'pattern_count': len(context.get('patterns', [])),
+                'retrieval_method': 'semantic_search'
+            }
+        }
 
 
 # Singleton instance for easy access

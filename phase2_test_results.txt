@@ -1,0 +1,21 @@
+
+================================================================================
+PHASE 2: SPEC-KIT ECOSYSTEM INTELLIGENCE TESTS
+================================================================================
+
+================================================================================
+PHASE 2: ECOSYSTEM INTELLIGENCE COMPONENT TESTS
+================================================================================
+
+❌ ERROR: No module named 'aiohttp'
+Traceback (most recent call last):
+  File "/home/user/TORQ-CONSOLE/test_phase2_ecosystem.py", line 199, in main
+    components_success = test_phase2_components()
+                         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/TORQ-CONSOLE/test_phase2_ecosystem.py", line 32, in test_phase2_components
+    spec.loader.exec_module(eco_module)
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/user/TORQ-CONSOLE/torq_console/spec_kit/ecosystem_intelligence.py", line 17, in <module>
+    import aiohttp
+ModuleNotFoundError: No module named 'aiohttp'

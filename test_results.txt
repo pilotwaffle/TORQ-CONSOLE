@@ -1,0 +1,70 @@
+
+================================================================================
+COORDINATION BENCHMARK - HANDOFF INFORMATION PRESERVATION TEST
+================================================================================
+
+Testing improvements to Memory→Planning and Debate→Evaluation handoffs
+
+1. Loading agent modules...
+   ✅ All modules loaded
+
+2. Initializing Enhanced Prince Flowers v2...
+Letta not available, basic memory features disabled
+   ✅ Agent initialized with all advanced features
+
+3. Running Coordination Benchmark (10 tests)...
+
+================================================================================
+RESULTS
+================================================================================
+
+📊 Overall Statistics:
+  Total Tests: 10
+  Passed: 6 (60.0%)
+  Failed: 4 (40.0%)
+  Average Latency: 0.00s
+  Average Quality: 0.67
+
+🔍 Information Preservation Analysis:
+  Overall Preservation: 58.94%
+
+  📈 Improvement vs Baseline (28%):
+     Current: 58.9%
+     Baseline: 28.0%
+     Change: +110.5%
+
+  📋 By Coordination Type:
+     debate_to_evaluation: 70.4% (3 test(s))
+     full_pipeline: 60.0% (4 test(s))
+     memory_to_planning: 46.0% (3 test(s))
+
+  🎯 Key Handoff Improvements:
+     Memory → Planning: 46.0% (baseline 30%, +53%)
+     Debate → Evaluation: 70.4% (baseline 25%, +182%)
+
+⚠️  Issues Detected:
+  information_loss: 4 (40%)
+
+  📉 Information Loss Rate:
+     Current: 40.0% (4/10 tests)
+     Baseline: 70.0% (7/10 tests)
+     Reduction: 43%
+     ⚠️  Still above 30% target
+
+✨ Emergent Behaviors:
+  efficient_coordination: 10 occurrence(s)
+  quality_amplification: 2 occurrence(s)
+  quality_decay_multi_system: 3 occurrence(s)
+
+================================================================================
+VERDICT
+================================================================================
+
+Success Criteria (0/3 met):
+  Overall Preservation >70%: ❌ FAIL (58.9%)
+  Information Loss <30%: ❌ FAIL (4/10)
+  Test Pass Rate >70%: ❌ FAIL (6/10)
+
+⚠️  PARTIAL - Some improvements, but not all targets met
+
+================================================================================
