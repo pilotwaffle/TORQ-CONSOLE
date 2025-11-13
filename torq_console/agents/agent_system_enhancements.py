@@ -504,31 +504,54 @@ class AdvancedCoordinator:
         return plan
 
 
-# Global instances
+# Phase B.3: Thread-safe singletons
+import threading
+
+# Global instances with thread safety
 _cross_agent_learning: Optional[CrossAgentLearning] = None
+_cross_agent_learning_lock = threading.Lock()
+
 _performance_monitor: Optional[AgentPerformanceMonitor] = None
+_performance_monitor_lock = threading.Lock()
+
 _advanced_coordinator: Optional[AdvancedCoordinator] = None
+_advanced_coordinator_lock = threading.Lock()
 
 
 def get_cross_agent_learning() -> CrossAgentLearning:
-    """Get or create global cross-agent learning instance."""
+    """Get or create thread-safe global cross-agent learning instance."""
     global _cross_agent_learning
+
+    # Double-checked locking pattern
     if _cross_agent_learning is None:
-        _cross_agent_learning = CrossAgentLearning()
+        with _cross_agent_learning_lock:
+            if _cross_agent_learning is None:
+                _cross_agent_learning = CrossAgentLearning()
+
     return _cross_agent_learning
 
 
 def get_performance_monitor() -> AgentPerformanceMonitor:
-    """Get or create global performance monitor."""
+    """Get or create thread-safe global performance monitor."""
     global _performance_monitor
+
+    # Double-checked locking pattern
     if _performance_monitor is None:
-        _performance_monitor = AgentPerformanceMonitor()
+        with _performance_monitor_lock:
+            if _performance_monitor is None:
+                _performance_monitor = AgentPerformanceMonitor()
+
     return _performance_monitor
 
 
 def get_advanced_coordinator() -> AdvancedCoordinator:
-    """Get or create global advanced coordinator."""
+    """Get or create thread-safe global advanced coordinator."""
     global _advanced_coordinator
+
+    # Double-checked locking pattern
     if _advanced_coordinator is None:
-        _advanced_coordinator = AdvancedCoordinator()
+        with _advanced_coordinator_lock:
+            if _advanced_coordinator is None:
+                _advanced_coordinator = AdvancedCoordinator()
+
     return _advanced_coordinator

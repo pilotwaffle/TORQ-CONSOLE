@@ -14,16 +14,86 @@ New features:
 5. Context quality scoring
 
 Phase A.2: Async/await support for integration with async agent system
+Phase B.1: Comprehensive logging and metrics for observability
 """
 
 import asyncio
 import logging
+import time
 from typing import Dict, List, Any, Optional, Set
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 import re
 
 # Logger for error handling
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class OptimizationMetrics:
+    """Metrics for optimization operations."""
+    operation: str
+    duration_ms: float
+    input_size: int
+    output_size: int
+    compression_ratio: float
+    quality_score: float
+    timestamp: datetime = field(default_factory=datetime.now)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+class MetricsCollector:
+    """Collect and export metrics for monitoring."""
+
+    def __init__(self):
+        self.metrics: List[OptimizationMetrics] = []
+        self.operation_counts: Dict[str, int] = {}
+        self.total_processing_time: float = 0.0
+
+    def record_metric(self, metric: OptimizationMetrics):
+        """Record a metric."""
+        self.metrics.append(metric)
+        self.operation_counts[metric.operation] = self.operation_counts.get(metric.operation, 0) + 1
+        self.total_processing_time += metric.duration_ms
+
+        # Keep last 1000 metrics
+        if len(self.metrics) > 1000:
+            self.metrics = self.metrics[-1000:]
+
+        # Log slow operations
+        if metric.duration_ms > 100:  # >100ms is slow
+            logger.warning(
+                f"Slow {metric.operation}: {metric.duration_ms:.2f}ms, "
+                f"input={metric.input_size}, output={metric.output_size}"
+            )
+
+    def get_summary(self) -> Dict[str, Any]:
+        """Get metrics summary."""
+        if not self.metrics:
+            return {"no_data": True}
+
+        recent_metrics = self.metrics[-100:]  # Last 100 operations
+
+        return {
+            "total_operations": len(self.metrics),
+            "operation_counts": self.operation_counts.copy(),
+            "total_processing_time_ms": self.total_processing_time,
+            "avg_compression_ratio": sum(m.compression_ratio for m in recent_metrics) / len(recent_metrics),
+            "avg_quality_score": sum(m.quality_score for m in recent_metrics) / len(recent_metrics),
+            "avg_duration_ms": sum(m.duration_ms for m in recent_metrics) / len(recent_metrics),
+        }
+
+
+# Global metrics collector
+_metrics_collector: Optional[MetricsCollector] = None
+
+
+def get_metrics_collector() -> MetricsCollector:
+    """Get or create global metrics collector."""
+    global _metrics_collector
+    if _metrics_collector is None:
+        _metrics_collector = MetricsCollector()
+    return _metrics_collector
 
 
 @dataclass
@@ -126,6 +196,10 @@ class SmartContextCompressor:
         Returns:
             SemanticContext with compressed content and metadata
         """
+        # Phase B.1: Start timing
+        start_time = time.time()
+        metrics_collector = get_metrics_collector()
+
         # Phase A.3: Input validation
         if not content:
             logger.warning("compress_context: Empty content provided")
@@ -144,6 +218,7 @@ class SmartContextCompressor:
             target_length = 2000  # Fallback to default
 
         try:
+            logger.debug(f"compress_context: input_length={len(content)}, target={target_length}")
             original_length = len(content)
 
             if original_length <= target_length:
@@ -197,7 +272,7 @@ class SmartContextCompressor:
             # Phase A.3: Safe division with zero check
             compression_ratio = len(compressed_text) / original_length if original_length > 0 else 1.0
 
-            return SemanticContext(
+            result = SemanticContext(
                 key_entities=entities,
                 key_concepts=concepts,
                 relationships=self._extract_relationships(entities, concepts, content),
@@ -207,9 +282,42 @@ class SmartContextCompressor:
                 compression_ratio=compression_ratio
             )
 
+            # Phase B.1: Record metrics
+            duration_ms = (time.time() - start_time) * 1000
+            metrics_collector.record_metric(OptimizationMetrics(
+                operation="compress_context",
+                duration_ms=duration_ms,
+                input_size=original_length,
+                output_size=len(compressed_text),
+                compression_ratio=compression_ratio,
+                quality_score=1.0,  # Assume good quality on success
+                metadata={"entities": len(entities), "concepts": len(concepts)}
+            ))
+
+            logger.info(
+                f"compress_context complete: {original_length}→{len(compressed_text)} chars "
+                f"({compression_ratio:.1%}), {duration_ms:.2f}ms"
+            )
+
+            return result
+
         except Exception as e:
             # Phase A.3: Error handling with fallback
             logger.error(f"compress_context failed: {e}", exc_info=True)
+
+            # Phase B.1: Record error metrics
+            duration_ms = (time.time() - start_time) * 1000
+            fallback_length = min(target_length, len(content))
+            metrics_collector.record_metric(OptimizationMetrics(
+                operation="compress_context_error",
+                duration_ms=duration_ms,
+                input_size=len(content),
+                output_size=fallback_length,
+                compression_ratio=fallback_length / len(content) if len(content) > 0 else 1.0,
+                quality_score=0.5,  # Lower quality for fallback
+                metadata={"error": str(e)}
+            ))
+
             # Return original content (no compression)
             return SemanticContext(
                 key_entities=set(),
@@ -556,13 +664,22 @@ class AdaptiveHandoffOptimizer:
             return 0.5  # Default to medium quality on error
 
 
-# Global optimizer instance
+# Phase B.3: Thread-safe singletons
+import threading
+
+# Global optimizer instance with thread safety
 _handoff_optimizer: Optional[AdaptiveHandoffOptimizer] = None
+_handoff_optimizer_lock = threading.Lock()
 
 
 def get_handoff_optimizer() -> AdaptiveHandoffOptimizer:
-    """Get or create global handoff optimizer."""
+    """Get or create thread-safe global handoff optimizer."""
     global _handoff_optimizer
+
+    # Double-checked locking pattern
     if _handoff_optimizer is None:
-        _handoff_optimizer = AdaptiveHandoffOptimizer()
+        with _handoff_optimizer_lock:
+            if _handoff_optimizer is None:
+                _handoff_optimizer = AdaptiveHandoffOptimizer()
+
     return _handoff_optimizer
