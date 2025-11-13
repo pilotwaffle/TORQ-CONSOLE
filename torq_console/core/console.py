@@ -36,6 +36,15 @@ from ..agents.torq_prince_flowers import TORQPrinceFlowersInterface
 from ..spec_kit.spec_engine import SpecKitEngine
 from ..spec_kit.spec_commands import SpecKitCommands
 
+# Import Enhanced Prince Flowers v2 with memory
+try:
+    from ..agents.enhanced_prince_flowers_v2 import EnhancedPrinceFlowers as EnhancedPrinceFlowersV2
+    ENHANCED_PRINCE_V2_AVAILABLE = True
+except ImportError as e:
+    print(f"Enhanced Prince Flowers v2 not available: {e}")
+    ENHANCED_PRINCE_V2_AVAILABLE = False
+    EnhancedPrinceFlowersV2 = None
+
 # Import enhanced integration wrapper
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 try:
@@ -90,8 +99,25 @@ class TorqConsole:
             memory_storage_path=None  # Will use default: ~/.torq_console/swarm_memory
         )
 
-        # Initialize Prince Flowers Enhanced Agent
-        self.prince_flowers = TORQPrinceFlowersInterface(self)
+        # Initialize Prince Flowers Enhanced Agent v2 with memory
+        if ENHANCED_PRINCE_V2_AVAILABLE:
+            try:
+                self.prince_flowers = EnhancedPrinceFlowersV2(
+                    memory_enabled=True,  # ✅ Enable Letta memory
+                    memory_backend="sqlite",
+                    enable_advanced_features=True,
+                    use_hierarchical_planning=False,  # Can enable if needed
+                    use_multi_agent_debate=False,  # Can enable if needed
+                    use_self_evaluation=True
+                )
+                self.logger.info("Enhanced Prince Flowers v2 initialized with memory enabled")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize Enhanced Prince v2, falling back to standard: {e}")
+                self.prince_flowers = TORQPrinceFlowersInterface(self)
+        else:
+            # Fallback to standard interface
+            self.prince_flowers = TORQPrinceFlowersInterface(self)
+            self.logger.warning("Using standard Prince Flowers interface (v2 not available)")
 
         # Initialize enhanced integration wrapper if available
         if ENHANCED_INTEGRATION_AVAILABLE:
@@ -305,8 +331,25 @@ class TorqConsole:
                     else:
                         response = integration_response.content
             else:
-                # Fallback to standard interface
-                response = await self.prince_flowers.handle_prince_command(command, context)
+                # Use Enhanced Prince Flowers v2 directly
+                # Extract query from command
+                if command.lower().startswith('prince '):
+                    query = command[7:].strip()
+                else:
+                    query = command.strip()
+
+                # Check if it's the v2 interface (has chat_with_memory)
+                if hasattr(self.prince_flowers, 'chat_with_memory'):
+                    # Enhanced Prince Flowers v2 with memory
+                    result = await self.prince_flowers.chat_with_memory(
+                        user_message=query,
+                        session_id=self.current_session_id if hasattr(self, 'current_session_id') else 'default',
+                        use_advanced_ai=True
+                    )
+                    response = result.get('response', 'No response generated')
+                else:
+                    # Fallback to old interface
+                    response = await self.prince_flowers.handle_prince_command(command, context)
 
             # Display with nice formatting
             self.console.print(Panel(
