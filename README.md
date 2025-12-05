@@ -17,6 +17,9 @@ It combines Aider's **CLI speed** with the **Model Context Protocol (MCP)** for 
 
 **🎉 NEW: Marvin 3.2.3 Integration Complete!**
 
+> **✅ COMPATIBILITY FIX:** Pydantic version is now pinned to `>=2.8.0,<3.0.0` to ensure stable Marvin integration.  
+> See [MARVIN_PYDANTIC_COMPATIBILITY.md](MARVIN_PYDANTIC_COMPATIBILITY.md) for details.
+
 TORQ Console now features **complete Marvin 3.2.3 integration** with:
 - ✅ **AI-Powered Specification Analysis** with multi-dimensional quality scoring
 - ✅ **Intelligent Agent Orchestration** with query routing and multi-agent coordination
@@ -345,12 +348,22 @@ cd TORQ-CONSOLE
 # Install dependencies
 pip install -e .
 
+# Optional: Install with Marvin AI support
+pip install -e ".[marvin]"
+
+# Verify installation and compatibility
+python test_marvin_pydantic_compatibility.py
+
 # Run integration tests
 python test_integration_final.py
 
 # Start the console
 torq-console --web
 ```
+
+> **📋 Note:** Pydantic version is pinned to `>=2.8.0,<3.0.0` for Marvin compatibility.  
+> If upgrading from an older version, run: `pip install "pydantic>=2.8.0,<3.0.0" --upgrade`  
+> See [MARVIN_COMPATIBILITY_QUICKREF.md](MARVIN_COMPATIBILITY_QUICKREF.md) for troubleshooting.
 
 ### First Use
 ```bash
