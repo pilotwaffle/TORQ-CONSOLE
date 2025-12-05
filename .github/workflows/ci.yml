@@ -42,7 +42,7 @@ jobs:
       env:
         PIP_DISABLE_PIP_VERSION_CHECK: '1'
       run: |
-        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install --upgrade --prefer-binary pip setuptools wheel
         # Prefer binary wheels to avoid building from source and reduce disk usage
         pip install --prefer-binary -e .
 
