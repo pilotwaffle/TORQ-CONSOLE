@@ -75,7 +75,7 @@ class ImageGenerationTool:
         save_to_file: bool = False,
         output_dir: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
+        r"""
         Execute image generation.
 
         Args:
@@ -148,7 +148,7 @@ class ImageGenerationTool:
             }
 
     def _save_result_to_file(self, result: Dict[str, Any], output_dir: Optional[str] = None) -> str:
-        """
+        r"""
         Save image generation result to a file.
 
         Args:

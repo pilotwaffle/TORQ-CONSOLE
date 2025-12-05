@@ -452,7 +452,8 @@ class KeywordRetriever:
 
     async def search(self, query: str, root_path: Path, file_patterns: List[str] = None) -> List[ContextMatch]:
         """Search for keyword matches using inverted index."""
-        cache_key = f"keyword:{hashlib.md5(f'{query}:{root_path}:{file_patterns}'.encode()).hexdigest()}"
+        # Use MD5 for cache key generation only (not for security)
+        cache_key = f"keyword:{hashlib.md5(f'{query}:{root_path}:{file_patterns}'.encode(), usedforsecurity=False).hexdigest()}"
 
         # Check cache first
         cached_result = self.cache.get(cache_key)
@@ -630,7 +631,8 @@ class GraphTraversalRetriever:
 
     async def search(self, query: str, root_path: Path, file_patterns: List[str] = None) -> List[ContextMatch]:
         """Search using graph traversal of code relationships."""
-        cache_key = f"graph:{hashlib.md5(f'{query}:{root_path}'.encode()).hexdigest()}"
+        # Use MD5 for cache key generation only (not for security)
+        cache_key = f"graph:{hashlib.md5(f'{query}:{root_path}'.encode(), usedforsecurity=False).hexdigest()}"
 
         cached_result = self.cache.get(cache_key)
         if cached_result:
@@ -937,8 +939,10 @@ class ContextManager:
     def _generate_context_id(self, text: str) -> str:
         """Generate unique context ID."""
         timestamp = datetime.now().isoformat()
+        """Generate a short hash ID for caching."""
+        # Use MD5 for cache ID generation only (not for security)
         content = f"{text}:{timestamp}"
-        return hashlib.md5(content.encode()).hexdigest()[:8]
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:8]
 
     async def get_active_context(self, context_id: str) -> Optional[Dict[str, List[ContextMatch]]]:
         """Get active context by ID."""

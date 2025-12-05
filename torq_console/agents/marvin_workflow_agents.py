@@ -546,7 +546,7 @@ _workflow_agents: Dict[WorkflowType, Any] = {}
 def get_workflow_agent(
     workflow_type: WorkflowType,
     model: Optional[str] = None
-) -> Optional[Union['CodeGenerationAgent', 'DebuggingAgent', 'DocumentationAgent', 'TestingAgent', 'ArchitectureAgent', 'N8NWorkflowArchitectAgent']]:
+) -> Optional[Union['CodeGenerationAgent', 'DebuggingAgent', 'DocumentationAgent', 'TestingAgent', 'ArchitectureAgent']]:
     """
     Get a workflow agent (singleton per type).
 
@@ -556,6 +556,9 @@ def get_workflow_agent(
 
     Returns:
         Specialized workflow agent, or None if workflow_type is invalid
+        
+    Note:
+        N8NWorkflowArchitectAgent is available but dynamically imported to avoid circular dependencies.
     """
     # Import n8n architect agent lazily
     from torq_console.agents.n8n_architect_agent import N8NWorkflowArchitectAgent

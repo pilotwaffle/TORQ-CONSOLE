@@ -4071,7 +4071,7 @@ The emergence of Falcon-H1 addresses critical gaps in current modeling solutions
             }
 
             # Overall status determination
-            degraded_checks = [check for check_name, check_data in health_status['checks'].items()
+            degraded_checks = [check_name for check_name, check_data in health_status['checks'].items()
                              if (isinstance(check_data, dict) and any(v == 'degraded' for v in check_data.values()))
                              or check_data == 'degraded']
 
