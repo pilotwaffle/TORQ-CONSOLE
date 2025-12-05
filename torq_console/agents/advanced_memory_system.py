@@ -495,8 +495,9 @@ class EnhancedMemorySystem:
 
     def _generate_memory_id(self, content: str) -> str:
         """Generate unique memory ID."""
+        # Generate memory ID using MD5 (for non-security purposes - memory indexing only)
         hash_input = f"{content}{datetime.now().isoformat()}"
-        return hashlib.md5(hash_input.encode()).hexdigest()[:12]
+        return hashlib.md5(hash_input.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 # Global instance

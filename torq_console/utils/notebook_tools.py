@@ -493,7 +493,7 @@ class NotebookEditTool:
                     # Simple code quality checks
                     if code_lines > 50:
                         code_analysis['long_cell'] = True
-                        code_analysis_details['cells_with_long_code'] += 1
+                        code_analysis['metrics']['cells_with_long_code'] += 1
                         code_analysis['issues'].append(f"Cell {i}: Very long code cell ({code_lines} lines)")
 
                     if 'import' in code_text and i > 0:

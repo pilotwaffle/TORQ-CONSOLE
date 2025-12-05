@@ -324,7 +324,8 @@ def marvin_is_available() -> bool:
     Returns:
         True if Marvin is configured and working
     """
-    global _global_bridge
+    # Note: _global_bridge is initialized in get_marvin_bridge()
+    # This function assumes Marvin is available until proven otherwise
     if _global_bridge is None:
         return True  # Assume available until proven otherwise
 
