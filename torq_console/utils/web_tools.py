@@ -384,8 +384,10 @@ Please provide a clear, structured response that addresses the request.
 
     def _get_cache_key(self, url: str, prompt: str) -> str:
         """Generate cache key for URL and prompt combination."""
+        """Generate unique cache key for request."""
+        # Use MD5 for cache key generation only (not for security)
         content = f"{url}|{prompt}"
-        return hashlib.md5(content.encode()).hexdigest()
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
 
     def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Get cached result if still valid."""

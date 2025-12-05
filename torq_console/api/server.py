@@ -201,23 +201,42 @@ socket_app = socketio.ASGIApp(
 
 
 def run_server(
-    host: str = "0.0.0.0",
+    host: str = "127.0.0.1",  # Default to localhost only for security
     port: int = 8899,
     reload: bool = False,
     log_level: str = "info",
+    bind_all: bool = False,  # Explicit flag to bind to all interfaces
 ) -> None:
     """
     Run the FastAPI server with uvicorn.
 
     Args:
-        host: Host address to bind to.
+        host: Host address to bind to (default: 127.0.0.1 for localhost only).
         port: Port number to bind to.
         reload: Enable auto-reload for development.
         log_level: Logging level (debug, info, warning, error).
+        bind_all: If True, bind to all interfaces (0.0.0.0) - use with caution.
+        
+    Security Note:
+        By default, the server binds to 127.0.0.1 (localhost only) for security.
+        To expose the server on all network interfaces, use bind_all=True.
+        When binding to all interfaces, ensure your firewall is properly configured.
 
     Example:
         >>> run_server(host="localhost", port=8899, reload=True)
+        >>> run_server(bind_all=True)  # Expose on all interfaces
     """
+    import logging
+    
+    # If bind_all is True, override host to bind to all interfaces
+    if bind_all:
+        host = "0.0.0.0"
+        logging.warning(
+            "⚠️  Security Warning: Server binding to all interfaces (0.0.0.0). "
+            "Ensure your firewall is configured and only trusted clients can access this server."
+        )
+    else:
+        logging.info(f"🔒 Server binding to localhost only ({host}). Use bind_all=True to expose on all interfaces.")
     import uvicorn
 
     logger.info(f"Starting server on {host}:{port}")

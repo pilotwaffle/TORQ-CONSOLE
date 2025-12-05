@@ -254,10 +254,23 @@ class VectorStore:
                     raise FileNotFoundError(f"Index file not found: {index_file}")
                 self.index = faiss.read_index(str(index_file))
 
-                # Load documents
+                # Load documents with security check
                 docs_file = load_path / 'documents.pkl'
                 if not docs_file.exists():
                     raise FileNotFoundError(f"Documents file not found: {docs_file}")
+                
+                # Security check: Verify file permissions (Unix systems)
+                if hasattr(docs_file, 'stat'):
+                    file_stat = docs_file.stat()
+                    import os
+                    if os.name != 'nt' and (file_stat.st_mode & 0o002):  # world-writable
+                        logger.warning(
+                            f"Security Warning: {docs_file} is world-writable. "
+                            "Refusing to load pickle file that could be tampered with."
+                        )
+                        raise PermissionError(f"Insecure file permissions on {docs_file}")
+                
+                # Load pickle file from trusted source
                 with open(docs_file, 'rb') as f:
                     self.documents = pickle.load(f)
 
