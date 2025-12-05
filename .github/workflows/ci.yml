@@ -34,7 +34,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', 'pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
@@ -43,8 +43,8 @@ jobs:
         PIP_DISABLE_PIP_VERSION_CHECK: '1'
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        # Use the cached dir to avoid re-downloading wheels every run and prefer binary wheels
-        pip install --prefer-binary --cache-dir ~/.cache/pip -e .
+        # Prefer binary wheels to avoid building from source and reduce disk usage
+        pip install --prefer-binary -e .
 
     - name: Lint check
       run: |
