@@ -32,3 +32,6 @@ scikit-learn>=1.3.0
 torch>=2.0.0
 transformers>=4.30.0
 sentence-transformers>=2.2.0
+
+# AI Framework dependencies
+marvin>=3.0.0

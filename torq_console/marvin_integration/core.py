@@ -10,7 +10,7 @@ from typing import Type, TypeVar, List, Any, Optional
 from enum import Enum
 
 import marvin
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 T = TypeVar('T')
 

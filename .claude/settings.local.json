@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(gh pr list:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git merge:*)",
+      "Bash(git remote:*)",
+      "Bash(curl:*)",
+      "Bash(start https://github.com/pilotwaffle/TORQ-CONSOLE)",
+      "Bash(gh auth status:*)",
+      "Bash(git config:*)",
+      "Bash(git ls-remote:*)",
+      "Bash(ping:*)",
+      "Bash(nslookup:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python:*)",
+      "Bash(pip:*)",
+      "Bash(torq:*)",
+      "Bash(set:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
