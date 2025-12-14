@@ -1,0 +1,24 @@
+{
+  "files": {
+    "torq_console/__init__.py": true,
+    "torq_console/cli.py": true,
+    "eval_sets/v1.0/tasks.json": true,
+    "policies/routing/v1.yaml": true,
+    "slo.yml": true,
+    "torq_console/core/telemetry/event.py": true
+  },
+  "import": true,
+  "cli": {
+    "help": true,
+    "telemetry": false,
+    "evaluation": true
+  },
+  "web": {
+    "torq_console/web": false,
+    "torq_landing.html": true
+  },
+  "evaluation_set": {
+    "loaded": true,
+    "tasks": 10
+  }
+}

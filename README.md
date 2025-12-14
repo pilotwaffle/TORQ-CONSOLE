@@ -71,90 +71,101 @@ torq-console --web
 ### Verify Installation
 
 ```bash
-# Run evaluation set
-torq eval run --set v1.0 --seed 42
+# Test package import
+python -c "import torq_console; print('TORQ Console installed successfully')"
 
-# Check telemetry compliance
-torq telemetry --compliance
+# Run evaluation set (validated working)
+torq-console eval --set v1.0 --seed 42
 
-# View system status
-torq status
+# View available commands
+torq-console --help
 ```
 
 ---
 
 ## 🎯 Core Commands
 
-### Evaluation System
+### Validated Working Commands
+
+#### Evaluation System (✅ Tested)
 ```bash
-# Run deterministic evaluation
-torq eval run --set v1.0 --seed 42
+# Run evaluation set
+torq-console eval --set v1.0
 
-# Compare with baseline
-torq eval compare --baseline v1.0
+# With specific seed
+torq-console eval --set v1.0 --seed 42
 
-# Generate report
-torq eval report --format json
+# Save results
+torq-console eval --set v1.0 --output results.json
 ```
 
-### Telemetry & Tracing
+#### Web Interface
 ```bash
-# View telemetry compliance
-torq telemetry --compliance
+# Start web server
+torq-console --web
 
-# Trace specific request
-torq trace <run_id>
-
-# Monitor live metrics
-torq monitor
+# Or explicitly
+torq-console serve
 ```
 
-### Performance Benchmarks
+#### Configuration
 ```bash
-# Run performance benchmarks
-torq bench run
+# Initialize configuration
+torq-console config-init
 
-# Check SLO status
-torq bench slo --status
+# Use custom config
+torq-console --config config.json
 ```
 
-### Policy Management
+#### MCP Integration
 ```bash
-# Test routing policies
-torq policy test --policy v1.yaml
-
-# Validate policy syntax
-torq policy validate <policy_file>
+# Connect to MCP server
+torq-console --mcp-connect localhost:3100
 ```
+
+### Available Features
+- ✅ Package installation and import
+- ✅ CLI framework with help system
+- ✅ Evaluation system (10 tasks in v1.0)
+- ✅ Web interface server
+- ✅ Configuration management
+- ✅ MCP connection capability
+- ✅ Agent system foundation
 
 ---
 
-## 📊 System Status
+## 📊 Validation Results
 
-### Test Results
-```bash
-# Run full test suite
-pytest tests/ -v
+### System Validation (December 14, 2025)
+- **Overall Success Rate**: 90% (9/10 core features working)
+- **Test Suite Status**: 54/62 tests passing (87.1%)
 
-# Current status: 54/62 tests passing (87.1%)
-# ML Systems tests: All passing
-# Known issues: Content Safety fixture errors, Prince Flowers variable scope
-# Fixes available: test_content_safety_fixed.py, marvin_query_router_fixed.py
-```
+### What's Working ✅
+- Package installation and import
+- CLI framework and commands
+- Evaluation system (10 tasks available)
+- Web interface server
+- Configuration management
+- MCP connection framework
+- Agent system foundation
+- File structure integrity
 
-### Evaluation Results
-Latest evaluation results are stored in:
-- `evaluation_results/` - Historical evaluation outputs
-- `eval_sets/v1.0/` - Evaluation task definitions
-- `demo_evaluation_results.json` - Sample results
+### Known Limitations ⚠️
+- Telemetry compliance command needs implementation
+- Prince Flowers agent shows warnings
+- Some test fixtures need updates
+- Web module uses alternative implementation
 
-Run `torq eval report` for latest metrics.
+### Validation Evidence
+- Full validation report: [USER_CAPABILITIES_VALIDATED.md](USER_CAPABILITIES_VALIDATED.md)
+- Test results saved in: `validation_results.json`
 
 ### Data Storage
-- **Telemetry events**: Stored in local telemetry store
 - **Evaluation results**: `evaluation_results/` directory
-- **Benchmarks**: Generated on-demand with `torq bench run`
-- **Policies**: `policies/` directory
+- **Evaluation sets**: `eval_sets/v1.0/` (10 tasks)
+- **Policies**: `policies/routing/v1.yaml`
+- **SLO definitions**: `slo.yml`
+- **Landing page**: `torq_landing.html` (29KB)
 
 ---
 
