@@ -1,0 +1,965 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-14T14:19:11.058659",
+    "git_sha": "d00ad57f329e9aa6d7f3493167cb54932373657d",
+    "git_short_sha": "d00ad57f",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "working_directory": "E:\\TORQ-CONSOLE",
+    "torq_console_version": "0.70.0"
+  },
+  "contract": {
+    "version": 1,
+    "date": "2025-12-14",
+    "description": "TORQ Console Capability Contract - All claims backed by tests",
+    "personas": {
+      "basic_user": {
+        "description": "Local usage, no external API keys required",
+        "requirements": []
+      },
+      "power_user": {
+        "description": "Uses evaluation systems, policies, and ML features",
+        "requirements": [
+          "python>=3.10",
+          "pip install -e ."
+        ]
+      }
+    },
+    "capabilities": [
+      {
+        "id": "cli_help_torq",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "core",
+        "description": "Display CLI help for torq command",
+        "verify": {
+          "command": "torq --help",
+          "success_contains": [
+            "eval",
+            "bench",
+            "config-init",
+            "serve",
+            "mcp",
+            "agent"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "cli_help_torq_console",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "core",
+        "description": "Display CLI help for torq-console command",
+        "verify": {
+          "command": "torq-console --help",
+          "success_contains": [
+            "eval",
+            "telemetry",
+            "trace",
+            "web",
+            "mcp-connect"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "package_import",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "core",
+        "description": "Import torq_console package in Python",
+        "verify": {
+          "python_code": "import torq_console; print('Import successful')",
+          "success_contains": [
+            "Import successful"
+          ]
+        }
+      },
+      {
+        "id": "eval_help",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Display evaluation command help",
+        "verify": {
+          "command": "torq eval --help",
+          "success_contains": [
+            "--set",
+            "--seed",
+            "--output",
+            "--no-baseline"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "eval_v1_deterministic",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Run v1.0 evaluation set deterministically",
+        "verify": {
+          "command": "torq eval --set v1.0 --seed 42 --output test_eval_output.json",
+          "artifacts": {
+            "must_write_glob": [
+              "test_eval_output.json"
+            ],
+            "must_contain": [
+              "overall_score",
+              "task_results"
+            ]
+          },
+          "success_criteria": [
+            "Output file created",
+            "JSON valid and parseable"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "eval_set_exists",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Evaluation v1.0 set files exist and are valid",
+        "verify": {
+          "file_exists": [
+            "eval_sets/v1.0/tasks.json",
+            "eval_sets/v1.0/metadata.json"
+          ],
+          "json_valid": [
+            "eval_sets/v1.0/tasks.json"
+          ],
+          "must_contain": [
+            "tasks",
+            "version"
+          ]
+        }
+      },
+      {
+        "id": "config_init",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "configuration",
+        "description": "Initialize TORQ Console configuration",
+        "verify": {
+          "command": "torq config-init",
+          "artifacts": {
+            "may_write_glob": [
+              "config.json",
+              ".torq/*"
+            ]
+          },
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "routing_policy_exists",
+        "personas": [
+          "power_user"
+        ],
+        "category": "policy",
+        "description": "Routing policy configuration exists and is valid",
+        "verify": {
+          "file_exists": [
+            "policies/routing/v1.yaml"
+          ],
+          "yaml_valid": [
+            "policies/routing/v1.yaml"
+          ],
+          "must_contain": [
+            "policies",
+            "routing",
+            "intent_mappings"
+          ]
+        }
+      },
+      {
+        "id": "slo_config_exists",
+        "personas": [
+          "power_user"
+        ],
+        "category": "policy",
+        "description": "SLO configuration exists and is valid",
+        "verify": {
+          "file_exists": [
+            "slo.yml"
+          ],
+          "yaml_valid": [
+            "slo.yml"
+          ],
+          "must_contain": [
+            "slos",
+            "interactive",
+            "tool_heavy"
+          ]
+        }
+      },
+      {
+        "id": "web_help_available",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "web",
+        "description": "Web interface help is available",
+        "verify": {
+          "command": "torq --help",
+          "success_contains": [
+            "--web",
+            "Launch web UI interface"
+          ]
+        }
+      },
+      {
+        "id": "web_server_command",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "web",
+        "description": "Web server command is available",
+        "verify": {
+          "command": "torq serve --help",
+          "success_contains": [
+            "serve",
+            "Launch web UI server"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "mcp_option_available",
+        "personas": [
+          "power_user"
+        ],
+        "category": "mcp",
+        "description": "MCP connection option is available",
+        "verify": {
+          "command": "torq --help",
+          "success_contains": [
+            "--mcp-connect",
+            "Connect to MCP server"
+          ]
+        }
+      },
+      {
+        "id": "mcp_command_available",
+        "personas": [
+          "power_user"
+        ],
+        "category": "mcp",
+        "description": "MCP management command is available",
+        "verify": {
+          "command": "torq mcp --help",
+          "success_contains": [
+            "Manage MCP server connections"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "agent_command_available",
+        "personas": [
+          "power_user"
+        ],
+        "category": "agents",
+        "description": "Agent command is available",
+        "verify": {
+          "command": "torq agent --help",
+          "success_contains": [
+            "Marvin-powered",
+            "AI agent"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "agent_modules_exist",
+        "personas": [
+          "power_user"
+        ],
+        "category": "agents",
+        "description": "Agent system modules exist",
+        "verify": {
+          "file_exists": [
+            "torq_console/agents/__init__.py",
+            "torq_console/marvin_integration/__init__.py"
+          ]
+        }
+      },
+      {
+        "id": "eval_requires_set",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Evaluation command requires --set parameter",
+        "verify": {
+          "command": "torq eval",
+          "exit_code": 2,
+          "error_contains": [
+            "Missing option",
+            "--set"
+          ]
+        }
+      },
+      {
+        "id": "eval_invalid_set",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Evaluation rejects invalid set names",
+        "verify": {
+          "command": "torq eval --set nonexistent",
+          "exit_code": 1,
+          "error_contains": [
+            "Error",
+            "not found"
+          ]
+        }
+      }
+    ]
+  },
+  "results": {
+    "pytest_output": "============================= test session starts =============================\nplatform win32 -- Python 3.12.10, pytest-7.4.3, pluggy-1.6.0 -- C:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\ncachedir: .pytest_cache\nmetadata: {'Python': '3.12.10', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '7.4.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '3.7.1', 'Faker': '37.12.0', 'logfire': '4.14.2', 'asyncio': '0.21.1', 'cov': '4.1.0', 'json-report': '1.5.0', 'metadata': '3.1.1', 'mock': '3.12.0', 'typeguard': '4.4.4'}}\nrootdir: E:\\TORQ-CONSOLE\nconfigfile: pyproject.toml\nplugins: anyio-3.7.1, Faker-37.12.0, logfire-4.14.2, asyncio-0.21.1, cov-4.1.0, json-report-1.5.0, metadata-3.1.1, mock-3.12.0, typeguard-4.4.4\nasyncio: mode=Mode.AUTO\ncollecting ... collected 13 items\n\ntests/capability/test_simple_capabilities.py::test_cli_help_torq PASSED  [  7%]\ntests/capability/test_simple_capabilities.py::test_cli_help_torq_console FAILED [ 15%]\ntests/capability/test_simple_capabilities.py::test_eval_help PASSED      [ 23%]\ntests/capability/test_simple_capabilities.py::test_contract_file_exists FAILED [ 30%]\ntests/capability/test_simple_capabilities.py::test_contract_is_valid_yaml FAILED [ 38%]\ntests/capability/test_simple_capabilities.py::test_eval_set_files_exist FAILED [ 46%]\ntests/capability/test_simple_capabilities.py::test_eval_set_is_valid_json FAILED [ 53%]\ntests/capability/test_simple_capabilities.py::test_eval_v1_has_tasks FAILED [ 61%]\ntests/capability/test_simple_capabilities.py::test_policy_file_exists FAILED [ 69%]\ntests/capability/test_simple_capabilities.py::test_slo_file_exists FAILED [ 76%]\ntests/capability/test_simple_capabilities.py::test_package_import PASSED [ 84%]\ntests/capability/test_simple_capabilities.py::test_eval_requires_set_parameter PASSED [ 92%]\ntests/capability/test_simple_capabilities.py::test_eval_rejects_invalid_set FAILED [100%]\n\n================================== FAILURES ===================================\n_________________________ test_cli_help_torq_console __________________________\ntests\\capability\\test_simple_capabilities.py:47: in test_cli_help_torq_console\n    assert req in result.stdout, f\"Missing required content: {req}\"\nE   AssertionError: Missing required content: telemetry\nE   assert 'telemetry' in \"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\"\nE    +  where \"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\" = CompletedProcess(args='torq-console --help', returncode=0, stdout=\"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\", stderr='E:\\\\TORQ-CONSOLE\\\\torq_console\\\\agents\\\\marvin_orchestrator.py:34: UserWarning: TorqPrinceFlowers not available - search capabilities will be limited\\n  warnings.warn(\"TorqPrinceFlowers not available - search capabilities will be limited\")\\n').stdout\n__________________________ test_contract_file_exists __________________________\ntests\\capability\\test_simple_capabilities.py:69: in test_contract_file_exists\n    assert contract_path.exists(), f\"Contract file not found at {contract_path}\"\nE   AssertionError: Contract file not found at E:\\TORQ-CONSOLE\\tests\\docs\\capabilities.yml\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml')> = WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml').exists\n_________________________ test_contract_is_valid_yaml _________________________\ntests\\capability\\test_simple_capabilities.py:74: in test_contract_is_valid_yaml\n    with open(contract_path) as f:\nE   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\docs\\\\capabilities.yml'\n__________________________ test_eval_set_files_exist __________________________\ntests\\capability\\test_simple_capabilities.py:90: in test_eval_set_files_exist\n    assert full_path.exists(), f\"Required file not found: {file_path}\"\nE   AssertionError: Required file not found: eval_sets/v1.0/tasks.json\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json')> = WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json').exists\n_________________________ test_eval_set_is_valid_json _________________________\ntests\\capability\\test_simple_capabilities.py:95: in test_eval_set_is_valid_json\n    with open(eval_path) as f:\nE   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\eval_sets\\\\v1.0\\\\tasks.json'\n___________________________ test_eval_v1_has_tasks ____________________________\ntests\\capability\\test_simple_capabilities.py:105: in test_eval_v1_has_tasks\n    with open(eval_path) as f:\nE   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\eval_sets\\\\v1.0\\\\tasks.json'\n___________________________ test_policy_file_exists ___________________________\ntests\\capability\\test_simple_capabilities.py:115: in test_policy_file_exists\n    assert policy_path.exists(), f\"Policy file not found: {policy_path}\"\nE   AssertionError: Policy file not found: E:\\TORQ-CONSOLE\\tests\\policies\\routing\\v1.yaml\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml')> = WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml').exists\n____________________________ test_slo_file_exists _____________________________\ntests\\capability\\test_simple_capabilities.py:120: in test_slo_file_exists\n    assert slo_path.exists(), f\"SLO file not found: {slo_path}\"\nE   AssertionError: SLO file not found: E:\\TORQ-CONSOLE\\tests\\slo.yml\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml')> = WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml').exists\n________________________ test_eval_rejects_invalid_set ________________________\ntests\\capability\\test_simple_capabilities.py:150: in test_eval_rejects_invalid_set\n    result = subprocess.run(\nC:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py:550: in run\n    stdout, stderr = process.communicate(input, timeout=timeout)\nC:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py:1209: in communicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\nC:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py:1630: in _communicate\n    raise TimeoutExpired(self.args, orig_timeout)\nE   subprocess.TimeoutExpired: Command 'torq eval --set nonexistent' timed out after 10 seconds\n--------------------------------- JSON report ---------------------------------\nreport saved to: C:\\Users\\asdasd\\AppData\\Local\\Temp\\tmpjg55nmu3.json\n\n---------- coverage: platform win32, python 3.12.10-final-0 ----------\nName                                                                             Stmts   Miss  Cover   Missing\n--------------------------------------------------------------------------------------------------------------\ntorq_console\\__init__.py                                                             9      0   100%\ntorq_console\\__main__.py                                                           103    103     0%   6-164\ntorq_console\\agents\\__init__.py                                                     34     13    62%   190-193, 202, 207-228\ntorq_console\\agents\\action_learning.py                                              89     53    40%   118-124, 128-143, 155-186, 210-247, 255-274, 291-302, 309-312, 341-344, 355-382\ntorq_console\\agents\\adaptive_quality_manager.py                                    159    117    26%   36-43, 64-77, 84, 88, 104-124, 138-183, 187-204, 208-230, 235-245, 249-263, 267-295, 299-323, 332-342, 346, 363-371, 389-392\ntorq_console\\agents\\advanced_memory_system.py                                      225    165    27%   70-73, 81-95, 99-113, 121-124, 128, 142-145, 149-163, 168-170, 178-205, 209, 225-229, 233-244, 253-277, 281-294, 298, 302, 325-342, 365-405, 426-457, 461-471, 475-494, 499-500, 511-514\ntorq_console\\agents\\agent_system_enhancements.py                                   205    135    34%   86-92, 97-129, 134-159, 180-191, 208-225, 239-256, 270-271, 281-290, 308-341, 356-395, 410-412, 420, 438-471, 486-504, 526-531, 539-544, 552-557\ntorq_console\\agents\\config.py                                                       69     69     0%   11-165\ntorq_console\\agents\\conversation_session.py                                        122     80    34%   52-65, 84-98, 110-113, 125, 129, 141-144, 153, 162-191, 200, 212-213, 217, 238-255, 259, 285-291, 306-316, 328, 345-348, 352, 359, 371, 383-387, 391-398, 402-404, 420-423\ntorq_console\\agents\\coordination_benchmark.py                                      200    200     0%   19-548\ntorq_console\\agents\\enhanced_prince_flowers.py                                     128    128     0%   8-374\ntorq_console\\agents\\enhanced_prince_flowers_v2.py                                  446    405     9%   24-26, 33-38, 91-165, 226-357, 379-485, 511-667, 696-708, 712-723, 732-744, 753-765, 778-862, 876-892, 911-935, 947-976, 988-997, 1009-1020, 1024, 1028-1105, 1116-1119\ntorq_console\\agents\\enhanced_rl_system.py                                          174    174     0%   6-505\ntorq_console\\agents\\feedback_learning.py                                           133     98    26%   59-66, 90-122, 145-171, 194-243, 260-295, 312-338, 354-390, 401-403, 414-417\ntorq_console\\agents\\glm_prince_flowers.py                                           49     49     0%   7-268\ntorq_console\\agents\\handoff_context.py                                             121     62    49%   45-64, 68, 96-115, 119, 158-169, 186-215, 227, 237-239, 250-276, 286-288\ntorq_console\\agents\\handoff_optimizer.py                                           261    208    20%   49-51, 55-65, 72-77, 94-96, 116-123, 130-150, 154-173, 180, 200-322, 339-365, 374-385, 399-400, 420, 445-536, 547-575, 584-608, 622-664, 680-685\ntorq_console\\agents\\hierarchical_task_planner.py                                   214    148    31%   78-79, 83-111, 125-126, 130-158, 172-173, 177-203, 217-218, 222-247, 262-263, 276-299, 310-319, 327-384, 388-395, 400-408, 425-446, 463-500, 512-521, 529-553, 557, 573-576\ntorq_console\\agents\\improved_debate_activation.py                                  117     88    25%   59-98, 115-165, 185-211, 224-250, 262-278, 290-306, 311, 329-332\ntorq_console\\agents\\intent_detector.py                                             172    136    21%   104-105, 149-171, 183-208, 219-230, 243, 260-278, 291-293, 314-361, 379-385, 394-406, 421-431, 443-454, 468-477, 481-484, 513, 523-591\ntorq_console\\agents\\marvin_commands.py                                             220    192    13%   23-30, 34-61, 65-108, 112-136, 143-193, 205-251, 263-312, 325-365, 378-418, 430-480, 484-569, 573-575, 600-602, 636, 640, 647, 686\ntorq_console\\agents\\marvin_memory.py                                               153    102    33%   72-86, 111-131, 141-148, 158-160, 164, 178-186, 198-201, 220-229, 233-259, 283-288, 308-323, 327-354, 358-384, 403-406\ntorq_console\\agents\\marvin_orchestrator.py                                         171    129    25%   30, 75-117, 136-183, 197-231, 244-268, 272-280, 289-309, 327-340, 361-367, 395-442, 452-454, 458, 469-473, 495-500\ntorq_console\\agents\\marvin_prince_flowers.py                                       118     75    36%   153-188, 192-201, 208-233, 243-262, 266, 287-321, 344-373, 381-382, 386-387, 391-417, 421, 425-432, 456\ntorq_console\\agents\\marvin_query_router.py                                         265    211    20%   90-123, 135-199, 216-348, 362-396, 405-416, 433-483, 491-510, 518-543, 550-575, 584, 597, 615-619, 623-627, 631-666, 685, 691-717, 722-723\ntorq_console\\agents\\marvin_query_router_fixed.py                                   202    139    31%   12-14, 21, 84-126, 134-230, 234, 242, 250, 258, 274-362, 376-410, 419-432, 438-451, 473\ntorq_console\\agents\\marvin_workflow_agents.py                                      107     63    41%   46-48, 52, 93-131, 144-146, 150, 191-233, 246-248, 252, 295-333, 346-348, 352, 392-432, 445-447, 451, 491-533, 564-580, 585\ntorq_console\\agents\\memory_integration.py                                          139    139     0%   8-450\ntorq_console\\agents\\meta_learning_engine.py                                        194    146    25%   53-67, 82-106, 113-120, 127-139, 146-156, 160-165, 169, 181-185, 204-221, 235-257, 274-291, 299-309, 321-325, 344-364, 372-384, 401-415, 438-457, 466-491, 510-545, 549, 567-570\ntorq_console\\agents\\multi_agent_debate.py                                          175    126    28%   59-60, 64-80, 92-99, 115-116, 120-144, 159-160, 164-183, 198-199, 203-227, 245-260, 277-312, 324-336, 348-363, 377-390, 398-408, 412-466, 474, 491-494\ntorq_console\\agents\\n8n_architect_agent.py                                         112     63    44%   121-128, 139, 162-204, 227-329, 348-436, 461-487, 494, 525\ntorq_console\\agents\\policy_driven_router.py                                        133     98    26%   65-82, 101-187, 192-213, 233-256, 277-296, 301-307, 327-372, 376-379, 383-386, 390-400, 410-425, 447, 451-454, 472-473, 477, 495\ntorq_console\\agents\\policy_framework.py                                            219    152    31%   99-115, 119-138, 142-183, 188-221, 234-236, 240-242, 246-248, 271-308, 327-374, 393-398, 415-430, 470-513, 517-519, 523-526, 558-560, 566-569\ntorq_console\\agents\\preference_learning.py                                         109     78    28%   30, 55-62, 66, 115-138, 147-183, 200-207, 219, 236, 253-282, 286-334, 343-353, 364-367\ntorq_console\\agents\\prince_flowers_agent.py                                        236    198    16%   43-63, 67-79, 88-121, 128-131, 135-142, 157-234, 245-269, 280-294, 298-310, 314-321, 325-370, 380-439, 449-476, 480-531, 539-549, 560-568, 572-584, 589-613, 617-620, 637-650, 658\ntorq_console\\agents\\prince_flowers_enhanced.py                                      93     76    18%   52-65, 69, 210-253, 257-271, 286-360, 369-400, 420-450, 455-463, 493, 504-505\ntorq_console\\agents\\prince_flowers_enhanced_integration.py                         199    199     0%   17-684\ntorq_console\\agents\\rl_learning_system.py                                          186    105    44%   98-117, 121-155, 159-164, 168-191, 196-205, 209-214, 218-245, 249-254, 260-277, 281-296, 300-311, 315-339, 365-366, 370-384\ntorq_console\\agents\\rl_modules\\__init__.py                                           0      0   100%\ntorq_console\\agents\\rl_modules\\async_training.py                                   328    328     0%   6-609\ntorq_console\\agents\\rl_modules\\dynamic_actions.py                                  266    266     0%   6-507\ntorq_console\\agents\\rl_modules\\modular_agent.py                                    243    243     0%   6-497\ntorq_console\\agents\\search_formatters.py                                           117    117     0%   11-236\ntorq_console\\agents\\self_evaluation_system.py                                      252    189    25%   74-75, 94-122, 127-136, 140-152, 157-162, 166-177, 181-185, 198, 215-242, 246-260, 264-274, 290, 309-341, 353-359, 364-373, 378-388, 393-400, 405-413, 430-442, 465-536, 552-575, 579-585, 602-605\ntorq_console\\agents\\test_generation_agent.py                                       145    145     0%   13-511\ntorq_console\\agents\\tools\\__init__.py                                               10      0   100%\ntorq_console\\agents\\tools\\browser_automation_tool.py                               257    232    10%   16-18, 67-102, 111, 191-280, 289-320, 324-344, 357-382, 399-423, 441-466, 483-504, 521-546, 563-586, 603-626, 639-644, 653, 715-766, 809\ntorq_console\\agents\\tools\\code_generation_tool.py                                  159    129    19%   29-34, 127-135, 148-181, 195-218, 222-224, 271-276, 310-312, 351-353, 397-400, 437-439, 473, 499, 542-544, 573, 595-598, 607-618, 622-635, 648-676, 699-757, 773\ntorq_console\\agents\\tools\\file_operations_tool.py                                  233    207    11%   29-36, 40-48, 52-58, 62-65, 69-76, 88-109, 113-127, 131-139, 153-203, 220-257, 275-324, 341-385, 403-457, 474-518, 531-586, 602-626, 644\ntorq_console\\agents\\tools\\image_generation_tool.py                                  93     78    16%   15-17, 34-62, 66, 98-144, 162-182, 191, 249-270, 284\ntorq_console\\agents\\tools\\landing_page_generator.py                                 83     60    28%   26-31, 42-50, 83-171, 179-181, 185-188, 203-211, 368, 372, 376, 380, 384, 397, 405-406, 410, 428\ntorq_console\\agents\\tools\\linkedin_posting_tool.py                                  95     79    17%   16-18, 44-73, 77, 81, 108-238, 251, 303-317, 335\ntorq_console\\agents\\tools\\mcp_client_tool.py                                       405    326    20%   32-34, 80, 108-109, 220-245, 256-297, 306-310, 352-431, 446-470, 490-554, 566-601, 613-647, 659-701, 717-763, 789-841, 853-876, 893-924, 947-975, 991-1014, 1031-1056, 1076-1085, 1089-1098, 1135\ntorq_console\\agents\\tools\\multi_tool_composition_tool.py                           413    343    17%   81-136, 150-180, 201-214, 228-242, 256-278, 304-344, 360-381, 458-466, 480-485, 512-589, 613-657, 679-730, 756-775, 796-840, 865-923, 950-970, 993-1041, 1068-1073, 1091, 1136\ntorq_console\\agents\\tools\\n8n_workflow_tool.py                                     233    208    11%   15-17, 64-95, 100-126, 135, 184-241, 256-288, 305-342, 358-393, 409-447, 461-477, 494-518, 534-558, 574-599, 612-621, 630, 676-711, 715-717, 752\ntorq_console\\agents\\tools\\terminal_commands_tool.py                                149    115    23%   169-185, 194-211, 232-263, 303-441, 469-495, 516-590, 604, 623\ntorq_console\\agents\\tools\\twitter_posting_tool.py                                  106     91    14%   15-17, 52-105, 109, 119, 146-244, 257, 312-324, 348\ntorq_console\\agents\\torq_prince_flowers.py                                        1672   1522     9%   41-47, 53-55, 61-63, 68-70, 76-78, 84-86, 92-94, 100-102, 108-110, 116-118, 124-126, 132-134, 201-242, 250, 365-386, 390-584, 589-622, 626-665, 670-684, 702-896, 909-984, 999-1045, 1057-1068, 1072-1217, 1228-1238, 1246-1355, 1367-1457, 1478-1675, 1687-1716, 1730-1883, 1903-2005, 2024-2150, 2168-2220, 2237-2313, 2331-2383, 2411-2485, 2520-2600, 2624-2681, 2705-2758, 2782-2840, 2864-2889, 2893-2943, 2951-3031, 3053-3133, 3143-3185, 3195-3246, 3257-3285, 3296-3320, 3324-3752, 3764-3800, 3806-3828, 3832-3845, 3849-3863, 3869-3901, 3906-3910, 3916-3955, 3967-3982, 3986-4006, 4041-4092, 4096-4105, 4152-4155, 4168-4219, 4228-4300, 4309-4363, 4378-4385, 4398-4428, 4432-4449, 4453-4457, 4485-4505, 4509, 4541\ntorq_console\\agents\\torq_search_master.py                                          492    416    15%   66-67, 91-96, 113-150, 154-166, 175-189, 212-337, 346-373, 377-446, 450-489, 493-526, 530-569, 573-606, 616-634, 642-669, 673-678, 691-755, 771-797, 814-840, 844-857, 867-894, 911-955, 959-967, 971-998, 1003-1011, 1015, 1031, 1037-1066, 1071\ntorq_console\\api\\__init__.py                                                         4      4     0%   7-11\ntorq_console\\api\\routes.py                                                         124    124     0%   8-530\ntorq_console\\api\\server.py                                                          65     65     0%   8-255\ntorq_console\\api\\socketio_handler.py                                               160    160     0%   8-558\ntorq_console\\benchmarking\\__init__.py                                                7      7     0%   8-15\ntorq_console\\benchmarking\\__main__.py                                                3      3     0%   7-10\ntorq_console\\benchmarking\\bcli.py                                                  137    137     0%   7-236\ntorq_console\\benchmarking\\cli.py                                                   240    240     0%   7-418\ntorq_console\\benchmarking\\reporting.py                                             204    204     0%   7-473\ntorq_console\\benchmarking\\runner.py                                                206    206     0%   7-424\ntorq_console\\benchmarking\\slo_config.py                                            145    145     0%   7-245\ntorq_console\\benchmarking\\storage.py                                               200    200     0%   7-486\ntorq_console\\cli.py                                                                172     97    44%   31-38, 73-105, 116-121, 135-149, 159-168, 178-183, 189-200, 236-243, 246-247, 249-250, 279-296, 315-335, 340-341, 346-347, 351\ntorq_console\\cli_with_benchmark.py                                                 171    171     0%   8-351\ntorq_console\\core\\__init__.py                                                        5      0   100%\ntorq_console\\core\\chat_manager.py                                                  875    729    17%   84, 98, 123, 136, 164, 181, 197, 201, 205-206, 210, 233-243, 249, 253-262, 266-276, 280-290, 294-328, 332-338, 342, 349-355, 359-377, 381-411, 415-427, 431-440, 444-462, 466-476, 480-502, 506-554, 558-566, 570-581, 585-593, 600-603, 607-620, 624-697, 710-751, 755-765, 771-818, 822-859, 863-903, 909-954, 959-977, 983-989, 993-1049, 1053-1076, 1080-1112, 1116-1122, 1126-1157, 1161, 1165-1166, 1170-1196, 1201-1246, 1250-1276, 1280-1291, 1295-1325, 1329-1366, 1371-1403, 1407-1436, 1440-1454, 1458-1478, 1482-1485, 1489-1506, 1511-1529, 1533-1552, 1556-1579, 1583-1616\ntorq_console\\core\\config.py                                                        338    238    30%   32, 115-142, 146-173, 177-178, 182, 198-204, 209, 214-233, 238-241, 245-283, 288-348, 352-385, 389, 393-399, 411-420, 424-443, 447-463, 467-470, 474-494, 498-509, 513-520, 524-552, 556-598, 602-621, 637-687, 691-692\ntorq_console\\core\\console.py                                                       498    430    14%   43-46, 53-55, 74-161, 165-174, 178-215, 219-232, 236-249, 261-276, 288-371, 383-403, 418-446, 450-451, 494-548, 552-577, 581-611, 615-634, 638-654, 658-678, 682-683, 687-714, 720-738, 742-754, 758-772, 776-792, 796-803, 807-814, 818-833, 837-853, 857-875, 879, 883-896, 900-903, 915-941, 945-966\ntorq_console\\core\\console_telemetry.py                                             103    103     0%   8-328\ntorq_console\\core\\context_manager.py                                               521    420    19%   25-26, 64, 68-69, 76-80, 84-95, 99-120, 124-126, 131-144, 153-184, 188-189, 193-194, 208-214, 218-262, 268-278, 282-311, 316, 321, 326, 331, 338-341, 351-359, 364-396, 408-417, 421-450, 456-513, 518-523, 527-552, 556-568, 572-603, 610-612, 616-621, 628-630, 635-669, 673-680, 685, 697-718, 731-767, 771-795, 799-837, 841-860, 865-879, 883-898, 902-919, 923-924, 928-937, 941-945, 949, 953-956, 960, 973-999, 1003-1016, 1020\ntorq_console\\core\\evaluation\\__init__.py                                             3      0   100%\ntorq_console\\core\\evaluation\\runner.py                                             190    156    18%   40, 49-63, 85-101, 105-113, 117-134, 148-229, 234-250, 262-318, 331-392, 396-402, 406-421, 425, 437-484, 488-489\ntorq_console\\core\\evaluation\\scoring.py                                            222    178    20%   61-63, 77-104, 108-153, 157-174, 178-199, 203-230, 243-284, 316-349, 369-382, 387-394, 398-405, 411-415, 419-423, 428-432, 436-455\ntorq_console\\core\\executor_pool.py                                                  33     22    33%   33-44, 59-67, 81-84, 94-101\ntorq_console\\core\\logger.py                                                         21     16    24%   13-42\ntorq_console\\core\\telemetry\\__init__.py                                              6      0   100%\ntorq_console\\core\\telemetry\\collector.py                                           399    321    20%   59-60, 68, 77, 81, 85, 89, 96-98, 102-157, 161-206, 210-211, 239-291, 295, 299-326, 330-361, 375-377, 381-389, 398-429, 433, 437, 441-455, 462-464, 468-480, 489-505, 509, 513-522, 526-527, 538-559, 567-574, 578-587, 591-608, 612-639, 643-647, 651, 655-696, 700-717, 739-748, 752-777, 781-784, 806-808, 815-820\ntorq_console\\core\\telemetry\\compliance.py                                          221    153    31%   86-95, 102-105, 109, 138, 245, 260, 294-381, 394-409, 414-429, 439-443, 447-495, 504-539, 543-549, 559-561, 567-568, 573-574, 580-601\ntorq_console\\core\\telemetry\\event.py                                               273     23    92%   121-125, 129, 134-136, 352, 371, 391, 412, 434, 454, 493-495, 499-501, 535-537\ntorq_console\\core\\telemetry\\trace.py                                               309    219    29%   48, 59, 63, 92-95, 99, 103-108, 112-113, 117-139, 156-158, 162-163, 167-170, 174, 178, 196-200, 209-215, 226-242, 251-256, 264-269, 273, 277, 281, 285, 294, 310-324, 328-329, 333-344, 348, 364-366, 372-462, 467-505, 510-560, 565-607, 612-657\ntorq_console\\indexer\\__init__.py                                                     5      0   100%\ntorq_console\\indexer\\code_scanner.py                                                92     73    21%   44-48, 52-65, 70-80, 92-117, 132-170, 179-196, 212-218, 222\ntorq_console\\indexer\\embeddings.py                                                 143    121    15%   25-27, 31-44, 63-79, 91, 111-130, 149-170, 182-205, 209-210, 231-234, 253-292, 304, 314-315, 325-326, 330-331, 335, 344-363\ntorq_console\\indexer\\semantic_search.py                                            187    146    22%   49-64, 68-72, 76, 124-144, 153-210, 234-279, 296-337, 341-344, 354, 358-359, 363-367, 371-377, 382-425\ntorq_console\\indexer\\vector_store.py                                               167    146    13%   27-31, 35-42, 56-71, 86-133, 150-170, 187-210, 219-237, 246-280, 284-285, 293-296, 308-311, 315-316, 321-351\ntorq_console\\integrations\\__init__.py                                                2      0   100%\ntorq_console\\integrations\\github_push.py                                            99     99     0%   6-225\ntorq_console\\integrations\\huggingface_models.py                                    299    299     0%   8-822\ntorq_console\\integrations\\image_generation.py                                       65     52    20%   14-16, 29-40, 44, 67-114, 140, 155-187\ntorq_console\\integrations\\n8n_workflows.py                                         216    216     0%   8-686\ntorq_console\\integrations\\perplexity_search.py                                      97     69    29%   35-43, 73-127, 132-159, 163, 167, 171-178, 182-189, 194-203, 217, 222-237, 241\ntorq_console\\integrations\\torq_integration.py                                       67     37    45%   36-39, 53-122, 132-133, 137-140, 154, 166-167, 176, 194-195\ntorq_console\\integrations\\video_generation.py                                      124    124     0%   6-346\ntorq_console\\llm\\__init__.py                                                         4      0   100%\ntorq_console\\llm\\glm_client.py                                                      65     50    23%   48-61, 84-104, 129, 150-169, 190-206, 226-234, 251-265, 288-291\ntorq_console\\llm\\manager.py                                                        276    243    12%   22-24, 40-84, 88-102, 106-120, 124-140, 144-187, 191-206, 214-241, 259-275, 300-327, 332-339, 353-362, 383-392, 406-435, 447-481, 490-510, 519-535, 547-554, 572-585, 602-608, 632-662\ntorq_console\\llm\\providers\\__init__.py                                               2      0   100%\ntorq_console\\llm\\providers\\base.py                                                  40     19    52%   14-16, 21, 26, 31, 35, 39-43, 48, 52, 65, 69-70, 74, 78\ntorq_console\\llm\\providers\\claude.py                                                75     59    21%   26-42, 46, 59-85, 104-144, 166-184, 208-221, 240-244, 265-277, 290-291\ntorq_console\\llm\\providers\\content_safety.py                                       188    127    32%   71-104, 116-133, 145-170, 193, 211-232, 236-244, 248-261, 265, 311-365, 369-374, 378-379, 386-404, 425-434, 438-452, 456-460, 466, 478, 483, 488, 493\ntorq_console\\llm\\providers\\content_synthesis\\__init__.py                             5      0   100%\ntorq_console\\llm\\providers\\content_synthesis\\confidence.py                         168    138    18%   39-44, 107-108, 135-162, 192-231, 241-269, 279-311, 319-351, 359-378, 385-400, 412-435\ntorq_console\\llm\\providers\\content_synthesis\\extractor.py                          217    160    26%   89-90, 103-152, 164-183, 193-202, 207-216, 221-230, 234-238, 242-246, 250-254, 259-272, 276-319, 323-353, 357-405, 410-417\ntorq_console\\llm\\providers\\content_synthesis\\synthesizer.py                        157    118    25%   61-62, 83-165, 170-182, 186-206, 216-248, 252-263, 267-278, 285-291, 298-315, 324-333, 337-352, 359-369, 373\ntorq_console\\llm\\providers\\deepseek.py                                             110     92    16%   31-51, 55-66, 70-78, 88-142, 169-206, 225-227, 246-254, 267-284, 288, 292-304\ntorq_console\\llm\\providers\\export\\__init__.py                                        7      0   100%\ntorq_console\\llm\\providers\\export\\csv_exporter.py                                   62     51    18%   19, 38-51, 55-98, 102-126, 139-145\ntorq_console\\llm\\providers\\export\\export_manager.py                                 68     51    25%   30-38, 60-74, 97, 122, 143, 167, 186-210, 219, 262-273\ntorq_console\\llm\\providers\\export\\json_exporter.py                                  51     39    24%   19, 40-59, 67-102, 106, 124-143, 147-152\ntorq_console\\llm\\providers\\export\\markdown_exporter.py                             115    101    12%   18, 41-59, 69-110, 114-129, 133-149, 153-159, 163-201, 205-219, 223\ntorq_console\\llm\\providers\\export\\pdf_exporter.py                                  130    117    10%   17-18, 22-42, 61-80, 84-121, 125-186, 190-223, 227-233, 237, 294\ntorq_console\\llm\\providers\\glm.py                                                   44     27    39%   47-58, 67, 90-108, 131-138, 147, 178, 182-183, 187, 191-192, 196\ntorq_console\\llm\\providers\\llama_cpp_provider.py                                   148    118    20%   18-20, 63-84, 93-117, 136-159, 176-214, 234-241, 258-266, 286-314, 326-342, 361-369, 382-384, 388, 397-434, 441-445\ntorq_console\\llm\\providers\\ollama.py                                               126    104    17%   32-44, 48-56, 65-94, 121-168, 178-192, 205-207, 226-234, 247-264, 270, 274-297, 306-315, 327-333, 337-338, 342-343\ntorq_console\\llm\\providers\\progress\\__init__.py                                      3      0   100%\ntorq_console\\llm\\providers\\progress\\progress_tracker.py                            101     66    35%   63-78, 82-83, 100-128, 142-164, 169-185, 194, 198, 202-222, 226-242, 246-250, 255-260, 274\ntorq_console\\llm\\providers\\search_plugins\\__init__.py                                5      0   100%\ntorq_console\\llm\\providers\\search_plugins\\base.py                                   73     20    73%   36, 81, 124-126, 149, 163-164, 173, 182, 194-202, 211, 225, 236\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\__init__.py                5      0   100%\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\arxiv_plugin.py           49     41    16%   27-45, 64-146, 150-151\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\hackernews_plugin.py      37     30    19%   24-42, 61-123, 127-128\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\reddit_plugin.py          39     32    18%   26-44, 63-126, 130-131\ntorq_console\\llm\\providers\\search_plugins\\loader.py                                 99     80    19%   36-40, 52-66, 83-128, 140-148, 160-171, 183-202, 215-230, 239, 243-247\ntorq_console\\llm\\providers\\search_plugins\\registry.py                              118     94    20%   53-81, 93-131, 143-168, 180, 189, 201-204, 219-225, 237-240, 249-256, 268-269, 278-290, 299, 323\ntorq_console\\llm\\providers\\websearch.py                                            549    501     9%   25-26, 31-32, 41-42, 51-53, 61-62, 69-70, 83-187, 206-246, 259-295, 308-319, 341-360, 369-432, 441-538, 547-645, 657-704, 725-777, 790-829, 833-846, 855-882, 893-932, 950-969, 983-1000, 1005, 1009-1048, 1052-1061, 1084-1239, 1264-1315\ntorq_console\\marvin_integration\\__init__.py                                          5      0   100%\ntorq_console\\marvin_integration\\agents.py                                           36     24    33%   31-60, 80-111, 131-162, 186-217, 237-269, 289-320, 348-356\ntorq_console\\marvin_integration\\core.py                                             60     35    42%   45-48, 95-105, 133-143, 171-181, 205-215, 244-255, 283-291, 295, 299-300\ntorq_console\\marvin_integration\\models.py                                          107      0   100%\ntorq_console\\mcp\\__init__.py                                                         3      0   100%\ntorq_console\\mcp\\claude_code_bridge.py                                             244    190    22%   26-67, 76-96, 102-124, 128-143, 147-182, 188-206, 211-217, 222-230, 235-238, 243, 249-272, 276-297, 301-321, 325-345, 351-362, 366-377, 382-387, 391, 397, 401, 405, 409, 413, 417, 421, 425, 429, 433, 437, 441, 445, 449, 453, 457, 461, 465, 471-477, 481-487, 492, 496, 500, 504, 508, 512, 516, 520, 524\ntorq_console\\mcp\\client.py                                                         258    227    12%   29-31, 43-54, 58-92, 96-136, 140-167, 171-192, 196-211, 216-235, 239-253, 257-271, 275-289, 294-312, 316-321, 326-346, 351-382, 387-419, 424-456, 460, 464, 468-480, 484-487\ntorq_console\\mcp\\enhanced_client.py                                                201    201     0%   8-477\ntorq_console\\mcp\\enhanced_integration.py                                            69     44    36%   19-27, 31-46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90, 94, 99, 103-117, 121-131, 135\ntorq_console\\mcp\\mcp_commands.py                                                    99     82    17%   13, 18-35, 39-50, 54-63, 67-72, 76-86, 90-102, 106-149, 153-158, 162-179, 183, 196\ntorq_console\\mcp\\mcp_manager.py                                                     96     77    20%   15-20, 24-34, 38-79, 83-129, 133-141, 145-155, 159-164, 168-176, 180-181, 185-186, 190-197, 201-209\ntorq_console\\memory\\__init__.py                                                      2      0   100%\ntorq_console\\memory\\letta_integration.py                                           148    121    18%   19-21, 55-80, 84-106, 125-144, 161-194, 213-229, 238-264, 276-295, 307-341, 351-352, 360-384, 398-401, 406\ntorq_console\\orchestration\\__init__.py                                               3      3     0%   28-32\ntorq_console\\orchestration\\agents\\__init__.py                                        2      2     0%   7-15\ntorq_console\\orchestration\\agents\\base_agents.py                                    31     31     0%   7-287\ntorq_console\\orchestration\\flows\\__init__.py                                         3      3     0%   7-10\ntorq_console\\orchestration\\flows\\analysis_flow.py                                   31     31     0%   7-180\ntorq_console\\orchestration\\flows\\research_flow.py                                   41     41     0%   7-211\ntorq_console\\orchestration\\integration.py                                           39     39     0%   7-116\ntorq_console\\orchestration\\tasks\\__init__.py                                         2      2     0%   7-15\ntorq_console\\orchestration\\tasks\\base_tasks.py                                      52     52     0%   7-185\ntorq_console\\reasoning\\__init__.py                                                   6      6     0%   14-20\ntorq_console\\reasoning\\core.py                                                     182    182     0%   14-409\ntorq_console\\reasoning\\enhancers.py                                                207    207     0%   16-652\ntorq_console\\reasoning\\templates.py                                                206    206     0%   22-759\ntorq_console\\reasoning\\validator.py                                                209    209     0%   21-562\ntorq_console\\safety\\__init__.py                                                      9      9     0%   13-22\ntorq_console\\safety\\audit_logger.py                                                185    185     0%   7-537\ntorq_console\\safety\\confirmation.py                                                140    140     0%   7-383\ntorq_console\\safety\\models.py                                                      129    129     0%   5-173\ntorq_console\\safety\\policy_engine.py                                               144    144     0%   7-371\ntorq_console\\safety\\rate_limiter.py                                                188    188     0%   7-479\ntorq_console\\safety\\safety_manager.py                                              126    126     0%   7-442\ntorq_console\\safety\\sandbox.py                                                     185    185     0%   7-444\ntorq_console\\safety\\security.py                                                    170    170     0%   8-474\ntorq_console\\spec_kit\\__init__.py                                                   11      2    82%   51-53\ntorq_console\\spec_kit\\adaptive_intelligence.py                                     199    136    32%   75-90, 99, 128, 155, 185, 197-268, 284-307, 311-322, 326-349, 353-377, 381-399, 403-417, 421-436, 440-467, 471-492, 496\ntorq_console\\spec_kit\\collaboration_server.py                                      216    181    16%   24-29, 33-43, 47-50, 54-110, 114-161, 168-205, 216-237, 244-259, 267-281, 290-297, 306-311, 320-326, 336-352, 359-366, 370-374, 379-394, 398, 414-415, 419-423, 427-430, 434-443, 447, 456-464, 468-484\ntorq_console\\spec_kit\\ecosystem_intelligence.py                                    382    278    27%   93-95, 99, 109-110, 115-172, 176-191, 195-222, 226-242, 249-251, 255, 265-266, 271-332, 339-342, 346-361, 366-380, 384-400, 404-426, 431-467, 475-495, 499-519, 523-532, 536-545, 552-554, 560-594, 598-599, 603-608, 612-621, 631-656, 660-668, 678-684, 688-696, 700-703, 707-737, 742-767, 771-788, 792\ntorq_console\\spec_kit\\marvin_integration.py                                         76     56    26%   38-45, 65-110, 129-133, 148-161, 179-215, 231-233, 247, 257, 276-279, 298-299, 316-317, 329-332\ntorq_console\\spec_kit\\marvin_quality_engine.py                                     163    120    26%   77-81, 98-148, 157-175, 179-185, 189-198, 202-208, 223-271, 283-316, 333-369, 373-403, 407, 420-438, 447, 465\ntorq_console\\spec_kit\\marvin_spec_analyzer.py                                       94     73    22%   43-48, 65-91, 99, 128-133, 142-176, 188, 210-221, 233-243, 255-265, 284-295, 314-339, 346, 350, 354, 368\ntorq_console\\spec_kit\\realtime_editor.py                                           183    128    30%   64-73, 77, 138, 169-197, 202-246, 250-285, 290-319, 324-372, 376-401, 407-460, 464-477, 481-492, 496-501, 505-506, 512-542, 546-549\ntorq_console\\spec_kit\\rl_spec_analyzer.py                                          188    147    22%   39-46, 50-58, 62-86, 98-122, 126-141, 145-179, 185-211, 225-240, 245-262, 268-288, 292-307, 311-321, 325-344, 348-359, 363-374, 378-383\ntorq_console\\spec_kit\\spec_commands.py                                             410    369    10%   18-19, 25-27, 31-54, 58-72, 76-136, 140-151, 155-164, 185-225, 229-245, 249-385, 389-402, 406-452, 456-507, 511-614, 618-630, 634-679, 683-695, 699-717, 721-733, 737-761, 765-784, 788-816, 820, 824, 829-837, 841-847, 851, 879, 911, 928, 946, 963\ntorq_console\\spec_kit\\spec_engine.py                                               433    344    21%   66-91, 95-99, 103-139, 145-165, 173-215, 219-249, 253-304, 308-346, 350-363, 373-395, 399-415, 419-425, 429-451, 455-460, 464-471, 475-501, 505-512, 516, 531-548, 552-572, 580-588, 593-599, 603-607, 611-615, 619-623, 627-633, 637-642, 646-650, 654-665, 669-683, 689-695, 699-713, 717-739, 743-754, 758-764, 768-780, 784-792, 796-801, 805-813, 817-840\ntorq_console\\swarm\\__init__.py                                                       7      0   100%\ntorq_console\\swarm\\agents\\__init__.py                                                5      0   100%\ntorq_console\\swarm\\agents\\analysis_agent.py                                         59     47    20%   16-19, 23-32, 44-73, 83-101, 105-117, 120, 123\ntorq_console\\swarm\\agents\\code_agent.py                                            276    237    14%   31-69, 81-125, 135-175, 179-212, 216-240, 244-262, 266-293, 297-314, 318-327, 331-344, 348-358, 362-375, 379-393, 397-409, 414-425, 429, 440-451, 455-465, 469-479, 483, 491-500, 505-508, 512, 519-531, 535-555, 559-571, 577-619, 628-676, 685-741\ntorq_console\\swarm\\agents\\documentation_agent.py                                   234    201    14%   26-103, 115-157, 167-196, 200-232, 236-256, 260-296, 300-320, 324-352, 356-385, 389-419, 423, 438, 448-458, 462-490, 494-513, 517-539, 544-551, 560-577, 581-596, 600-614, 618-635, 639-650, 655, 674-676, 690-704, 708\ntorq_console\\swarm\\agents\\performance_agent.py                                     220    192    13%   27-107, 119-163, 173-201, 205-241, 245-282, 286-318, 322-360, 364-383, 387-395, 399-422, 426-430, 434-479, 483-512, 516-551, 555-585, 590-602, 607-625, 629-636, 640-647, 651\ntorq_console\\swarm\\agents\\response_agent.py                                         77     61    21%   16-19, 23-32, 44-87, 91-100, 104, 112, 120, 128, 136-158, 161, 164\ntorq_console\\swarm\\agents\\search_agent.py                                           77     60    22%   25-40, 52-72, 85-100, 104-119, 123-135, 139, 143-156, 160, 192, 220-231, 235, 239\ntorq_console\\swarm\\agents\\synthesis_agent.py                                        68     54    21%   16-19, 23-32, 44-63, 73-88, 92-103, 107-127, 131-143, 146, 149\ntorq_console\\swarm\\agents\\testing_agent.py                                         235    205    13%   26-77, 93-137, 147-168, 172-198, 202-234, 238-264, 268-293, 297-325, 329-354, 358-384, 388-409, 413-443, 447-482, 486-508, 512, 529, 547-557, 561-585, 589-613, 617-632, 637-645, 654-665, 669\ntorq_console\\swarm\\communication_parser.py                                         104     75    28%   65-80, 86-133, 137-146, 150-169, 174, 178-192, 206-215, 222, 239, 245\ntorq_console\\swarm\\communication_tools.py                                           97     79    19%   49-84, 101-127, 146-166, 183-206, 233-271, 283-294, 312-360, 375-386, 408\ntorq_console\\swarm\\memory_system.py                                                221    192    13%   38-65, 76-88, 101-109, 121-132, 145-153, 167-196, 209-235, 248-270, 283-294, 307-332, 341-370, 375-388, 392-405, 409-417, 421-436, 440-443, 447-484, 488-512, 516\ntorq_console\\swarm\\message_system.py                                               213    145    32%   55-62, 66, 70, 90-112, 119-127, 131-143, 147-153, 157-162, 166-171, 175-188, 192-193, 235-260, 264-311, 320-340, 344-357, 361-372, 376-378, 382-412, 417-424, 444-447\ntorq_console\\swarm\\orchestrator.py                                                  94     74    21%   35-50, 56-76, 88-114, 118-151, 155, 175-185, 198-208, 220-229, 233-244, 248-260, 272-293\ntorq_console\\swarm\\orchestrator_advanced.py                                        252    218    13%   53-80, 85-119, 131-232, 236-342, 346-400, 404-423, 428-459, 463-476, 480-488, 492-501, 505-518, 522, 535-546, 551-560, 564-573, 577-585, 589-604, 624-653\ntorq_console\\ui\\__init__.py                                                          2      0   100%\ntorq_console\\ui\\app.py                                                              18     18     0%   6-272\ntorq_console\\ui\\command_palette.py                                                 748    579    23%   94-117, 162, 188-191, 195-200, 228, 232-262, 266-312, 316-335, 339-356, 363-366, 370-378, 382-392, 396, 400-409, 421-424, 428-449, 453-476, 480, 484-485, 489, 493-501, 505-510, 524-563, 567-580, 584-607, 611-621, 625-648, 652-718, 722-733, 737-762, 766-775, 779-796, 800-816, 820-828, 832-840, 844-851, 855-909, 913, 922-933, 938-956, 960-1010, 1014-1046, 1051-1069, 1073-1080, 1084-1127, 1131-1177, 1181-1227, 1231-1275, 1279-1335, 1339-1381, 1385-1439, 1443-1477, 1481-1588, 1592-1604, 1608-1615, 1619-1623, 1628, 1633, 1637-1642, 1646-1719, 1723-1736, 1740-1748, 1752-1767, 1771-1794\ntorq_console\\ui\\inline_editor.py                                                   601    479    20%   64, 87, 114, 143, 160-163, 167-188, 192-238, 242-265, 269-274, 281, 285-319, 323-357, 361-375, 379-399, 411-444, 448-482, 491-503, 516-565, 574-616, 625-671, 680-698, 707-726, 735-757, 761-787, 792-813, 817-840, 844-871, 875-892, 896-912, 916-953, 957, 963, 972, 976, 980, 991, 995-1024, 1028-1036, 1040-1057, 1061-1077, 1081-1096, 1100-1116, 1120-1138, 1142-1159, 1163-1181, 1185, 1192, 1203-1207, 1211-1215, 1219-1230\ntorq_console\\ui\\intent_detector.py                                                 188    151    20%   19-20, 55-63, 67-79, 83, 124-130, 143-269, 273-293, 297-306, 322-383, 387-395, 399-421, 425-444, 454-456\ntorq_console\\ui\\learning_system.py                                                 232    171    26%   76-94, 98, 102-111, 115-121, 140-170, 181-199, 207-235, 240-243, 252-264, 268-283, 287-292, 300-338, 345-364, 370-401, 405-430, 436-437, 443-448, 452, 468-471, 479-501, 511-513\ntorq_console\\ui\\main.py                                                             29     29     0%   7-48\ntorq_console\\ui\\shell.py                                                            60     51    15%   14-15, 19-40, 44-73, 78-87, 91-113\ntorq_console\\ui\\terminal_ui.py                                                     217    217     0%   6-500\ntorq_console\\ui\\web.py                                                             981    847    14%   30-31, 51-53, 93-185, 194, 204, 208-232, 237-604, 619-751, 756-891, 900-961, 973-1006, 1010-1115, 1119-1167, 1172-1293, 1297-1430, 1434-1449, 1475-1496, 1500-1563, 1571-1602, 1606-1629, 1633-1651, 1655-1680, 1684-1912, 1920-1930, 1934-1948, 1957-1973, 1977-1997, 2001-2015, 2019, 2028, 2038, 2047-2075, 2079-2105, 2109-2127, 2132-2150, 2154-2155, 2159-2181, 2185-2199, 2203-2264, 2268-2291\ntorq_console\\ui\\web_ai_fix.py                                                      268    244     9%   18-20, 26-28, 47-127, 142-183, 193-338, 348-462, 472-507, 524-529, 535-544\ntorq_console\\utils\\__init__.py                                                       2      0   100%\ntorq_console\\utils\\advanced_web_search.py                                          260    260     0%   8-653\ntorq_console\\utils\\ai_integration.py                                               233    207    11%   21-22, 39-76, 92-127, 146-161, 182-202, 222-253, 268-307, 311-346, 350-369, 373-393, 397, 418, 433-449, 454-488, 492-552, 556-596\ntorq_console\\utils\\app_builder.py                                                  333    333     0%   8-1178\ntorq_console\\utils\\edit_tools.py                                                   111     80    28%   67-74, 92-262, 283-313, 334-340, 355, 367\ntorq_console\\utils\\file_monitor.py                                                  18      9    50%   15-18, 22, 26-27, 31-32\ntorq_console\\utils\\file_tools.py                                                    59     38    36%   49-59, 77-125, 143, 148, 153-157, 172\ntorq_console\\utils\\git_manager.py                                                   91     77    15%   16-17, 21-62, 66-81, 85-107, 111-132, 136-138, 142-169, 173-174\ntorq_console\\utils\\notebook_tools.py                                               200    200     0%   8-563\ntorq_console\\utils\\planning_tools.py                                               201    201     0%   8-607\ntorq_console\\utils\\profiling.py                                                    121    121     0%   8-318\ntorq_console\\utils\\search_tools.py                                                 162    130    20%   49, 90-109, 134-201, 221-310, 329-383, 398\ntorq_console\\utils\\unicode_safe.py                                                  28     28     0%   5-78\ntorq_console\\utils\\visual_diff.py                                                  227    194    15%   30-41, 45-50, 54-65, 69-74, 97-113, 117-126, 131-153, 159-193, 197-216, 221-238, 242-274, 278-305, 309-324, 328-343, 347-387, 393-417, 421-444, 448-468, 472, 476-496\ntorq_console\\utils\\web_tools.py                                                    206    206     0%   8-448\n--------------------------------------------------------------------------------------------------------------\nTOTAL                                                                            36174  30282    16%\nCoverage HTML written to dir htmlcov\n\n=========================== short test summary info ===========================\nFAILED tests/capability/test_simple_capabilities.py::test_cli_help_torq_console\nFAILED tests/capability/test_simple_capabilities.py::test_contract_file_exists\nFAILED tests/capability/test_simple_capabilities.py::test_contract_is_valid_yaml\nFAILED tests/capability/test_simple_capabilities.py::test_eval_set_files_exist\nFAILED tests/capability/test_simple_capabilities.py::test_eval_set_is_valid_json\nFAILED tests/capability/test_simple_capabilities.py::test_eval_v1_has_tasks\nFAILED tests/capability/test_simple_capabilities.py::test_policy_file_exists\nFAILED tests/capability/test_simple_capabilities.py::test_slo_file_exists - A...\nFAILED tests/capability/test_simple_capabilities.py::test_eval_rejects_invalid_set\n=================== 9 failed, 4 passed in 110.88s (0:01:50) ===================\n",
+    "test_summary": {
+      "passed": 4,
+      "failed": 9,
+      "total": 13,
+      "collected": 13
+    },
+    "tests": [
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_cli_help_torq",
+        "lineno": 14,
+        "outcome": "passed",
+        "keywords": [
+          "test_cli_help_torq",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.09143939998466522,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 16.49560999998357,
+          "outcome": "passed"
+        },
+        "teardown": {
+          "duration": 0.0009348000166937709,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_cli_help_torq_console",
+        "lineno": 31,
+        "outcome": "failed",
+        "keywords": [
+          "test_cli_help_torq_console",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.00048580009024590254,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 17.286537599982694,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 47,
+            "message": "AssertionError: Missing required content: telemetry\nassert 'telemetry' in \"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\"\n +  where \"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\" = CompletedProcess(args='torq-console --help', returncode=0, stdout=\"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\", stderr='E:\\\\TORQ-CONSOLE\\\\torq_console\\\\agents\\\\marvin_orchestrator.py:34: UserWarning: TorqPrinceFlowers not available - search capabilities will be limited\\n  warnings.warn(\"TorqPrinceFlowers not available - search capabilities will be limited\")\\n').stdout"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 47,
+              "message": "in test_cli_help_torq_console"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:47: in test_cli_help_torq_console\n    assert req in result.stdout, f\"Missing required content: {req}\"\nE   AssertionError: Missing required content: telemetry\nE   assert 'telemetry' in \"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\"\nE    +  where \"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\" = CompletedProcess(args='torq-console --help', returncode=0, stdout=\"[OK] Environment variables loaded from .env\\nARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning\\n[WARN] Could not import local torq_prince_flowers.py\\nUsage: torq-console [OPTIONS] COMMAND [ARGS]...\\n\\n  TORQ CONSOLE - Enhanced AI pair programmer.\\n\\n  Combines Aider's CLI speed with Cursor's polish, enhanced with MCP\\n  integration for agentic workflows, Claude Code compatibility, and\\n  comprehensive performance benchmarking.\\n\\nOptions:\\n  -i, --interactive   Launch interactive shell with guided prompts\\n  -w, --web           Launch web UI interface\\n  -v, --voice         Enable voice command shortcuts\\n  --mcp-connect TEXT  Connect to MCP server endpoints\\n  --ideate            Enable ideation mode with MCP context\\n  --plan              Generate multi-file prototyping plans\\n  --diff-tool TEXT    Visual diff tool (delta, git, bat)\\n  -m, --model TEXT    AI model to use\\n  -c, --config PATH   Configuration file path\\n  --repo-path PATH    Repository path (default: current directory)\\n  --help              Show this message and exit.\\n\\nCommands:\\n  agent        Marvin-powered AI agent system.\\n  bench        Performance benchmarking and SLO enforcement.\\n  config-init  Initialize TORQ CONSOLE configuration.\\n  diff         Generate enhanced visual diffs.\\n  edit         Edit files with AI assistance.\\n  eval         Run TORQ Console evaluation suite.\\n  mcp          Manage MCP server connections.\\n  serve        Launch web UI server.\\n\", stderr='E:\\\\TORQ-CONSOLE\\\\torq_console\\\\agents\\\\marvin_orchestrator.py:34: UserWarning: TorqPrinceFlowers not available - search capabilities will be limited\\n  warnings.warn(\"TorqPrinceFlowers not available - search capabilities will be limited\")\\n').stdout"
+        },
+        "teardown": {
+          "duration": 0.0005304000806063414,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_eval_help",
+        "lineno": 48,
+        "outcome": "passed",
+        "keywords": [
+          "test_eval_help",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0005065000150352716,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 18.20391059992835,
+          "outcome": "passed"
+        },
+        "teardown": {
+          "duration": 0.0004453000146895647,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_contract_file_exists",
+        "lineno": 65,
+        "outcome": "failed",
+        "keywords": [
+          "test_contract_file_exists",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.000723400036804378,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 0.0009323999984189868,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 69,
+            "message": "AssertionError: Contract file not found at E:\\TORQ-CONSOLE\\tests\\docs\\capabilities.yml\nassert False\n +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml')>()\n +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml')> = WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml').exists"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 69,
+              "message": "in test_contract_file_exists"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:69: in test_contract_file_exists\n    assert contract_path.exists(), f\"Contract file not found at {contract_path}\"\nE   AssertionError: Contract file not found at E:\\TORQ-CONSOLE\\tests\\docs\\capabilities.yml\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml')> = WindowsPath('E:/TORQ-CONSOLE/tests/docs/capabilities.yml').exists"
+        },
+        "teardown": {
+          "duration": 0.0007590999593958259,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_contract_is_valid_yaml",
+        "lineno": 70,
+        "outcome": "failed",
+        "keywords": [
+          "test_contract_is_valid_yaml",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0005369000136852264,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 0.000573099940083921,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 74,
+            "message": "FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\docs\\\\capabilities.yml'"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 74,
+              "message": "in test_contract_is_valid_yaml"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:74: in test_contract_is_valid_yaml\n    with open(contract_path) as f:\nE   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\docs\\\\capabilities.yml'"
+        },
+        "teardown": {
+          "duration": 0.0003986000083386898,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_eval_set_files_exist",
+        "lineno": 80,
+        "outcome": "failed",
+        "keywords": [
+          "test_eval_set_files_exist",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0005292999558150768,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 0.0006788999307900667,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 90,
+            "message": "AssertionError: Required file not found: eval_sets/v1.0/tasks.json\nassert False\n +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json')>()\n +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json')> = WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json').exists"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 90,
+              "message": "in test_eval_set_files_exist"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:90: in test_eval_set_files_exist\n    assert full_path.exists(), f\"Required file not found: {file_path}\"\nE   AssertionError: Required file not found: eval_sets/v1.0/tasks.json\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json')> = WindowsPath('E:/TORQ-CONSOLE/tests/eval_sets/v1.0/tasks.json').exists"
+        },
+        "teardown": {
+          "duration": 0.0006821000715717673,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_eval_set_is_valid_json",
+        "lineno": 91,
+        "outcome": "failed",
+        "keywords": [
+          "test_eval_set_is_valid_json",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0005454999627545476,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 0.000686399987898767,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 95,
+            "message": "FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\eval_sets\\\\v1.0\\\\tasks.json'"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 95,
+              "message": "in test_eval_set_is_valid_json"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:95: in test_eval_set_is_valid_json\n    with open(eval_path) as f:\nE   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\eval_sets\\\\v1.0\\\\tasks.json'"
+        },
+        "teardown": {
+          "duration": 0.000691399909555912,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_eval_v1_has_tasks",
+        "lineno": 101,
+        "outcome": "failed",
+        "keywords": [
+          "test_eval_v1_has_tasks",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.00047660002019256353,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 0.0006052999524399638,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 105,
+            "message": "FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\eval_sets\\\\v1.0\\\\tasks.json'"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 105,
+              "message": "in test_eval_v1_has_tasks"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:105: in test_eval_v1_has_tasks\n    with open(eval_path) as f:\nE   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\TORQ-CONSOLE\\\\tests\\\\eval_sets\\\\v1.0\\\\tasks.json'"
+        },
+        "teardown": {
+          "duration": 0.0003731000469997525,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_policy_file_exists",
+        "lineno": 111,
+        "outcome": "failed",
+        "keywords": [
+          "test_policy_file_exists",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0004965000553056598,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 0.0006276000058278441,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 115,
+            "message": "AssertionError: Policy file not found: E:\\TORQ-CONSOLE\\tests\\policies\\routing\\v1.yaml\nassert False\n +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml')>()\n +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml')> = WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml').exists"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 115,
+              "message": "in test_policy_file_exists"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:115: in test_policy_file_exists\n    assert policy_path.exists(), f\"Policy file not found: {policy_path}\"\nE   AssertionError: Policy file not found: E:\\TORQ-CONSOLE\\tests\\policies\\routing\\v1.yaml\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml')> = WindowsPath('E:/TORQ-CONSOLE/tests/policies/routing/v1.yaml').exists"
+        },
+        "teardown": {
+          "duration": 0.00039299996569752693,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_slo_file_exists",
+        "lineno": 116,
+        "outcome": "failed",
+        "keywords": [
+          "test_slo_file_exists",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.00043539993930608034,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 0.0005982000147923827,
+          "outcome": "failed",
+          "crash": {
+            "path": "E:\\TORQ-CONSOLE\\tests\\capability\\test_simple_capabilities.py",
+            "lineno": 120,
+            "message": "AssertionError: SLO file not found: E:\\TORQ-CONSOLE\\tests\\slo.yml\nassert False\n +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml')>()\n +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml')> = WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml').exists"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 120,
+              "message": "in test_slo_file_exists"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:120: in test_slo_file_exists\n    assert slo_path.exists(), f\"SLO file not found: {slo_path}\"\nE   AssertionError: SLO file not found: E:\\TORQ-CONSOLE\\tests\\slo.yml\nE   assert False\nE    +  where False = <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml')>()\nE    +    where <bound method Path.exists of WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml')> = WindowsPath('E:/TORQ-CONSOLE/tests/slo.yml').exists"
+        },
+        "teardown": {
+          "duration": 0.00045009993482381105,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_package_import",
+        "lineno": 121,
+        "outcome": "passed",
+        "keywords": [
+          "test_package_import",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0004317999118939042,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 15.149851700058207,
+          "outcome": "passed"
+        },
+        "teardown": {
+          "duration": 0.0002733999863266945,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_eval_requires_set_parameter",
+        "lineno": 133,
+        "outcome": "passed",
+        "keywords": [
+          "test_eval_requires_set_parameter",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0002688999520614743,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 17.449859999935143,
+          "outcome": "passed"
+        },
+        "teardown": {
+          "duration": 0.0003933999687433243,
+          "outcome": "passed"
+        }
+      },
+      {
+        "nodeid": "tests/capability/test_simple_capabilities.py::test_eval_rejects_invalid_set",
+        "lineno": 147,
+        "outcome": "failed",
+        "keywords": [
+          "test_eval_rejects_invalid_set",
+          "test_simple_capabilities.py",
+          "tests/capability/__init__.py",
+          "TORQ-CONSOLE"
+        ],
+        "setup": {
+          "duration": 0.0004246000899001956,
+          "outcome": "passed"
+        },
+        "call": {
+          "duration": 17.741258300025947,
+          "outcome": "failed",
+          "crash": {
+            "path": "C:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py",
+            "lineno": 1630,
+            "message": "subprocess.TimeoutExpired: Command 'torq eval --set nonexistent' timed out after 10 seconds"
+          },
+          "traceback": [
+            {
+              "path": "tests\\capability\\test_simple_capabilities.py",
+              "lineno": 150,
+              "message": "in test_eval_rejects_invalid_set"
+            },
+            {
+              "path": "C:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py",
+              "lineno": 550,
+              "message": "in run"
+            },
+            {
+              "path": "C:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py",
+              "lineno": 1209,
+              "message": "in communicate"
+            },
+            {
+              "path": "C:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py",
+              "lineno": 1630,
+              "message": "in _communicate"
+            }
+          ],
+          "longrepr": "tests\\capability\\test_simple_capabilities.py:150: in test_eval_rejects_invalid_set\n    result = subprocess.run(\nC:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py:550: in run\n    stdout, stderr = process.communicate(input, timeout=timeout)\nC:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py:1209: in communicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\nC:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\subprocess.py:1630: in _communicate\n    raise TimeoutExpired(self.args, orig_timeout)\nE   subprocess.TimeoutExpired: Command 'torq eval --set nonexistent' timed out after 10 seconds"
+        },
+        "teardown": {
+          "duration": 0.0008444000268355012,
+          "outcome": "passed"
+        }
+      }
+    ],
+    "capability_matrix": {
+      "cli_help_torq": {
+        "id": "cli_help_torq",
+        "category": "core",
+        "description": "Display CLI help for torq command",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "cli_help_torq_console": {
+        "id": "cli_help_torq_console",
+        "category": "core",
+        "description": "Display CLI help for torq-console command",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "package_import": {
+        "id": "package_import",
+        "category": "core",
+        "description": "Import torq_console package in Python",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_help": {
+        "id": "eval_help",
+        "category": "evaluation",
+        "description": "Display evaluation command help",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_v1_deterministic": {
+        "id": "eval_v1_deterministic",
+        "category": "evaluation",
+        "description": "Run v1.0 evaluation set deterministically",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_set_exists": {
+        "id": "eval_set_exists",
+        "category": "evaluation",
+        "description": "Evaluation v1.0 set files exist and are valid",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "config_init": {
+        "id": "config_init",
+        "category": "configuration",
+        "description": "Initialize TORQ Console configuration",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "routing_policy_exists": {
+        "id": "routing_policy_exists",
+        "category": "policy",
+        "description": "Routing policy configuration exists and is valid",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "slo_config_exists": {
+        "id": "slo_config_exists",
+        "category": "policy",
+        "description": "SLO configuration exists and is valid",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "web_help_available": {
+        "id": "web_help_available",
+        "category": "web",
+        "description": "Web interface help is available",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "web_server_command": {
+        "id": "web_server_command",
+        "category": "web",
+        "description": "Web server command is available",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "mcp_option_available": {
+        "id": "mcp_option_available",
+        "category": "mcp",
+        "description": "MCP connection option is available",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "mcp_command_available": {
+        "id": "mcp_command_available",
+        "category": "mcp",
+        "description": "MCP management command is available",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "agent_command_available": {
+        "id": "agent_command_available",
+        "category": "agents",
+        "description": "Agent command is available",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "agent_modules_exist": {
+        "id": "agent_modules_exist",
+        "category": "agents",
+        "description": "Agent system modules exist",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_requires_set": {
+        "id": "eval_requires_set",
+        "category": "evaluation",
+        "description": "Evaluation command requires --set parameter",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_invalid_set": {
+        "id": "eval_invalid_set",
+        "category": "evaluation",
+        "description": "Evaluation rejects invalid set names",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      }
+    }
+  },
+  "summary": {
+    "total_capabilities": 17,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "unknown": 17,
+    "success_rate": 0.0
+  }
+}
