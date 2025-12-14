@@ -256,47 +256,47 @@ class EnhancedPrinceFlowers:
             try:
                 # Advanced Memory System
                 self.advanced_memory = get_enhanced_memory_system()
-                self.logger.info("✅ Advanced Memory System initialized")
+                self.logger.info("[OK] Advanced Memory System initialized")
 
                 # Hierarchical Task Planner
                 if self.use_hierarchical_planning:
                     self.hierarchical_planner = get_hierarchical_planner()
-                    self.logger.info("✅ Hierarchical Task Planner initialized")
+                    self.logger.info("[OK] Hierarchical Task Planner initialized")
                 else:
                     self.hierarchical_planner = None
 
                 # Meta-Learning Engine
                 self.meta_learner = get_meta_learning_engine()
-                self.logger.info("✅ Meta-Learning Engine initialized")
+                self.logger.info("[OK] Meta-Learning Engine initialized")
 
                 # Multi-Agent Debate System
                 if self.use_multi_agent_debate:
                     self.debate_system = get_multi_agent_debate(max_rounds=3)
-                    self.logger.info("✅ Multi-Agent Debate System initialized")
+                    self.logger.info("[OK] Multi-Agent Debate System initialized")
                 else:
                     self.debate_system = None
 
                 # Self-Evaluation System
                 if self.use_self_evaluation:
                     self.self_evaluator = get_self_evaluation_system(quality_threshold=0.7)
-                    self.logger.info("✅ Self-Evaluation System initialized")
+                    self.logger.info("[OK] Self-Evaluation System initialized")
                 else:
                     self.self_evaluator = None
 
                 # Adaptive Quality Manager (NEW!)
                 self.quality_manager = get_adaptive_quality_manager()
-                self.logger.info("✅ Adaptive Quality Manager initialized")
+                self.logger.info("[OK] Adaptive Quality Manager initialized")
 
                 # Improved Debate Activation (NEW!)
                 self.debate_activator = get_improved_debate_activation()
-                self.logger.info("✅ Improved Debate Activation initialized")
+                self.logger.info("[OK] Improved Debate Activation initialized")
 
                 # Phase 1: Handoff Optimizer (NEW!)
                 self.handoff_optimizer = get_handoff_optimizer()
                 if self.handoff_optimizer:
-                    self.logger.info("✅ Handoff Optimizer initialized")
+                    self.logger.info("[OK] Handoff Optimizer initialized")
                 else:
-                    self.logger.warning("⚠️  Handoff Optimizer not available")
+                    self.logger.warning("[WARN] Handoff Optimizer not available")
 
                 # Phase 3: Agent System Enhancements (NEW!)
                 self.cross_agent_learning = get_cross_agent_learning()
@@ -307,11 +307,11 @@ class EnhancedPrinceFlowers:
                 self.agent_id = "prince_flowers_v2"
                 if self.advanced_coordinator:
                     self.advanced_coordinator.register_agent(self.agent_id, AgentRole.GENERALIST)
-                    self.logger.info("✅ Agent System Enhancements initialized (Learning, Monitoring, Coordination)")
+                    self.logger.info("[OK] Agent System Enhancements initialized (Learning, Monitoring, Coordination)")
                 else:
-                    self.logger.warning("⚠️  Agent System Enhancements not available")
+                    self.logger.warning("[WARN] Agent System Enhancements not available")
 
-                self.logger.info("🎉 All state-of-the-art AI systems initialized successfully!")
+                self.logger.info("[SUCCESS] All state-of-the-art AI systems initialized successfully!")
 
             except Exception as e:
                 self.logger.error(f"Error initializing advanced AI systems: {e}")
@@ -325,7 +325,7 @@ class EnhancedPrinceFlowers:
                 try:
                     self.quality_manager = get_adaptive_quality_manager()
                     self.debate_activator = get_improved_debate_activation()
-                    self.logger.info("✅ New systems (Quality Manager, Debate Activator) initialized")
+                    self.logger.info("[OK] New systems (Quality Manager, Debate Activator) initialized")
                 except:
                     self.quality_manager = None
                     self.debate_activator = None

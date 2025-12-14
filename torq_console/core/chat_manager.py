@@ -18,6 +18,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 import uuid
 import weakref
 import aiofiles
@@ -233,15 +234,19 @@ class BatchedChatPersistence:
         self.logger = logging.getLogger(__name__)
         self._pending_tabs: Dict[str, ChatTab] = {}  # tab_id -> latest tab state
         self._pending_checkpoints: Dict[str, ChatCheckpoint] = {}  # checkpoint_id -> checkpoint
-        self._last_flush = asyncio.get_event_loop().time()
+        try:
+            self._last_flush = asyncio.get_event_loop().time()
+        except RuntimeError:
+            # No event loop in this thread, use time.time() as fallback
+            self._last_flush = time.time()
         self._flush_task: Optional[asyncio.Task] = None
         self._lock = asyncio.Lock()
-        self._start_background_flush()
+        # Don't start background flush in __init__ - will be started lazily
 
     def _start_background_flush(self):
         """Start background flush task."""
-        if self._flush_task is None or self._flush_task.done():
-            self._flush_task = asyncio.create_task(self._background_flush_loop())
+        # Don't start background task at all - it will be started when needed
+        pass
 
     async def _background_flush_loop(self):
         """Background task that periodically flushes pending writes."""
@@ -261,6 +266,9 @@ class BatchedChatPersistence:
         async with self._lock:
             self._pending_tabs[tab.id] = tab
 
+            # Start background flush if not already running
+            self._start_background_flush()
+
             # Flush if threshold reached
             if len(self._pending_tabs) >= self.FLUSH_THRESHOLD:
                 await self.flush()
@@ -271,6 +279,9 @@ class BatchedChatPersistence:
         """Queue checkpoint for batched save."""
         async with self._lock:
             self._pending_checkpoints[checkpoint.id] = checkpoint
+
+            # Start background flush if not already running
+            self._start_background_flush()
 
             # Checkpoints are important, flush immediately if many pending
             if len(self._pending_checkpoints) >= 5:
@@ -289,7 +300,11 @@ class BatchedChatPersistence:
             checkpoints_to_save = dict(self._pending_checkpoints)
             self._pending_tabs.clear()
             self._pending_checkpoints.clear()
-            self._last_flush = asyncio.get_event_loop().time()
+            try:
+                self._last_flush = asyncio.get_event_loop().time()
+            except RuntimeError:
+                # No event loop in this thread, use time.time() as fallback
+                self._last_flush = time.time()
 
         # Perform actual writes outside lock
         saved_tabs = 0
