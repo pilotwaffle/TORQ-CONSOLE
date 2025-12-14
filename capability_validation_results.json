@@ -1,0 +1,93 @@
+{
+  "timestamp": "2025-12-14T20:11:46.044088",
+  "total": 10,
+  "passed": 4,
+  "failed": 6,
+  "results": {
+    "cli_help": {
+      "passed": false,
+      "details": "Command failed with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "basic_user",
+        "power_user"
+      ]
+    },
+    "eval_help": {
+      "passed": false,
+      "details": "Command failed with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "power_user"
+      ]
+    },
+    "bench_help": {
+      "passed": false,
+      "details": "Command failed with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "power_user"
+      ]
+    },
+    "mcp_help": {
+      "passed": false,
+      "details": "Command failed with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "power_user"
+      ]
+    },
+    "config_init_help": {
+      "passed": false,
+      "details": "Command failed with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "basic_user",
+        "power_user"
+      ]
+    },
+    "serve_help": {
+      "passed": false,
+      "details": "Command failed with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "power_user"
+      ]
+    },
+    "eval_requires_set": {
+      "passed": true,
+      "details": "Command blocked with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "basic_user",
+        "power_user"
+      ]
+    },
+    "mcp_requires_endpoint": {
+      "passed": true,
+      "details": "Command blocked with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "power_user"
+      ]
+    },
+    "sandbox_blocks_proc_mem": {
+      "passed": true,
+      "details": "Command blocked with exit code 1",
+      "returncode": 1,
+      "personas": [
+        "basic_user",
+        "power_user"
+      ]
+    },
+    "sandbox_blocks_write_outside_workspace": {
+      "passed": true,
+      "details": "Correctly blocked: [Errno 13] Permission denied",
+      "returncode": 1,
+      "personas": [
+        "basic_user",
+        "power_user"
+      ]
+    }
+  }
+}
