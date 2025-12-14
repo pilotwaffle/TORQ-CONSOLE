@@ -6,112 +6,45 @@
 [![Last Commit](https://img.shields.io/github/last-commit/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/commits/main)
 [![Issues](https://img.shields.io/github/issues/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/pulls)
-[![Build Status](https://img.shields.io/github/actions/status/pilotwaffle/TORQ-CONSOLE)](https://github.com/pilotwaffle/TORQ-CONSOLE/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/pilotwaffle/TORQ-CONSOLE/evaluation.yml)](https://github.com/pilotwaffle/TORQ-CONSOLE/actions)
 
-> **Version:** 1.0.0+ (ML Systems Hardening Complete - Enterprise Ready)
+> **Version:** 1.0.0+ (ML Systems Hardening Complete)
 > **Author:** B Flowers
-> **Status:** **PRODUCTION READY** – Enterprise-Grade AI Platform with ML Observability
+> **Status:** **Production Ready** – AI Platform with ML Observability
 > **License:** MIT
 
-TORQ Console is an **enterprise-grade AI platform** that transforms high-performing agent systems into **measurable, reproducible, regression-safe ML systems** with comprehensive observability, policy-driven routing, and deterministic evaluation.
+TORQ Console is an AI development platform that transforms agent systems into measurable, reproducible ML systems with comprehensive observability, policy-driven routing, and deterministic evaluation.
 
-## 🎉 **NEW: ML Systems Hardening Complete!**
+## 🎉 **ML Systems Hardening - Complete**
 
-**December 2025:** Successfully executed comprehensive ML Systems Hardening PRD with all 5 milestones implemented and verified. TORQ Console now provides enterprise-grade ML system capabilities:
+**December 2025:** Successfully implemented comprehensive ML Systems Hardening with 5 milestones:
 
-### ✅ **Milestone 1: Telemetry + Trace - COMPLETE**
-- **Canonical Event Schema**: Structured events with 95%+ schema compliance
-- **Distributed Tracing**: End-to-end request flow (router→model→tool→memory→finalize)
-- **Sub-millisecond Event Creation**: Optimized for high-throughput operations
-- **CLI Integration**: `torq telemetry`, `torq trace <run_id>` commands
+### ✅ **Implemented Features**
 
-### ✅ **Milestone 2: Eval Sets + Gate - COMPLETE**
-- **Deterministic Evaluation**: v1.0 evaluation set with 10 comprehensive tasks
-- **Regression Detection**: CI/CD gate blocking performance degradation
-- **Weighted Scoring**: Multi-dimensional scoring with baseline comparison
-- **Automated Testing**: `torq eval run --set v1.0 --seed 42` reproducible evaluation
+**Milestone 1: Telemetry + Trace**
+- Structured event tracking with canonical schema
+- Distributed tracing for request flows
+- CLI commands: `torq telemetry`, `torq trace <run_id>`
 
-### ✅ **Milestone 3: Policy-Driven Routing - COMPLETE**
-- **YAML-Based Policies**: Zero-code routing configuration changes
-- **Intent-Based Routing**: Intelligent agent selection based on query analysis
-- **Policy Versioning**: Full audit trail of routing decisions
-- **Runtime Updates**: Hot-swap routing policies without system restart
+**Milestone 2: Eval Sets + Gate**
+- v1.0 evaluation set with 10 comprehensive tasks
+- Deterministic scoring with regression detection
+- CLI command: `torq eval run --set v1.0 --seed 42`
 
-### ✅ **Milestone 4: Benchmarks + SLOs - COMPLETE**
-- **Performance Monitoring**: p50/p95/p99 percentiles tracking
-- **SLO Enforcement**: Service Level Objectives with automated alerting
-- **Per-Release Tracking**: Performance regression detection across versions
-- **Metrics Dashboard**: Real-time performance visualization
+**Milestone 3: Policy-Driven Routing**
+- YAML-based routing policies
+- Intent-based agent selection
+- Zero-code policy updates
 
-### ✅ **Milestone 5: Tool Sandbox + Confirmations - COMPLETE**
-- **Security Policies**: Deny-by-default tool access control
-- **Path Validation**: File system access restrictions and validation
-- **Prompt Injection Protection**: Advanced threat detection and blocking
-- **Confirmation Workflows**: High-impact operation safeguards
+**Milestone 4: Benchmarks + SLOs**
+- Performance monitoring with percentiles
+- Service Level Objectives definition
+- SLO enforcement system
 
-## 🚀 **Why TORQ Console 1.0?**
-
-TORQ Console bridges the gap between powerful AI agents and production ML systems by providing:
-
-- **🔍 Measurability**: Complete telemetry and evaluation systems
-- **🔄 Reproducibility**: Deterministic behavior with proven results
-- **🛡️ Regression Safety**: CI gates protecting against quality degradation
-- **📊 Observability**: Real-time monitoring and SLO tracking
-- **🔒 Security**: Comprehensive sandbox with policy enforcement
-
----
-
-## 📊 **Performance Achievements**
-
-### Dramatic Performance Improvements
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Response Time | 156ms | 87ms | **-44%** |
-| Memory Usage | 384MB | 198MB | **-48%** |
-| Throughput | 680/min | 1,247/min | **+83%** |
-| Error Rate | 0.85% | 0.08% | **-91%** |
-| Test Pass Rate | 71% | 87.1% | **+16%** |
-
-### SLO Compliance
-- ✅ **Interactive**: p95_ttfuo_ms 87ms (Target: 2500ms) - **96.5% under target**
-- ✅ **Tool-heavy**: p95_e2e_ms 156ms (Target: 30000ms) - **99.5% under target**
-- ✅ **Overall SLO Compliance**: 99.9%
-
-### Security Score
-- ✅ **Tool Sandbox Security**: 96.7/100
-- ✅ **All tools have policies defined**
-- ✅ **Deny-by-default enforcement active**
-- ✅ **Prompt injection protection enabled**
-
----
-
-## 🏗️ **Architecture Overview**
-
-### ML Systems Hardening Architecture
-```
-TORQ Console v1.0.0
-├── Core ML Systems
-│   ├── Telemetry & Trace               # Structured event tracking
-│   ├── Evaluation Engine               # Deterministic scoring
-│   ├── Policy Framework                # YAML-based routing
-│   ├── Benchmark System                # Performance monitoring
-│   └── Security Sandbox                # Tool access control
-├── Agent Orchestration
-│   ├── Policy-Driven Router            # Intent-based routing
-│   ├── Multi-Agent Coordination       # Marvin 3.2.3 integration
-│   ├── Query Analysis Engine          # Intent classification
-│   └── Performance Tracker            # Real-time metrics
-├── Evaluation & Testing
-│   ├── v1.0 Evaluation Set            # 10 comprehensive tasks
-│   ├── Regression Detection           # CI/CD integration
-│   ├── Scoring System                 # Weighted evaluation
-│   └── Baseline Management            # Performance tracking
-└── Observability Dashboard
-    ├── Real-time Metrics              # Live performance data
-    ├── Trace Visualization            # Request flow analysis
-    ├── SLO Monitoring                 # Service level tracking
-    └── Security Audit                 # Policy compliance
-```
+**Milestone 5: Tool Sandbox + Confirmations**
+- Security policies with deny-by-default
+- Path validation for file operations
+- Prompt injection protection
 
 ---
 
@@ -120,7 +53,6 @@ TORQ Console v1.0.0
 ### Prerequisites
 - Python 3.10+
 - Git
-- 4GB+ RAM recommended
 
 ### Installation
 
@@ -132,315 +64,150 @@ cd TORQ-CONSOLE
 # Install dependencies
 pip install -e .
 
-# Verify ML Systems Hardening features
-python -m torq_console.core.evaluation.verify_installation
-
-# Start with telemetry enabled
-torq-console --web --telemetry
+# Start with web interface
+torq-console --web
 ```
 
-### Windows Quick Launch (Recommended)
-
-```powershell
-# Create desktop shortcut with ML features
-powershell -ExecutionPolicy Bypass -File Create-DesktopShortcut.ps1
-
-# Launch with all optimizations
-start_torq.bat
-```
-
-### Docker Deployment
+### Verify Installation
 
 ```bash
-# Build with ML features
-docker build -t torq-console:ml-hardened .
+# Run evaluation set
+torq eval run --set v1.0 --seed 42
 
-# Run with telemetry
-docker run -p 8899:8899 torq-console:ml-hardened
+# Check telemetry compliance
+torq telemetry --compliance
+
+# View system status
+torq status
 ```
 
 ---
 
-## 🎯 **ML Systems Features**
+## 🎯 Core Commands
 
-### 1. Telemetry & Observability
+### Evaluation System
+```bash
+# Run deterministic evaluation
+torq eval run --set v1.0 --seed 42
 
-**Structured Event Tracking:**
-```python
-from torq_console.core.telemetry import Event, create_event
+# Compare with baseline
+torq eval compare --baseline v1.0
 
-# Create canonical events
-event = create_event(
-    event_type="agent_query",
-    agent_name="code_generation",
-    input_text="Implement binary search",
-    metadata={"language": "python", "complexity": "medium"}
-)
-
-# Automatic tracing
-with trace_context("query_123"):
-    result = process_query(query)
+# Generate report
+torq eval report --format json
 ```
 
-**CLI Commands:**
+### Telemetry & Tracing
 ```bash
 # View telemetry compliance
 torq telemetry --compliance
 
 # Trace specific request
-torq trace abc-123-def-456
+torq trace <run_id>
 
-# Real-time monitoring
-torq monitor --live
+# Monitor live metrics
+torq monitor
 ```
 
-### 2. Deterministic Evaluation
-
-**Run Evaluation Sets:**
-```bash
-# Run v1.0 evaluation set
-torq eval run --set v1.0 --seed 42
-
-# Compare with baseline
-torq eval compare --baseline v1.0 --current v1.1
-
-# Generate report
-torq eval report --format html --output report.html
-```
-
-**Python API:**
-```python
-from torq_console.core.evaluation import EvaluationRunner
-
-runner = EvaluationRunner()
-results = runner.run_evaluation_set("v1.0", seed=42)
-print(f"Overall Score: {results.overall_score:.2f}")
-```
-
-### 3. Policy-Driven Routing
-
-**Routing Policy (YAML):**
-```yaml
-version: "1.0"
-policies:
-  routing:
-    intent_mappings:
-      code_generation:
-        - patterns: ["implement", "create function", "write code"]
-        - agent: "code_agent"
-        - confidence_threshold: 0.8
-      debugging:
-        - patterns: ["error", "bug", "fix", "debug"]
-        - agent: "debugging_agent"
-        - confidence_threshold: 0.7
-```
-
-**Runtime Policy Updates:**
-```python
-from torq_console.agents import create_policy_driven_router
-
-# Load router with policy
-router = create_policy_driven_router(policy_file="policies/routing/v1.yaml")
-
-# Route query automatically
-result = router.route_query("Implement a binary search tree")
-# Returns: agent="code_agent", confidence=0.95, reasoning="Pattern matched"
-```
-
-### 4. Performance Benchmarks
-
-**SLO Monitoring:**
-```yaml
-# slo.yml
-slos:
-  interactive:
-    p95_ttfuo_ms: 2500      # Time to first useful output
-    p95_e2e_ms: 5000         # End-to-end response
-  tool_heavy:
-    p95_ttfuo_ms: 5000
-    p95_e2e_ms: 30000
-```
-
-**Benchmark Commands:**
+### Performance Benchmarks
 ```bash
 # Run performance benchmarks
 torq bench run
 
-# Track SLO compliance
+# Check SLO status
 torq bench slo --status
-
-# Generate performance report
-torq bench report --release v1.0.0
 ```
 
-### 5. Security Sandbox
-
-**Tool Policy Configuration:**
-```yaml
-# tools/file_operations/policy.yaml
-name: "file_operations"
-default_action: "deny"
-rules:
-  - action: "allow"
-    pattern: "/workspace/**"
-    description: "Allow workspace access"
-  - action: "deny"
-    pattern: "/etc/**"
-    description: "Block system files"
-```
-
-**Security Verification:**
-```python
-from torq_console.safety import SafetyManager
-
-safety = SafetyManager()
-result = safety.check_tool_access("file_operations", "/etc/passwd")
-# Returns: DENIED - Path outside allowed scope
-```
-
----
-
-## 📊 **Evaluation Results**
-
-### v1.0 Evaluation Set Performance
-```
-Overall Score: 8.7/10.0  ✅ PASS (Target: 8.0+)
-Tool F1 Score: 0.86       ✅ PASS (Target: 0.75+)
-
-Category Scores:
-- Core Capabilities: 8.9/10  ✅
-- Tools Integration: 8.5/10   ✅
-- Complex Tasks: 8.2/10       ✅
-- Robustness: 8.8/10          ✅
-- Specialized: 8.6/10         ✅
-- Performance: 8.9/10        ✅
-```
-
-### Test Suite Results
-- **Total Tests**: 62
-- **Passing**: 54 (87.1%)
-- **Critical Systems**: All passing ✅
-- **ML Systems**: All passing ✅
-- **Known Issues**: 8 test failures (documented with fixes)
-
----
-
-## 🛠️ **Configuration**
-
-### Basic Configuration
-```json
-{
-  "version": "1.0.0",
-  "features": {
-    "telemetry": {
-      "enabled": true,
-      "schema_compliance": true,
-      "trace_enabled": true
-    },
-    "evaluation": {
-      "default_set": "v1.0",
-      "regression_check": true,
-      "baseline_protection": true
-    },
-    "routing": {
-      "policy_file": "policies/routing/v1.yaml",
-      "intent_detection": true,
-      "fallback_agent": "general"
-    },
-    "security": {
-      "sandbox_enabled": true,
-      "prompt_injection_protection": true,
-      "confirmations_required": true
-    }
-  }
-}
-```
-
-### Environment Variables
+### Policy Management
 ```bash
-# API Configuration
-export ANTHROPIC_API_KEY=your_key_here
-export OPENAI_API_KEY=your_key_here
+# Test routing policies
+torq policy test --policy v1.yaml
 
-# Telemetry Configuration
-export TORQ_TELEMETRY_ENDPOINT=http://localhost:4317
-export TORQ_TRACE_SAMPLING=0.1
-
-# Security Configuration
-export TORQ_SANDBOX_ENABLED=true
-export TORQ_POLICY_DIR=./policies
+# Validate policy syntax
+torq policy validate <policy_file>
 ```
 
 ---
 
-## 🔧 **Development**
+## 📊 System Status
 
-### Development Setup
+### Test Results
 ```bash
-# Install development dependencies
-pip install -e ".[dev]"
+# Run full test suite
+pytest tests/ -v
 
-# Run ML systems tests
-pytest tests/test_ml_systems/ -v
-
-# Run integration tests
-python test_ml_systems_integration.py
-
-# Verify telemetry compliance
-python -m torq_console.core.telemetry.verify
+# Current status: 54/62 tests passing (87.1%)
+# ML Systems tests: All passing
+# Known issues: Content Safety fixture errors, Prince Flowers variable scope
+# Fixes available: test_content_safety_fixed.py, marvin_query_router_fixed.py
 ```
 
-### Adding New Evaluation Tasks
-```python
-# Create new task in eval_sets/v1.0/tasks.json
-{
-  "id": "custom_task_001",
-  "type": "custom",
-  "category": "specialized",
-  "description": "Test custom capability",
-  "inputs": [...],
-  "expected_outputs": [...],
-  "tool_requirements": [...],
-  "max_latency_ms": 5000,
-  "max_tokens": 2000
-}
-```
+### Evaluation Results
+Latest evaluation results are stored in:
+- `evaluation_results/` - Historical evaluation outputs
+- `eval_sets/v1.0/` - Evaluation task definitions
+- `demo_evaluation_results.json` - Sample results
 
-### Custom Routing Policies
-```yaml
-# Create new policy in policies/routing/custom.yaml
-version: "custom"
-policies:
-  routing:
-    intent_mappings:
-      custom_capability:
-        - patterns: ["custom pattern"]
-        - agent: "custom_agent"
-        - confidence_threshold: 0.8
+Run `torq eval report` for latest metrics.
+
+### Data Storage
+- **Telemetry events**: Stored in local telemetry store
+- **Evaluation results**: `evaluation_results/` directory
+- **Benchmarks**: Generated on-demand with `torq bench run`
+- **Policies**: `policies/` directory
+
+---
+
+## 🏗️ Architecture
+
+```
+TORQ Console v1.0
+├── Core ML Systems
+│   ├── Telemetry & Trace          # Structured event tracking
+│   ├── Evaluation Engine          # Deterministic scoring
+│   ├── Policy Framework           # YAML-based routing
+│   ├── Benchmark System           # Performance monitoring
+│   └── Security Sandbox           # Tool access control
+├── Agent System
+│   ├── Policy-Driven Router       # Intent-based routing
+│   ├── Multi-Agent Coordination  # Agent orchestration
+│   └── Query Analysis Engine     # Intent classification
+└── Interfaces
+    ├── CLI Tools                  # Command-line interface
+    ├── Web Interface             # Browser-based UI
+    └── Python API                # Programmatic access
 ```
 
 ---
 
-## 📚 **Documentation**
+## 📚 Documentation
 
-### Core Documentation
-- [ML Systems Hardening PRD](docs/ML_SYSTEMS_HARDENING_PRD.md) - Complete specification
-- [Evaluation Guide](docs/EVALUATION_GUIDE.md) - Using evaluation sets
-- [Telemetry API](docs/TELEMETRY_API.md) - Telemetry integration
-- [Policy Configuration](docs/POLICY_GUIDE.md) - Routing policies
-- [Security Guide](docs/SECURITY_GUIDE.md) - Sandbox and policies
+### Available Documentation
+- [CLAUDE.md](CLAUDE.md) - Claude Code integration guide
+- [docs/](docs/) - Additional documentation and guides
+- [eval_sets/v1.0/](eval_sets/v1.0/) - Evaluation task definitions
+- [policies/](policies/) - Routing policy examples
 
-### Quick References
-- [CLI Commands](CLI_QUICK_REFERENCE.md) - All available commands
-- [Configuration Options](CONFIGURATION.md) - Complete config reference
-- [Performance Tuning](PERFORMANCE_GUIDE.md) - Optimization tips
-- [Troubleshooting](TROUBLESHOOTING.md) - Common issues and solutions
+### Configuration
+Configuration files:
+- `slo.yml` - Service Level Objectives
+- `policies/routing/` - Routing policies
+- Environment variables for API keys
 
 ---
 
-## 🚀 **Production Deployment**
+## 🚀 Production Deployment
 
-### Docker Production Setup
+### Basic Deployment
+```bash
+# Production mode
+torq-console --web --production
+
+# With custom config
+torq-console --web --config config.json
+```
+
+### Docker Support
 ```dockerfile
 FROM python:3.12-slim
 
@@ -455,102 +222,85 @@ EXPOSE 8899
 CMD ["python", "-m", "torq_console.cli", "serve", "--production"]
 ```
 
-### Kubernetes Deployment
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: torq-console
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: torq-console
-  template:
-    metadata:
-      labels:
-        app: torq-console
-    spec:
-      containers:
-      - name: torq-console
-        image: torq-console:latest
-        ports:
-        - containerPort: 8899
-        env:
-        - name: TORQ_TELEMETRY_ENABLED
-          value: "true"
-        - name: TORQ_PRODUCTION_MODE
-          value: "true"
-```
+---
 
-### Monitoring & Alerting
+## 🔧 Development
+
+### Development Setup
 ```bash
-# Health check endpoint
-curl http://localhost:8899/health
+# Install development dependencies
+pip install -e ".[dev]"
 
-# Metrics endpoint
-curl http://localhost:8899/metrics
+# Run tests
+pytest tests/ -v
 
-# Telemetry status
-torq telemetry --status
+# Run specific test categories
+pytest tests/test_ml_systems/ -v
+```
+
+### Code Quality
+```bash
+# Format code
+black torq_console/
+ruff check torq_console/
+
+# Type checking
+mypy torq_console/
 ```
 
 ---
 
-## 🤝 **Community & Support**
+## 🤝 Contributing
 
-### Getting Help
-- **Documentation**: [Complete docs](https://pilotwaffle.github.io/TORQ-CONSOLE/)
-- **Issues**: [Report bugs](https://github.com/pilotwaffle/TORQ-CONSOLE/issues)
-- **Discussions**: [Community forum](https://github.com/pilotwaffle/TORQ-CONSOLE/discussions)
-- **Discord**: [Real-time chat](https://discord.gg/torq-console)
-
-### Contributing
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run ML systems tests (`pytest tests/test_ml_systems/`)
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+2. Create a feature branch
+3. Ensure tests pass
+4. Submit a pull request
 
-### Success Metrics
-- ✅ **87.1%** test pass rate (54/62 tests)
-- ✅ **99.9%** SLO compliance
-- ✅ **96.7/100** security score
-- ✅ **44%** performance improvement
-- ✅ **5/5** ML milestones complete
+### Running Tests
+Before contributing, please run:
+```bash
+pytest tests/ -v --cov=torq_console
+```
 
 ---
 
-## 🏆 **Recognition**
+## 📈 Roadmap
 
-TORQ Console v1.0 represents a **breakthrough in ML system engineering**:
-- **Enterprise-Grade**: Production-ready with full observability
-- **Measurable**: Comprehensive telemetry and evaluation
-- **Secure**: Advanced sandbox with policy enforcement
-- **Performant**: 44% faster with 91% fewer errors
-- **Reliable**: 99.9% SLO compliance
+### Completed
+- ✅ ML Systems Hardening (5 milestones)
+- ✅ Telemetry and tracing
+- ✅ Deterministic evaluation
+- ✅ Policy-driven routing
+- ✅ Security sandbox
+
+### Planned
+- 🔄 Improved test coverage (target: 95%+)
+- 📋 Observability dashboard
+- 📋 Load testing framework
+- 📋 Plugin architecture
+- 📋 Multi-tenancy support
 
 ---
 
-## 📜 **License**
+## 📜 License
 
 MIT License – Open source and community-driven.
 
 ---
 
-## 📌 **Status**
+## 📌 Status
 
-**TORQ Console v1.0 is PRODUCTION READY** with complete ML Systems Hardening.
+**TORQ Console v1.0 is production ready** with ML observability features implemented.
 
 ### Version History
 - **v1.0.0**: ML Systems Hardening Complete (Current)
-- **v0.80.0**: Enhanced capabilities with Marvin 3.2.3
+- **v0.80.0**: Enhanced capabilities with Marvin integration
 - **v0.70.0**: Complete 4-phase integration
 - **v0.60.0**: Initial MCP integration
 
-**Enterprise deployment ready with full ML observability and security.** 🚀
+**Ready for production use with comprehensive evaluation and monitoring.** 🚀
 
 ---
 
-*Built with ❤️ by the open-source community. Transformed from AI agent system to enterprise ML platform.*
+*Built with ❤️ by the open-source community.*
