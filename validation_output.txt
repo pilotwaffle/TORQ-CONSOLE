@@ -1,0 +1,57 @@
+E:\TORQ-CONSOLE\torq_console\agents\marvin_orchestrator.py:34: UserWarning: TorqPrinceFlowers not available - search capabilities will be limited
+  warnings.warn("TorqPrinceFlowers not available - search capabilities will be limited")
+TORQ CONSOLE VALIDATION REPORT
+==================================================
+
+1. CHECKING CRITICAL FILES
+[OK] torq_console/__init__.py
+[OK] torq_console/cli.py
+[OK] eval_sets/v1.0/tasks.json
+[OK] policies/routing/v1.yaml
+[OK] slo.yml
+[OK] torq_console/core/telemetry/event.py
+
+2. TESTING PACKAGE IMPORT
+[OK] Environment variables loaded from .env
+ARTIST.RL.prince_flowers - INFO - Loaded 1 error patterns from previous learning
+[WARN] Could not import local torq_prince_flowers.py
+[OK] Package imports successfully
+
+3. TESTING CLI COMMANDS
+
+Testing: torq-console --help
+[PASS] torq-console --help
+
+Testing: torq telemetry --compliance
+[FAIL] torq telemetry --compliance
+Error: E:\TORQ-CONSOLE\torq_console\agents\marvin_orchestrator.py:34: UserWarning: TorqPrinceFlowers not available - search capabilities will be limited
+  warnings.warn("TorqPrinceFlowers not available - sea
+
+Testing: evaluation runner
+[PASS] evaluation runner
+
+4. TESTING WEB INTERFACE CAPABILITY
+[MISS] torq_console/web
+[OK] torq_landing.html
+
+5. TESTING EVALUATION SET
+[OK] Loaded 10 evaluation tasks
+
+==================================================
+VALIDATION SUMMARY
+==================================================
+Total Checks: 10
+Passed: 9
+Failed: 1
+Success Rate: 90.0%
+
+Detailed results saved to: validation_results.json
+
+KEY FINDINGS:
+--------------------
+
+What users CAN do:
+- Install the package (if files exist)
+- Import torq_console in Python
+- Use torq-console CLI command
+- Run evaluation sets (10 tasks available)
