@@ -1,0 +1,123 @@
+version: 1
+personas:
+  basic_user:
+    description: "Local usage with built-in commands and no external API keys required."
+  power_user:
+    description: "Access to the full CLI surface and evaluation workflows." 
+capabilities:
+  - id: cli_help
+    personas: [basic_user, power_user]
+    description: "Surface the primary TORQ Console CLI help menu."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli --help"
+      expect: success
+      success_contains:
+        - "TORQ CONSOLE - Enhanced AI pair programmer."
+        - "Commands:"
+      artifacts:
+        log: "reports/capabilities/{git_sha}/cli_help.log"
+  - id: eval_help
+    personas: [power_user]
+    description: "Document deterministic evaluation runner options."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli eval --help"
+      expect: success
+      success_contains:
+        - "Run TORQ Console evaluation suite."
+        - "--set"
+      artifacts:
+        log: "reports/capabilities/{git_sha}/eval_help.log"
+  - id: bench_help
+    personas: [power_user]
+    description: "Expose benchmarking and SLO configuration surface."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli bench --help"
+      expect: success
+      success_contains:
+        - "Performance benchmarking and SLO enforcement."
+      artifacts:
+        log: "reports/capabilities/{git_sha}/bench_help.log"
+  - id: mcp_help
+    personas: [power_user]
+    description: "Show MCP connection help for server endpoints."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli mcp --help"
+      expect: success
+      success_contains:
+        - "Manage MCP server connections."
+      artifacts:
+        log: "reports/capabilities/{git_sha}/mcp_help.log"
+  - id: config_init_help
+    personas: [basic_user, power_user]
+    description: "Confirm configuration initialization guidance is accessible."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli config-init --help"
+      expect: success
+      success_contains:
+        - "Initialize TORQ CONSOLE configuration."
+      artifacts:
+        log: "reports/capabilities/{git_sha}/config_init_help.log"
+  - id: serve_help
+    personas: [power_user]
+    description: "Document how to start the web UI server."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli serve --help"
+      expect: success
+      success_contains:
+        - "Launch web UI server."
+      artifacts:
+        log: "reports/capabilities/{git_sha}/serve_help.log"
+  - id: eval_requires_set
+    personas: [basic_user, power_user]
+    description: "Ensure evaluation command refuses to run without required set."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli eval"
+      expect: blocked
+      blocked_reason: "Missing option '--set'"
+      artifacts:
+        log: "reports/capabilities/{git_sha}/eval_requires_set.log"
+    negative_cases:
+      - "Invocation without --set should return non-zero status."
+  - id: mcp_requires_endpoint
+    personas: [power_user]
+    description: "MCP command must reject calls without endpoint."
+    dependencies: []
+    verify:
+      command: "python -m torq_console.cli mcp"
+      expect: blocked
+      blocked_reason: "Missing option '--endpoint'"
+      artifacts:
+        log: "reports/capabilities/{git_sha}/mcp_requires_endpoint.log"
+    negative_cases:
+      - "Missing endpoint should produce a usage error."
+  - id: sandbox_blocks_proc_mem
+    personas: [basic_user, power_user]
+    description: "Baseline sandbox expectation: accessing /proc/1/mem should fail."
+    dependencies: []
+    verify:
+      command: "python - <<'PY'\nimport sys\ntry:\n    open('/proc/1/mem', 'rb')\nexcept Exception as exc:\n    print(f'blocked: {exc}')\n    sys.exit(1)\nelse:\n    print('unexpected access to /proc/1/mem')\n    sys.exit(1)\nPY"
+      expect: blocked
+      blocked_reason: "Protected kernel memory should not be readable."
+      artifacts:
+        log: "reports/capabilities/{git_sha}/sandbox_blocks_proc_mem.log"
+    negative_cases:
+      - "Reading /proc/1/mem should be denied."
+  - id: sandbox_blocks_write_outside_workspace
+    personas: [basic_user, power_user]
+    description: "Prevent writing to kernel memory at /proc/1/mem as a safety baseline."
+    dependencies: []
+    verify:
+      command: "python - <<'PY'\nimport sys\ntry:\n    with open('/proc/1/mem', 'wb') as handle:\n        handle.write(b'should not write')\n    print('unexpected write success to /proc/1/mem')\n    sys.exit(1)\nexcept Exception as exc:\n    print(f'blocked: {exc}')\n    sys.exit(1)\nPY"
+      expect: blocked
+      blocked_reason: "[Errno 13] Permission denied"
+      artifacts:
+        log: "reports/capabilities/{git_sha}/sandbox_blocks_write_outside_workspace.log"
+    negative_cases:
+      - "Write attempts outside workspace should be blocked."
