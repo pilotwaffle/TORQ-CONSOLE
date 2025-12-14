@@ -632,7 +632,7 @@ class WebUI:
         async def dashboard(request: Request):
             """Main dashboard."""
             return self.templates.TemplateResponse(
-                "dashboard.html",
+                "antigravity-dashboard.html",
                 {
                     "request": request,
                     "console_info": await self._get_console_info(),
