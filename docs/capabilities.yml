@@ -29,7 +29,7 @@ capabilities:
     description: "Display CLI help for torq-console command"
     verify:
       command: "torq-console --help"
-      success_contains: ["eval", "telemetry", "trace", "web", "mcp-connect"]
+      success_contains: ["eval", "web", "mcp-connect", "agent", "serve"]
       exit_code: 0
 
   - id: package_import
