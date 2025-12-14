@@ -39,13 +39,13 @@ try:
         AgentCapability
     )
 
-    # Enhanced Prince Flowers
-    from .marvin_prince_flowers import (
-        MarvinPrinceFlowers,
-        create_prince_flowers_agent,
-        ConversationTurn,
-        AgentState
-    )
+    # Enhanced Prince Flowers (archived - use torq_prince_flowers.py instead)
+    # from .marvin_prince_flowers import (
+    #     MarvinPrinceFlowers,
+    #     create_prince_flowers_agent,
+    #     ConversationTurn,
+    #     AgentState
+    # )
 
     # Specialized workflow agents
     from .marvin_workflow_agents import (
@@ -70,12 +70,12 @@ try:
         ErrorHandlingStrategy
     )
 
-    # Enhanced Prince Flowers with Action Learning
-    from .prince_flowers_enhanced import (
-        EnhancedPrinceFlowers,
-        create_enhanced_prince_flowers,
-        apply_tiktok_lesson
-    )
+    # Enhanced Prince Flowers with Action Learning (archived)
+    # from .prince_flowers_enhanced import (
+    #     EnhancedPrinceFlowers,
+    #     create_enhanced_prince_flowers,
+    #     apply_tiktok_lesson
+    # )
 
     # Action-Oriented Learning
     from .action_learning import (
@@ -132,11 +132,11 @@ try:
         'RoutingDecision',
         'AgentCapability',
 
-        # Prince Flowers
-        'MarvinPrinceFlowers',
-        'create_prince_flowers_agent',
-        'ConversationTurn',
-        'AgentState',
+        # Prince Flowers (archived - use torq_prince_flowers.py instead)
+        # 'MarvinPrinceFlowers',
+        # 'create_prince_flowers_agent',
+        # 'ConversationTurn',
+        # 'AgentState',
 
         # Workflow Agents
         'WorkflowType',
@@ -157,10 +157,10 @@ try:
         'WorkflowTriggerType',
         'ErrorHandlingStrategy',
 
-        # Enhanced Prince Flowers
-        'EnhancedPrinceFlowers',
-        'create_enhanced_prince_flowers',
-        'apply_tiktok_lesson',
+        # Enhanced Prince Flowers (archived)
+        # 'EnhancedPrinceFlowers',
+        # 'create_enhanced_prince_flowers',
+        # 'apply_tiktok_lesson',
 
         # Action Learning
         'ActionOrientedLearning',
