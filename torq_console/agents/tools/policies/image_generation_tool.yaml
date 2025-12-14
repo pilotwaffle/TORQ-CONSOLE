@@ -1,0 +1,93 @@
+# Policy for Image Generation Tool
+
+tool_name: "image_generation_tool"
+
+# High risk due to API costs and potential misuse
+risk_level: "high"
+
+# File system access for saving generated images
+allowed_paths:
+  - "./"
+  - "../"
+  - "/workspace/"
+  - "/tmp/"
+  - "/home/user/images/"
+  - "/home/user/generated/"
+
+# Forbidden paths
+forbidden_paths:
+  - "/etc/"
+  - "/bin/"
+  - "/sbin/"
+  - "/proc/"
+  - "/sys/"
+  - "/dev/"
+  - "/root/"
+  - "C:\\Windows\\"
+  - "C:\\Program Files\\"
+  - "~/.ssh/"
+  - "~/.aws/"
+
+# Allowed operations
+allowed_operations:
+  - "read"
+  - "write"
+  - "network"
+  - "file_system"
+
+# Forbidden operations
+forbidden_operations:
+  - "execute"
+  - "system"
+  - "delete"
+
+# Image generation requires confirmation due to costs
+requires_confirmation: true
+confirmation_timeout: 900  # 15 minutes
+
+# Strict rate limiting due to API costs
+rate_limit:
+  requests: 20
+  window: 3600  # per hour
+
+# File size restrictions
+max_file_size: 52428800  # 50MB for images
+
+# Allowed image formats
+allowed_extensions:
+  - ".png"
+  - ".jpg"
+  - ".jpeg"
+  - ".webp"
+  - ".gif"
+  - ".svg"
+
+# Security settings
+require_user_context: true
+log_level: "warning"
+
+# Image generation constraints
+max_images_per_request: 4
+max_resolution_width: 2048
+max_resolution_height: 2048
+require_content_filter: true
+
+# Content restrictions
+forbidden_content_categories:
+  - "violence"
+  - "adult_content"
+  - "hate_speech"
+  - "illegal_activities"
+  - "copyright_infringement"
+
+# API restrictions
+allowed_providers:
+  - "openai_dall_e"
+  - "stability_ai"
+  - "midjourney"
+  - "replicate"
+
+# Cost controls
+max_cost_per_hour: 10.0  # USD
+cost_tracking_enabled: true
+require_budget_approval: true

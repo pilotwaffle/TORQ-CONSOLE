@@ -1,0 +1,34 @@
+{
+  "commands": [
+    {
+      "command": "torq telemetry status",
+      "output": [
+        "✅ Telemetry System: ONLINE",
+        "   - Active Traces: 1,247",
+        "   - Average Latency: 1.2ms",
+        "   - Memory Usage: 128MB / 512MB",
+        "   - Uptime: 99.8%"
+      ]
+    },
+    {
+      "command": "torq evaluate run --suite=\"full\"",
+      "output": [
+        "Running evaluation suite...",
+        "✅ Code Quality: 94.5% (PASS)",
+        "✅ Performance: 98.2% (PASS)",
+        "✅ Security: 91.7% (PASS)",
+        "Overall Score: 95.3% - EXCELLENT"
+      ]
+    },
+    {
+      "command": "torq slo dashboard",
+      "output": [
+        "SLO Dashboard - Last 24h",
+        "   - Response Time P95: 94ms (Target: 100ms)",
+        "   - Error Rate: 0.08% (Target: 1.0%)",
+        "   - Throughput: 1,247 req/min (Target: 1,000)",
+        "   - SLO Compliance: 99.9%"
+      ]
+    }
+  ]
+}

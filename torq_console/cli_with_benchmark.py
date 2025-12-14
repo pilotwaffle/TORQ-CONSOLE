@@ -1,5 +1,5 @@
 """
-TORQ CONSOLE Command Line Interface.
+TORQ CONSOLE Command Line Interface with Benchmarking Integration.
 
 Enhanced CLI that bridges Aider functionality with Claude Code capabilities
 through MCP integration, polished UX, and comprehensive performance benchmarking.
@@ -307,29 +307,29 @@ def bench(ctx):
       torq-console bench run                    # Run all benchmarks
       torq-console bench run simple_response    # Run specific test
       torq-console bench list                   # List recent results
-      torq-console bench slo                    # Show SLO configuration
-
-    Note: Use 'torq-bench' for direct access to all benchmark commands.
+      torq-console bench trends --category interactive  # Show performance trends
+      torq-console bench regressions            # Check for regressions
     """
-    # Import and run the benchmark CLI
     try:
-        from .benchmarking.bcli import main as bench_main
-        # Replace sys.argv to make benchmark CLI think it was called directly
-        original_argv = sys.argv
-        sys.argv = ['torq-bench'] + sys.argv[3:]  # Skip 'torq-console bench'
+        from .benchmarking.cli import create_benchmark_commands
+        bench_commands = create_benchmark_commands()
 
-        try:
-            bench_main()
-        finally:
-            sys.argv = original_argv
+        # Get the parent context and forward args
+        if ctx.parent:
+            parent_params = ctx.parent.params
+        else:
+            parent_params = {}
+
+        # Create a new context for benchmark commands
+        bench_ctx = click.Context(bench_commands, info_name='bench', parent=ctx.parent)
+
+        # Forward the command
+        bench_commands.main(standalone_mode=False, parent=ctx.parent, obj=parent_params)
 
     except ImportError as e:
         console.print(f"[red]ERROR[/red] Benchmarking system not available: {e}")
         console.print("Ensure benchmarking dependencies are installed")
         sys.exit(1)
-    except SystemExit as e:
-        # Propagate exit code from benchmark CLI
-        sys.exit(e.code)
     except Exception as e:
         console.print(f"[red]ERROR[/red] Benchmark command failed: {e}")
         sys.exit(1)

@@ -1,0 +1,139 @@
+name: TORQ Console Evaluation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  evaluation:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        eval-set: [v1.0]
+        seed: [42, 123, 456]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install -r requirements.txt
+
+    - name: Run Evaluation
+      run: |
+        python -m torq_console.core.evaluation.runner \
+          --set ${{ matrix.eval-set }} \
+          --seed ${{ matrix.seed }} \
+          --output eval-results-${{ matrix.eval-set }}-${{ matrix.seed }}.json
+
+    - name: Check Regression
+      run: |
+        python -c "
+        import json
+        import sys
+
+        # Load results
+        with open('eval-results-${{ matrix.eval-set }}-${{ matrix.seed }}.json') as f:
+            results = json.load(f)
+
+        # Check if passed
+        if not results.get('passed', True):
+            print('❌ EVALUATION FAILED')
+            print(f'Overall Score: {results[\"scores\"][\"overall_score\"]:.2f}')
+
+            if results.get('regression_check'):
+                reg = results['regression_check']
+                if not reg['passed']:
+                    print('🚨 REGRESSIONS DETECTED')
+                    if reg['details']['overall_regression']:
+                        print(f'  - Overall drop: {reg[\"overall_drop\"]:.2f}')
+                    if reg['details']['domain_regressions_count'] > 0:
+                        print('  - Domain regressions:', reg['domain_regressions'])
+                    if reg['details']['tool_f1_failure']:
+                        print(f'  - Tool F1: {reg[\"tool_f1\"]:.3f}')
+
+            sys.exit(1)
+        else:
+            print('✅ EVALUATION PASSED')
+            print(f'Overall Score: {results[\"scores\"][\"overall_score\"]:.2f}')
+        "
+
+    - name: Upload Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: eval-results-${{ matrix.eval-set }}-${{ matrix.seed }}
+        path: eval-results-${{ matrix.eval-set }}-${{ matrix.seed }}.json
+        retention-days: 30
+
+    - name: Generate Report
+      if: always()
+      run: |
+        python -c "
+        import json
+        from pathlib import Path
+
+        # Collect all results
+        results = []
+        for seed in [42, 123, 456]:
+            path = Path(f'eval-results-${{ matrix.eval-set }}-{seed}.json')
+            if path.exists():
+                with open(path) as f:
+                    results.append(json.load(f))
+
+        if results:
+            # Calculate averages
+            avg_score = sum(r['scores']['overall_score'] for r in results) / len(results)
+            avg_tool_f1 = sum(r['scores']['tool_f1'] for r in results) / len(results)
+
+            # Create report
+            report = f'''
+            # TORQ Console Evaluation Report
+
+            ## Summary for ${{ matrix.eval-set }}
+            - Average Score: {avg_score:.2f}
+            - Average Tool F1: {avg_tool_f1:.3f}
+            - Evaluations Run: {len(results)}
+
+            ## Individual Results
+            '''
+
+            for i, r in enumerate(results):
+                status = '✅ PASSED' if r.get('passed') else '❌ FAILED'
+                report += f'''
+                ### Seed {r['seed']}
+                - Score: {r['scores']['overall_score']:.2f} {status}
+                - Tool F1: {r['scores']['tool_f1']:.3f}
+                - Duration: {r['duration_seconds']:.1f}s
+                '''
+
+            # Write report
+            with open('evaluation-report.md', 'w') as f:
+                f.write(report)
+        "
+
+    - name: Upload Report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: evaluation-report
+        path: evaluation-report.md
+        retention-days: 30

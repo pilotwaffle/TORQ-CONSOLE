@@ -35,11 +35,16 @@ SEARCHMASTER_AVAILABLE = True
 
 # Import Marvin Query Router for intelligent query routing
 try:
-    from .marvin_query_router import create_query_router, AgentCapability
+    # Use the fixed version temporarily to resolve query_lower scope issues
+    from .marvin_query_router_fixed import create_query_router_fixed as create_query_router, AgentCapability
     MARVIN_ROUTER_AVAILABLE = True
 except ImportError:
-    MARVIN_ROUTER_AVAILABLE = False
-    logging.warning("MarvinQueryRouter not available - search routing may be less accurate")
+    try:
+        from .marvin_query_router import create_query_router, AgentCapability
+        MARVIN_ROUTER_AVAILABLE = True
+    except ImportError:
+        MARVIN_ROUTER_AVAILABLE = False
+        logging.warning("MarvinQueryRouter not available - search routing may be less accurate")
 
 # Import Image Generation Tool
 try:

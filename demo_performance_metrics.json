@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-12-14T10:29:30.461280",
+  "metrics": {
+    "latency": {
+      "p50": 40.3,
+      "p95": 94.6,
+      "p99": 204.8,
+      "target_p95": 100
+    },
+    "throughput": {
+      "current_rps": 817,
+      "peak_rps": 1623,
+      "target_rps": 1000,
+      "improvement_factor": 2.5
+    },
+    "resource_usage": {
+      "memory_usage_mb": 181,
+      "memory_limit_mb": 512,
+      "cpu_usage_percent": 24,
+      "disk_io_mb_per_sec": 21
+    },
+    "error_rates": {
+      "current_error_rate": 0.0069,
+      "target_error_rate": 0.01,
+      "timeout_rate": 0.0046
+    },
+    "optimization_results": {
+      "memory_reduction_percent": 30,
+      "latency_improvement_percent": 31,
+      "throughput_increase_factor": 1.8
+    }
+  }
+}

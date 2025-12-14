@@ -1,0 +1,77 @@
+# Policy for File Operations Tool
+
+tool_name: "file_operations_tool"
+
+# Risk level determines confirmation requirements
+risk_level: "medium"
+
+# Paths where this tool can operate
+allowed_paths:
+  - "/tmp/"
+  - "/home/user/documents/"
+  - "/workspace/"
+  - "./"
+  - "../"
+
+# Forbidden paths (never allow access)
+forbidden_paths:
+  - "/etc/"
+  - "/bin/"
+  - "/sbin/"
+  - "/usr/bin/"
+  - "/usr/sbin/"
+  - "/proc/"
+  - "/sys/"
+  - "/dev/"
+  - "/root/"
+  - "C:\\Windows\\"
+  - "C:\\Program Files\\"
+  - "C:\\Users\\"
+  - "~/.ssh/"
+  - "~/.aws/"
+  - "~/.gnupg/"
+
+# Allowed operations
+allowed_operations:
+  - "read"
+  - "write"
+  - "file_system"
+
+# Forbidden operations
+forbidden_operations:
+  - "execute"
+  - "system"
+  - "delete"
+
+# High-risk operations require user confirmation
+requires_confirmation: true
+confirmation_timeout: 300  # 5 minutes
+
+# Rate limiting
+rate_limit:
+  requests: 100
+  window: 3600  # per hour
+
+# File size restrictions
+max_file_size: 104857600  # 100MB
+
+# Allowed file extensions (whitelist)
+allowed_extensions:
+  - ".txt"
+  - ".json"
+  - ".yaml"
+  - ".yml"
+  - ".py"
+  - ".js"
+  - ".ts"
+  - ".html"
+  - ".css"
+  - ".md"
+  - ".csv"
+  - ".xml"
+  - ".log"
+  - ".env"
+
+# Security settings
+require_user_context: true
+log_level: "info"

@@ -1,0 +1,98 @@
+# Policy for MCP Client Tool
+
+tool_name: "mcp_client_tool"
+
+# Medium-high risk due to external service integration
+risk_level: "medium"
+
+# Minimal file system access
+allowed_paths:
+  - "./"
+  - "/tmp/"
+  - "/workspace/"
+  - "~/.config/mcp/"
+
+# Forbidden paths
+forbidden_paths:
+  - "/etc/"
+  - "/bin/"
+  - "/sbin/"
+  - "/proc/"
+  - "/sys/"
+  - "/dev/"
+  - "/root/"
+  - "~/.ssh/"
+  - "~/.aws/"
+
+# Allowed operations
+allowed_operations:
+  - "read"
+  - "write"
+  - "network"
+  - "file_system"
+
+# Forbidden operations
+forbidden_operations:
+  - "execute"
+  - "system"
+  - "delete"
+
+# MCP operations require confirmation
+requires_confirmation: true
+confirmation_timeout: 600  # 10 minutes
+
+# Rate limiting
+rate_limit:
+  requests: 100
+  window: 3600  # per hour
+
+# File size restrictions
+max_file_size: 10485760  # 10MB for MCP data
+
+# Allowed file extensions
+allowed_extensions:
+  - ".json"
+  - ".yaml"
+  - ".yml"
+  - ".txt"
+  - ".log"
+
+# Security settings
+require_user_context: true
+log_level: "warning"
+
+# MCP-specific restrictions
+allowed_mcp_servers:
+  - "filesystem"
+  - "github"
+  - "database"
+  - "websearch"
+
+forbidden_mcp_servers:
+  - "system"
+  - "shell"
+  - "registry"
+
+# Network restrictions
+allowed_endpoints:
+  - "api.github.com"
+  - "api.openai.com"
+  - "api.anthropic.com"
+  - "localhost:*"
+  - "127.0.0.1:*"
+
+forbidden_endpoints:
+  - "malicious-api.com"
+  - "suspicious-endpoint.net"
+
+# Authentication requirements
+require_api_keys: true
+allowed_key_sources:
+  - "environment_variables"
+  - "encrypted_config"
+  - "secure_vault"
+
+forbidden_key_sources:
+  - "plaintext_files"
+  - "command_line"
+  - "hardcoded"
