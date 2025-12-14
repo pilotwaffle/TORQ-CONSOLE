@@ -1,0 +1,537 @@
+"""
+TORQ Console Telemetry Event Schema.
+
+Canonical event schema for all TORQ Console telemetry events.
+Every agent run must emit structured telemetry with this exact schema.
+"""
+
+import json
+import uuid
+from datetime import datetime
+from enum import Enum
+from typing import Dict, List, Optional, Any, Union
+from dataclasses import dataclass, field, asdict
+from pydantic import BaseModel, Field, field_validator
+
+
+class TorqEventType(str, Enum):
+    """All possible TORQ Console event types."""
+    AGENT_RUN = "agent_run"
+    TOOL_EXECUTION = "tool_execution"
+    MODEL_INTERACTION = "model_interaction"
+    MEMORY_OPERATION = "memory_operation"
+    ROUTING_DECISION = "routing_decision"
+    SYSTEM_EVENT = "system_event"
+    ERROR_EVENT = "error_event"
+    PERFORMANCE_METRIC = "performance_metric"
+
+
+class EventSeverity(str, Enum):
+    """Event severity levels."""
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class AgentStatus(str, Enum):
+    """Agent execution status."""
+    STARTED = "started"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    TIMEOUT = "timeout"
+
+
+class ToolType(str, Enum):
+    """Tool execution types."""
+    READ = "read"
+    WRITE = "write"
+    EXECUTE = "execute"
+    SEARCH = "search"
+    BASH = "bash"
+    WEB_SEARCH = "web_search"
+    MCP = "mcp"
+    CUSTOM = "custom"
+
+
+class ModelProvider(str, Enum):
+    """AI model providers."""
+    ANTHROPIC = "anthropic"
+    OPENAI = "openai"
+    GOOGLE = "google"
+    AZURE = "azure"
+    LOCAL = "local"
+    CUSTOM = "custom"
+
+
+class MemoryOperationType(str, Enum):
+    """Memory operation types."""
+    READ = "read"
+    WRITE = "write"
+    UPDATE = "update"
+    DELETE = "delete"
+    SEARCH = "search"
+    CLEAR = "clear"
+
+
+class RoutingStrategy(str, Enum):
+    """Query routing strategies."""
+    INTENT_BASED = "intent_based"
+    CAPABILITY_BASED = "capability_based"
+    PERFORMANCE_BASED = "performance_based"
+    COST_BASED = "cost_based"
+    MANUAL = "manual"
+
+
+@dataclass
+class TorqEvent:
+    """Base class for all TORQ Console telemetry events."""
+    # Core event metadata
+    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    event_type: TorqEventType = field(kw_only=True)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    session_id: str = field(kw_only=True)
+    run_id: Optional[str] = field(default=None)
+
+    # Event metadata
+    severity: EventSeverity = EventSeverity.INFO
+    source: str = field(default="torq_console")
+    version: str = field(default="1.0.0")
+
+    # Trace correlation
+    trace_id: Optional[str] = field(default=None)
+    span_id: Optional[str] = field(default=None)
+    parent_span_id: Optional[str] = field(default=None)
+
+    # Event data
+    data: Dict[str, Any] = field(default_factory=dict)
+    tags: Dict[str, str] = field(default_factory=dict)
+    context: Dict[str, Any] = field(default_factory=dict)
+
+    # Performance metrics
+    duration_ms: Optional[int] = field(default=None)
+    cpu_usage_percent: Optional[float] = field(default=None)
+    memory_usage_mb: Optional[float] = field(default=None)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert event to dictionary format."""
+        data = asdict(self)
+        # Convert datetime to ISO format
+        if isinstance(data['timestamp'], datetime):
+            data['timestamp'] = data['timestamp'].isoformat()
+        return data
+
+    def to_json(self) -> str:
+        """Convert event to JSON string."""
+        return json.dumps(self.to_dict(), default=str)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'TorqEvent':
+        """Create event from dictionary."""
+        if 'timestamp' in data and isinstance(data['timestamp'], str):
+            data['timestamp'] = datetime.fromisoformat(data['timestamp'])
+        return cls(**data)
+
+
+@dataclass
+class AgentRunEvent(TorqEvent):
+    """Event for agent lifecycle tracking."""
+    event_type: TorqEventType = field(default=TorqEventType.AGENT_RUN, init=False)
+
+    # Agent identification
+    agent_name: str = field(kw_only=True)
+    agent_type: str = field(kw_only=True)
+    agent_version: str = field(default="1.0.0")
+
+    # Execution details
+    status: AgentStatus = field(kw_only=True)
+    input_tokens: Optional[int] = field(default=None)
+    output_tokens: Optional[int] = field(default=None)
+    total_tokens: Optional[int] = field(default=None)
+
+    # Configuration
+    model_provider: Optional[ModelProvider] = field(default=None)
+    model_name: Optional[str] = field(default=None)
+    temperature: Optional[float] = field(default=None)
+    max_tokens: Optional[int] = field(default=None)
+
+    # User interaction
+    user_query: Optional[str] = field(default=None)
+    user_intent: Optional[str] = field(default=None)
+    confidence_score: Optional[float] = field(default=None)
+
+    # Tool usage
+    tools_used: List[str] = field(default_factory=list)
+    tool_calls_count: int = field(default=0)
+
+    # Memory operations
+    memory_reads: int = field(default=0)
+    memory_writes: int = field(default=0)
+
+    # Performance
+    queue_time_ms: Optional[int] = field(default=None)
+    processing_time_ms: Optional[int] = field(default=None)
+
+    # Results
+    success: bool = field(default=True)
+    error_message: Optional[str] = field(default=None)
+    error_type: Optional[str] = field(default=None)
+
+    # Feedback
+    user_rating: Optional[int] = field(default=None)
+    user_feedback: Optional[str] = field(default=None)
+
+
+@dataclass
+class ToolExecutionEvent(TorqEvent):
+    """Event for tool execution tracking."""
+    event_type: TorqEventType = field(default=TorqEventType.TOOL_EXECUTION, init=False)
+
+    # Tool identification
+    tool_name: str = field(kw_only=True)
+    tool_type: ToolType = field(kw_only=True)
+    tool_version: str = field(default="1.0.0")
+
+    # Execution details
+    status: str = field(kw_only=True)  # started, completed, failed
+    input_parameters: Dict[str, Any] = field(default_factory=dict)
+    output_result: Optional[Any] = field(default=None)
+
+    # Performance
+    execution_time_ms: Optional[int] = field(default=None)
+
+    # Resource usage
+    cpu_time_ms: Optional[int] = field(default=None)
+    memory_peak_mb: Optional[float] = field(default=None)
+
+    # Results
+    success: bool = field(default=True)
+    error_message: Optional[str] = field(default=None)
+    error_code: Optional[str] = field(default=None)
+
+    # Security
+    access_level: Optional[str] = field(default=None)
+    permissions_required: List[str] = field(default_factory=list)
+
+
+@dataclass
+class ModelInteractionEvent(TorqEvent):
+    """Event for AI model interaction tracking."""
+    event_type: TorqEventType = field(default=TorqEventType.MODEL_INTERACTION, init=False)
+
+    # Model identification
+    model_provider: ModelProvider = field(kw_only=True)
+    model_name: str = field(kw_only=True)
+    model_version: str = field(default="1.0.0")
+
+    # Request details
+    prompt_tokens: int = field(kw_only=True)
+    completion_tokens: Optional[int] = field(default=None)
+    total_tokens: Optional[int] = field(default=None)
+
+    # Request content
+    prompt_summary: Optional[str] = field(default=None)
+    response_summary: Optional[str] = field(default=None)
+
+    # Parameters
+    temperature: Optional[float] = field(default=None)
+    max_tokens: Optional[int] = field(default=None)
+    top_p: Optional[float] = field(default=None)
+    frequency_penalty: Optional[float] = field(default=None)
+    presence_penalty: Optional[float] = field(default=None)
+
+    # Performance
+    response_time_ms: int = field(kw_only=True)
+    ttft_ms: Optional[int] = field(default=None)  # Time to first token
+    tps: Optional[float] = field(default=None)    # Tokens per second
+
+    # Cost
+    cost_usd: Optional[float] = field(default=None)
+
+    # Results
+    success: bool = field(default=True)
+    error_message: Optional[str] = field(default=None)
+    error_code: Optional[str] = field(default=None)
+
+    # Content filtering
+    content_filter_flagged: bool = field(default=False)
+    content_filter_reasons: List[str] = field(default_factory=list)
+
+
+@dataclass
+class MemoryOperationEvent(TorqEvent):
+    """Event for memory operation tracking."""
+    event_type: TorqEventType = field(default=TorqEventType.MEMORY_OPERATION, init=False)
+
+    # Memory identification
+    memory_type: str = field(kw_only=True)  # short_term, long_term, episodic, semantic
+    memory_backend: str = field(kw_only=True)  # redis, sqlite, file, etc.
+    operation_type: MemoryOperationType = field(kw_only=True)
+
+    # Operation details
+    key: Optional[str] = field(default=None)
+    keys: List[str] = field(default_factory=list)
+    data_size_bytes: Optional[int] = field(default=None)
+
+    # Performance
+    operation_time_ms: int = field(kw_only=True)
+
+    # Results
+    success: bool = field(default=True)
+    error_message: Optional[str] = field(default=None)
+
+    # Cache performance
+    cache_hit: Optional[bool] = field(default=None)
+    cache_ttl_seconds: Optional[int] = field(default=None)
+
+
+@dataclass
+class RoutingDecisionEvent(TorqEvent):
+    """Event for query routing decision tracking."""
+    event_type: TorqEventType = field(default=TorqEventType.ROUTING_DECISION, init=False)
+
+    # Query details
+    query: str = field(kw_only=True)
+    query_type: Optional[str] = field(default=None)
+    user_intent: Optional[str] = field(default=None)
+
+    # Routing decision
+    selected_agent: str = field(kw_only=True)
+    routing_strategy: RoutingStrategy = field(kw_only=True)
+    confidence_score: float = field(kw_only=True)
+
+    # Alternative options
+    candidate_agents: List[str] = field(default_factory=list)
+    agent_scores: Dict[str, float] = field(default_factory=dict)
+
+    # Routing factors
+    factors_considered: Dict[str, float] = field(default_factory=dict)
+    routing_time_ms: int = field(kw_only=True)
+
+    # Performance expectations
+    expected_performance: Dict[str, float] = field(default_factory=dict)
+    cost_estimate_usd: Optional[float] = field(default=None)
+
+
+@dataclass
+class SystemEvent(TorqEvent):
+    """Event for system-level operations."""
+    event_type: TorqEventType = field(default=TorqEventType.SYSTEM_EVENT, init=False)
+
+    # System details
+    component: str = field(kw_only=True)
+    operation: str = field(kw_only=True)
+
+    # System metrics
+    cpu_usage_percent: Optional[float] = field(default=None)
+    memory_usage_mb: Optional[float] = field(default=None)
+    disk_usage_percent: Optional[float] = field(default=None)
+    network_io_bytes: Optional[int] = field(default=None)
+
+    # Configuration
+    config_changes: Dict[str, Any] = field(default_factory=dict)
+
+    # Health status
+    health_status: Optional[str] = field(default=None)
+    uptime_seconds: Optional[int] = field(default=None)
+
+
+# Event factory functions
+def create_agent_run_event(
+    session_id: str,
+    agent_name: str,
+    agent_type: str,
+    status: AgentStatus,
+    run_id: Optional[str] = None,
+    **kwargs
+) -> AgentRunEvent:
+    """Create an agent run event with required fields."""
+    return AgentRunEvent(
+        session_id=session_id,
+        agent_name=agent_name,
+        agent_type=agent_type,
+        status=status,
+        run_id=run_id or str(uuid.uuid4()),
+        **kwargs
+    )
+
+
+def create_tool_execution_event(
+    session_id: str,
+    tool_name: str,
+    tool_type: ToolType,
+    status: str,
+    run_id: Optional[str] = None,
+    **kwargs
+) -> ToolExecutionEvent:
+    """Create a tool execution event with required fields."""
+    return ToolExecutionEvent(
+        session_id=session_id,
+        tool_name=tool_name,
+        tool_type=tool_type,
+        status=status,
+        run_id=run_id,
+        **kwargs
+    )
+
+
+def create_model_interaction_event(
+    session_id: str,
+    model_provider: ModelProvider,
+    model_name: str,
+    prompt_tokens: int,
+    response_time_ms: int,
+    run_id: Optional[str] = None,
+    **kwargs
+) -> ModelInteractionEvent:
+    """Create a model interaction event with required fields."""
+    return ModelInteractionEvent(
+        session_id=session_id,
+        model_provider=model_provider,
+        model_name=model_name,
+        prompt_tokens=prompt_tokens,
+        response_time_ms=response_time_ms,
+        run_id=run_id,
+        **kwargs
+    )
+
+
+def create_memory_operation_event(
+    session_id: str,
+    memory_type: str,
+    memory_backend: str,
+    operation_type: MemoryOperationType,
+    operation_time_ms: int,
+    run_id: Optional[str] = None,
+    **kwargs
+) -> MemoryOperationEvent:
+    """Create a memory operation event with required fields."""
+    return MemoryOperationEvent(
+        session_id=session_id,
+        memory_type=memory_type,
+        memory_backend=memory_backend,
+        operation_type=operation_type,
+        operation_time_ms=operation_time_ms,
+        run_id=run_id,
+        **kwargs
+    )
+
+
+def create_routing_decision_event(
+    session_id: str,
+    query: str,
+    selected_agent: str,
+    routing_strategy: RoutingStrategy,
+    confidence_score: float,
+    routing_time_ms: int,
+    run_id: Optional[str] = None,
+    **kwargs
+) -> RoutingDecisionEvent:
+    """Create a routing decision event with required fields."""
+    return RoutingDecisionEvent(
+        session_id=session_id,
+        query=query,
+        selected_agent=selected_agent,
+        routing_strategy=routing_strategy,
+        confidence_score=confidence_score,
+        routing_time_ms=routing_time_ms,
+        run_id=run_id,
+        **kwargs
+    )
+
+
+def create_system_event(
+    session_id: str,
+    component: str,
+    operation: str,
+    run_id: Optional[str] = None,
+    **kwargs
+) -> SystemEvent:
+    """Create a system event with required fields."""
+    return SystemEvent(
+        session_id=session_id,
+        component=component,
+        operation=operation,
+        run_id=run_id,
+        **kwargs
+    )
+
+
+# Pydantic models for validation
+class TorqEventModel(BaseModel):
+    """Pydantic model for TORQ event validation."""
+    event_id: str
+    event_type: TorqEventType
+    timestamp: datetime
+    session_id: str
+    run_id: Optional[str] = None
+    severity: EventSeverity = EventSeverity.INFO
+    source: str = "torq_console"
+    version: str = "1.0.0"
+    trace_id: Optional[str] = None
+    span_id: Optional[str] = None
+    parent_span_id: Optional[str] = None
+    data: Dict[str, Any] = Field(default_factory=dict)
+    tags: Dict[str, str] = Field(default_factory=dict)
+    context: Dict[str, Any] = Field(default_factory=dict)
+    duration_ms: Optional[int] = None
+    cpu_usage_percent: Optional[float] = None
+    memory_usage_mb: Optional[float] = None
+
+    model_config = {
+        "use_enum_values": True,
+        "json_encoders": {
+            datetime: lambda v: v.isoformat()
+        }
+        }
+
+    @field_validator('event_id')
+    def validate_event_id(cls, v):
+        if not v:
+            raise ValueError('event_id cannot be empty')
+        return v
+
+    @field_validator('session_id')
+    def validate_session_id(cls, v):
+        if not v:
+            raise ValueError('session_id cannot be empty')
+        return v
+
+
+class AgentRunEventModel(TorqEventModel):
+    """Pydantic model for agent run event validation."""
+    event_type: TorqEventType = TorqEventType.AGENT_RUN
+    agent_name: str
+    agent_type: str
+    agent_version: str = "1.0.0"
+    status: AgentStatus
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    total_tokens: Optional[int] = None
+    model_provider: Optional[ModelProvider] = None
+    model_name: Optional[str] = None
+    temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
+    max_tokens: Optional[int] = Field(None, gt=0)
+    user_query: Optional[str] = None
+    user_intent: Optional[str] = None
+    confidence_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    tools_used: List[str] = Field(default_factory=list)
+    tool_calls_count: int = Field(default=0, ge=0)
+    memory_reads: int = Field(default=0, ge=0)
+    memory_writes: int = Field(default=0, ge=0)
+    queue_time_ms: Optional[int] = Field(None, ge=0)
+    processing_time_ms: Optional[int] = Field(None, ge=0)
+    success: bool = True
+    error_message: Optional[str] = None
+    error_type: Optional[str] = None
+    user_rating: Optional[int] = Field(None, ge=1, le=5)
+    user_feedback: Optional[str] = None
+
+    @field_validator('agent_name', 'agent_type')
+    def validate_agent_fields(cls, v):
+        if not v or not v.strip():
+            raise ValueError('agent_name and agent_type cannot be empty')
+        return v.strip()

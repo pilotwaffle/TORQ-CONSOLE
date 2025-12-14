@@ -12,6 +12,24 @@ _MARVIN_IMPORT_ERROR = None
 __all__ = []
 
 try:
+    # Policy-Driven Routing System (NEW!)
+    from .policy_framework import (
+        PolicyFramework,
+        PolicyComplianceStatus,
+        IntentMapping,
+        AgentDefinition,
+        EscalationRule,
+        RoutingPolicy,
+        get_policy_framework,
+        reload_policy
+    )
+
+    from .policy_driven_router import (
+        PolicyDrivenRouter,
+        PolicyRoutingDecision,
+        create_policy_driven_router
+    )
+
     # Query routing
     from .marvin_query_router import (
         MarvinQueryRouter,
@@ -94,6 +112,19 @@ try:
     _MARVIN_AVAILABLE = True
 
     __all__ = [
+        # Policy-Driven Routing System (NEW!)
+        'PolicyFramework',
+        'PolicyComplianceStatus',
+        'IntentMapping',
+        'AgentDefinition',
+        'EscalationRule',
+        'RoutingPolicy',
+        'get_policy_framework',
+        'reload_policy',
+        'PolicyDrivenRouter',
+        'PolicyRoutingDecision',
+        'create_policy_driven_router',
+
         # Query Router
         'MarvinQueryRouter',
         'create_query_router',
@@ -197,4 +228,4 @@ def get_marvin_status() -> dict:
     return status
 
 
-__version__ = '0.3.0'  # Phase 3: Agent Enhancement
+__version__ = '0.4.0'  # Updated for Policy-Driven Routing System

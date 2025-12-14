@@ -198,7 +198,7 @@ class MarvinQueryRouter:
             self.logger.error(f"Failed to analyze query: {e}", exc_info=True)
             return self._fallback_analysis(query)
 
-    def _infer_capabilities(
+    def _infer_capabilities_safe(
         self,
         query: str,
         intent: IntentClassification
@@ -343,7 +343,7 @@ class MarvinQueryRouter:
             return unique_capabilities
 
         except Exception as e:
-            self.logger.error(f"Error in _infer_capabilities: {e}", exc_info=True)
+            self.logger.error(f"Error in _infer_capabilities_safe: {e}", exc_info=True)
             # Return safe default
             return [AgentCapability.GENERAL_CHAT]
 
@@ -702,7 +702,7 @@ def test_variable_scope_fix():
     for i, query in enumerate(test_queries):
         try:
             # This should not raise "query_lower not defined" error
-            capabilities = router._infer_capabilities(query, router.marvin.classify(query, 'CHAT'))
+            capabilities = router._infer_capabilities_safe(query, router.marvin.classify(query, 'CHAT'))
             print(f"✓ Test {i+1}: '{query[:30]}...' -> {len(capabilities)} capabilities")
         except NameError as e:
             if "query_lower" in str(e):

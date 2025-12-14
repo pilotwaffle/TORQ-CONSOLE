@@ -1,0 +1,267 @@
+# Policy-Driven Routing System for TORQ Console
+# Version 1.0 - Initial Implementation
+
+# Policy metadata
+metadata:
+  name: "production_routing_policy"
+  version: "1.0.0"
+  description: "Production routing policy with cost and latency controls"
+  created_date: "2025-01-14"
+  author: "TORQ Console Team"
+  environment: "production"
+
+# Default routing configuration
+defaults:
+  # Cost budgets per query type (in USD)
+  cost_budgets:
+    web_search: 0.05
+    code_generation: 0.10
+    debugging: 0.08
+    documentation: 0.06
+    testing: 0.07
+    research: 0.12
+    general_chat: 0.03
+    spec_analysis: 0.09
+    task_planning: 0.05
+
+  # Latency budgets per query type (in milliseconds)
+  latency_budgets:
+    web_search: 5000
+    code_generation: 15000
+    debugging: 10000
+    documentation: 8000
+    testing: 12000
+    research: 20000
+    general_chat: 3000
+    spec_analysis: 7000
+    task_planning: 5000
+
+  # Default escalation rules
+  escalation_rules:
+    max_cost_per_query: 0.50
+    max_latency_per_query: 60000
+    max_retries: 3
+    timeout_ms: 120000
+
+# Intent to agent mappings
+intent_mappings:
+  # Primary mappings with confidence scores
+  web_search:
+    primary_agent: "research_specialist"
+    fallback_agents: ["prince_flowers", "code_reviewer"]
+    confidence_threshold: 0.7
+    max_cost: 0.05
+    max_latency: 5000
+    capabilities_required: ["web_search", "research"]
+
+  code_generation:
+    primary_agent: "code_generation_agent"
+    fallback_agents: ["prince_flowers", "code_reviewer"]
+    confidence_threshold: 0.8
+    max_cost: 0.10
+    max_latency: 15000
+    capabilities_required: ["code_generation"]
+
+  debugging:
+    primary_agent: "debugging_agent"
+    fallback_agents: ["code_reviewer", "prince_flowers"]
+    confidence_threshold: 0.7
+    max_cost: 0.08
+    max_latency: 10000
+    capabilities_required: ["debugging", "code_review"]
+
+  documentation:
+    primary_agent: "documentation_agent"
+    fallback_agents: ["prince_flowers", "spec_analyzer"]
+    confidence_threshold: 0.7
+    max_cost: 0.06
+    max_latency: 8000
+    capabilities_required: ["documentation"]
+
+  testing:
+    primary_agent: "testing_agent"
+    fallback_agents: ["code_reviewer", "prince_flowers"]
+    confidence_threshold: 0.7
+    max_cost: 0.07
+    max_latency: 12000
+    capabilities_required: ["testing", "code_review"]
+
+  research:
+    primary_agent: "research_specialist"
+    fallback_agents: ["prince_flowers", "documentation_agent"]
+    confidence_threshold: 0.7
+    max_cost: 0.12
+    max_latency: 20000
+    capabilities_required: ["research", "documentation"]
+
+  general_chat:
+    primary_agent: "prince_flowers"
+    fallback_agents: ["code_generation_agent", "documentation_agent"]
+    confidence_threshold: 0.6
+    max_cost: 0.03
+    max_latency: 3000
+    capabilities_required: ["general_chat"]
+
+  spec_analysis:
+    primary_agent: "spec_analyzer"
+    fallback_agents: ["prince_flowers", "task_planner"]
+    confidence_threshold: 0.8
+    max_cost: 0.09
+    max_latency: 7000
+    capabilities_required: ["spec_analysis"]
+
+  task_planning:
+    primary_agent: "task_planner"
+    fallback_agents: ["prince_flowers", "spec_analyzer"]
+    confidence_threshold: 0.7
+    max_cost: 0.05
+    max_latency: 5000
+    capabilities_required: ["task_planning"]
+
+# Agent capabilities and constraints
+agent_definitions:
+  research_specialist:
+    capabilities: ["web_search", "research", "documentation"]
+    cost_per_token: 0.000002  # $2 per 1M tokens
+    max_concurrent_requests: 5
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 30000
+
+  code_generation_agent:
+    capabilities: ["code_generation", "documentation"]
+    cost_per_token: 0.000003  # $3 per 1M tokens
+    max_concurrent_requests: 3
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 45000
+
+  debugging_agent:
+    capabilities: ["debugging", "code_review"]
+    cost_per_token: 0.0000025  # $2.5 per 1M tokens
+    max_concurrent_requests: 4
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 30000
+
+  documentation_agent:
+    capabilities: ["documentation", "spec_analysis"]
+    cost_per_token: 0.000002  # $2 per 1M tokens
+    max_concurrent_requests: 6
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 25000
+
+  testing_agent:
+    capabilities: ["testing", "code_review"]
+    cost_per_token: 0.0000025  # $2.5 per 1M tokens
+    max_concurrent_requests: 4
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 35000
+
+  prince_flowers:
+    capabilities: ["general_chat", "code_generation", "documentation", "task_planning"]
+    cost_per_token: 0.0000015  # $1.5 per 1M tokens
+    max_concurrent_requests: 8
+    preferred_models: ["claude-sonnet-4", "gpt-3.5-turbo"]
+    timeout_ms: 20000
+
+  spec_analyzer:
+    capabilities: ["spec_analysis", "documentation"]
+    cost_per_token: 0.000002  # $2 per 1M tokens
+    max_concurrent_requests: 3
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 25000
+
+  task_planner:
+    capabilities: ["task_planning", "spec_analysis"]
+    cost_per_token: 0.000002  # $2 per 1M tokens
+    max_concurrent_requests: 4
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 20000
+
+  code_reviewer:
+    capabilities: ["code_review", "debugging", "testing"]
+    cost_per_token: 0.000002  # $2 per 1M tokens
+    max_concurrent_requests: 5
+    preferred_models: ["claude-sonnet-4", "gpt-4"]
+    timeout_ms: 25000
+
+# Escalation rules
+escalation_rules:
+  # Cost-based escalation
+  cost_over_threshold:
+    condition: "estimated_cost > intent_max_cost"
+    action: "escalate_to_lower_cost_agent"
+    fallback_order: ["prince_flowers", "code_reviewer"]
+
+  # Latency-based escalation
+  latency_over_threshold:
+    condition: "estimated_latency > intent_max_latency"
+    action: "escalate_to_faster_agent"
+    fallback_order: ["prince_flowers", "code_reviewer"]
+
+  # Confidence-based escalation
+  low_confidence:
+    condition: "confidence_score < intent_confidence_threshold"
+    action: "escalate_to_general_agent"
+    fallback_order: ["prince_flowers"]
+
+  # Agent unavailable escalation
+  agent_unavailable:
+    condition: "primary_agent_not_available"
+    action: "use_fallback_agent"
+    fallback_order: ["prince_flowers"]
+
+  # Timeout escalation
+  timeout_escalation:
+    condition: "response_time > agent_timeout_ms"
+    action: "escalate_with_context"
+    fallback_order: ["prince_flowers", "code_reviewer"]
+    max_retries: 3
+    final_fallback: "prince_flowers"
+
+# Performance constraints
+performance_constraints:
+  global:
+    max_concurrent_queries: 50
+    max_total_cost_per_minute: 10.0  # $10 per minute
+    max_queue_time_ms: 5000
+    health_check_interval_ms: 30000
+
+  per_user:
+    max_concurrent_queries: 5
+    max_cost_per_hour: 5.0  # $5 per hour per user
+    rate_limit_queries_per_minute: 60
+
+# Monitoring and logging requirements
+monitoring:
+  log_level: "INFO"
+  log_policy_version: true
+  log_candidate_scoring: true
+  log_fallback_paths: true
+  log_performance_metrics: true
+
+  metrics_to_track:
+    - "routing_decision_time_ms"
+    - "agent_response_time_ms"
+    - "cost_per_query"
+    - "fallback_rate"
+    - "confidence_distribution"
+    - "policy_compliance_rate"
+
+  alert_thresholds:
+    high_fallback_rate: 0.3  # 30% fallback rate triggers alert
+    high_cost_per_query: 0.25  # $0.25 per query triggers alert
+    high_latency: 30000  # 30 seconds average triggers alert
+    low_confidence: 0.5  # Average confidence below 0.5 triggers alert
+
+# Policy compliance rules
+compliance:
+  require_policy_version_in_telemetry: true
+  require_intent_classification: true
+  require_cost_estimation: true
+  require_latency_estimation: true
+  require_fallback_logging: true
+
+  audit_requirements:
+    log_all_routing_decisions: true
+    log_policy_violations: true
+    log_escaltion_triggers: true
+    retain_logs_days: 30

@@ -1,0 +1,73 @@
+# Policy for Browser Automation Tool
+
+tool_name: "browser_automation_tool"
+
+# High risk due to web access capabilities
+risk_level: "high"
+
+# No file system access needed
+allowed_paths: []
+forbidden_paths:
+  - "/"  # Block all file system access
+
+# Allowed operations
+allowed_operations:
+  - "read"
+  - "execute"
+  - "network"
+
+# Forbidden operations
+forbidden_operations:
+  - "write"
+  - "file_system"
+  - "delete"
+  - "system"
+
+# High-risk operations require confirmation
+requires_confirmation: true
+confirmation_timeout: 600  # 10 minutes
+
+# Rate limiting (stricter due to web access)
+rate_limit:
+  requests: 50
+  window: 3600  # per hour
+
+# Network restrictions
+network_hosts_whitelist:
+  - "github.com"
+  - "stackoverflow.com"
+  - "developer.mozilla.org"
+  - "docs.python.org"
+  - "pypi.org"
+  - "npmjs.com"
+  - "medium.com"
+  - "dev.to"
+  - "news.ycombinator.com"
+
+# Security settings
+require_user_context: true
+log_level: "warning"
+
+# Browser-specific restrictions
+allowed_domains:
+  - "github.com"
+  - "stackoverflow.com"
+  - "developer.mozilla.org"
+  - "docs.python.org"
+  - "pypi.org"
+  - "npmjs.com"
+  - "medium.com"
+  - "dev.to"
+  - "news.ycombinator.com"
+
+forbidden_domains:
+  - "malware-site.com"
+  - "phishing-site.com"
+  - "suspicious-domain.net"
+
+# Additional security constraints
+max_page_load_time: 30  # seconds
+max_execution_time: 300  # 5 minutes
+allow_file_downloads: false
+allow_cookie_access: false
+allow_local_file_access: false

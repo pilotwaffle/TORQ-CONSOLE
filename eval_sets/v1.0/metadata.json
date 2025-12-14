@@ -1,0 +1,139 @@
+{
+  "version": "1.0",
+  "name": "TORQ Console Core Evaluation Set v1.0",
+  "description": "Comprehensive evaluation of TORQ Console core capabilities without requiring new agents",
+  "created": "2025-01-13",
+  "last_updated": "2025-01-13",
+  "maintainer": "TORQ Console Team",
+  "tags": ["core", "regression", "production"],
+
+  "evaluation_config": {
+    "deterministic": true,
+    "seed_required": true,
+    "parallel_execution": false,
+    "timeout_seconds": 300,
+    "max_parallel_tasks": 1
+  },
+
+  "environment_requirements": {
+    "python_version": ">=3.10",
+    "required_packages": [
+      "numpy>=1.21.0",
+      "pydantic>=2.0.0",
+      "rich>=13.0.0"
+    ],
+    "optional_packages": [
+      "pytest>=7.0.0",
+      "pytest-asyncio>=0.21.0"
+    ]
+  },
+
+  "performance_benchmarks": {
+    "target_overall_score": 9.0,
+    "minimum_overall_score": 8.0,
+    "target_tool_f1": 0.85,
+    "minimum_tool_f1": 0.75,
+    "target_efficiency": 0.8,
+    "minimum_efficiency": 0.7
+  },
+
+  "regression_thresholds": {
+    "max_overall_score_drop": 2.0,
+    "max_category_score_drop": 3.0,
+    "min_tool_f1_score": 0.75,
+    "min_efficiency_score": 0.7
+  },
+
+  "task_distribution": {
+    "by_type": {
+      "chat": 2,
+      "code": 1,
+      "research": 1,
+      "automation": 3,
+      "recovery": 1,
+      "analysis": 1,
+      "routing": 1
+    },
+    "by_category": {
+      "core": 3,
+      "tools": 3,
+      "complex": 1,
+      "robustness": 1,
+      "specialized": 1,
+      "performance": 1
+    },
+    "by_difficulty": {
+      "easy": 3,
+      "medium": 5,
+      "hard": 2
+    }
+  },
+
+  "scoring_details": {
+    "overall_weight": 1.0,
+    "category_weights": {
+      "core": 1.5,
+      "tools": 1.2,
+      "complex": 1.8,
+      "robustness": 1.4,
+      "specialized": 1.0,
+      "performance": 0.8
+    },
+    "component_weights": {
+      "accuracy": 0.4,
+      "efficiency": 0.2,
+      "robustness": 0.2,
+      "tool_usage": 0.2
+    }
+  },
+
+  "baseline_scores": {
+    "overall_score": 8.7,
+    "category_scores": {
+      "core": 8.9,
+      "tools": 8.5,
+      "complex": 8.2,
+      "robustness": 8.8,
+      "specialized": 8.6,
+      "performance": 8.9
+    },
+    "component_scores": {
+      "accuracy": 8.8,
+      "efficiency": 8.5,
+      "robustness": 8.9,
+      "tool_usage": 8.6
+    },
+    "tool_f1": 0.86,
+    "evaluated_at": "2025-01-13T00:00:00Z",
+    "evaluated_by": "TORQ Console CI",
+    "environment": "production"
+  },
+
+  "change_log": [
+    {
+      "version": "1.0",
+      "date": "2025-01-13",
+      "changes": [
+        "Initial evaluation set creation",
+        "10 comprehensive tasks covering all core capabilities",
+        "Deterministic scoring implementation",
+        "Regression detection system",
+        "CLI integration ready"
+      ]
+    }
+  ],
+
+  "known_limitations": [
+    "Does not test new agent capabilities (as per PRD non-goals)",
+    "Mock tool usage - requires integration with real tools",
+    "Web search tasks depend on external service availability",
+    "File operations assume write permissions"
+  ],
+
+  "future_improvements": [
+    "Add real tool integration tests",
+    "Expand to multi-modal evaluations",
+    "Add concurrent execution testing",
+    "Include memory leak detection"
+  ]
+}

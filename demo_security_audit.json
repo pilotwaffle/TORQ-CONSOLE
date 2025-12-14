@@ -1,0 +1,75 @@
+{
+  "audit_id": "audit_1765729770",
+  "timestamp": "2025-12-14T10:29:30.461280",
+  "sandbox_version": "1.5.2",
+  "tests": [
+    {
+      "name": "Resource Isolation",
+      "status": "PASSED",
+      "details": "Container boundaries verified",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "Input Validation",
+      "status": "PASSED",
+      "details": "All inputs properly sanitized",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "Output Sanitization",
+      "status": "PASSED",
+      "details": "Output filtering working",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "Privilege Escalation",
+      "status": "BLOCKED",
+      "details": "Elevation attempts prevented",
+      "severity": "HIGH"
+    },
+    {
+      "name": "Memory Safety",
+      "status": "VERIFIED",
+      "details": "No memory leaks detected",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "File System Access",
+      "status": "RESTRICTED",
+      "details": "Access properly limited",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "Network Access",
+      "status": "CONTROLLED",
+      "details": "External connections filtered",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "Time-based Limits",
+      "status": "ENFORCED",
+      "details": "Execution timeouts working",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "Process Monitoring",
+      "status": "ACTIVE",
+      "details": "Real-time monitoring enabled",
+      "severity": "MEDIUM"
+    },
+    {
+      "name": "Audit Logging",
+      "status": "COMPLETE",
+      "details": "All actions logged",
+      "severity": "MEDIUM"
+    }
+  ],
+  "overall_status": "SECURE",
+  "security_score": 96.7,
+  "vulnerabilities_found": 0,
+  "recommendations": [
+    "Continue monitoring for new attack vectors",
+    "Regular security updates recommended",
+    "Consider additional network segmentation"
+  ]
+}

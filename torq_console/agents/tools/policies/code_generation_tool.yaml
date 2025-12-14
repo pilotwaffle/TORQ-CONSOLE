@@ -1,0 +1,112 @@
+# Policy for Code Generation Tool
+
+tool_name: "code_generation_tool"
+
+# Medium risk due to code generation capabilities
+risk_level: "medium"
+
+# Limited file system access for saving generated code
+allowed_paths:
+  - "./"
+  - "../"
+  - "/workspace/"
+  - "/tmp/"
+  - "/home/user/projects/"
+
+# Forbidden paths
+forbidden_paths:
+  - "/etc/"
+  - "/bin/"
+  - "/sbin/"
+  - "/usr/bin/"
+  - "/usr/sbin/"
+  - "/proc/"
+  - "/sys/"
+  - "/dev/"
+  - "/root/"
+  - "C:\\Windows\\"
+  - "C:\\Program Files\\"
+  - "~/.ssh/"
+  - "~/.aws/"
+
+# Allowed operations
+allowed_operations:
+  - "read"
+  - "write"
+  - "file_system"
+
+# Forbidden operations
+forbidden_operations:
+  - "execute"
+  - "system"
+  - "delete"
+  - "network"
+
+# Code generation doesn't always require confirmation
+requires_confirmation: false
+confirmation_timeout: 300
+
+# Rate limiting
+rate_limit:
+  requests: 200
+  window: 3600  # per hour
+
+# File size restrictions
+max_file_size: 52428800  # 50MB for generated code
+
+# Allowed file extensions for generated code
+allowed_extensions:
+  - ".py"
+  - ".js"
+  - ".ts"
+  - ".jsx"
+  - ".tsx"
+  - ".html"
+  - ".css"
+  - ".json"
+  - ".yaml"
+  - ".yml"
+  - ".md"
+  - ".txt"
+  - ".go"
+  - ".rs"
+  - ".java"
+  - ".cpp"
+  - ".c"
+  - ".h"
+  - ".php"
+  - ".rb"
+  - ".swift"
+  - ".kt"
+  - ".scala"
+
+# Security settings
+require_user_context: false
+log_level: "info"
+
+# Code generation constraints
+max_lines_per_file: 10000
+max_files_per_request: 50
+require_code_review: true
+forbidden_patterns:
+  - "eval("
+  - "exec("
+  - "subprocess.call"
+  - "os.system"
+  - "Runtime.getRuntime"
+  - "ProcessBuilder"
+  - "shell_exec"
+  - "system("
+
+# Language-specific restrictions
+language_restrictions:
+  python:
+    forbid_imports:
+      - "os"
+      - "subprocess"
+      - "sys"
+      - "socket"
+      - "urllib"
+      - "requests"
+    require_imports:
+      - "typing"

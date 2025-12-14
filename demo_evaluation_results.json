@@ -1,0 +1,58 @@
+{
+  "evaluation_id": "eval_1765729770",
+  "timestamp": "2025-12-14T10:29:30.461280",
+  "results": {
+    "code_quality": {
+      "score": 89.4,
+      "duration": 5.2,
+      "status": "NEEDS_IMPROVEMENT",
+      "tests_run": 34,
+      "tests_passed": 23
+    },
+    "performance": {
+      "score": 88.7,
+      "duration": 7.5,
+      "status": "NEEDS_IMPROVEMENT",
+      "tests_run": 65,
+      "tests_passed": 146
+    },
+    "security": {
+      "score": 87.1,
+      "duration": 4.5,
+      "status": "NEEDS_IMPROVEMENT",
+      "tests_run": 60,
+      "tests_passed": 119
+    },
+    "functionality": {
+      "score": 85.6,
+      "duration": 7.8,
+      "status": "NEEDS_IMPROVEMENT",
+      "tests_run": 96,
+      "tests_passed": 104
+    },
+    "documentation": {
+      "score": 93.6,
+      "duration": 8.0,
+      "status": "PASS",
+      "tests_run": 72,
+      "tests_passed": 126
+    },
+    "test_coverage": {
+      "score": 93.8,
+      "duration": 5.5,
+      "status": "PASS",
+      "tests_run": 22,
+      "tests_passed": 24
+    },
+    "memory_safety": {
+      "score": 92.2,
+      "duration": 7.1,
+      "status": "PASS",
+      "tests_run": 90,
+      "tests_passed": 130
+    }
+  },
+  "overall_score": 90.1,
+  "total_duration": 45.6,
+  "status": "PASS"
+}

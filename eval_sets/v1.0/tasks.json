@@ -1,0 +1,318 @@
+{
+  "version": "1.0",
+  "created": "2025-01-13",
+  "description": "TORQ Console v1.0 Evaluation Set - Core system capabilities",
+  "tasks": [
+    {
+      "id": "chat_basic_001",
+      "type": "chat",
+      "category": "core",
+      "description": "Basic chat interaction with context retention",
+      "weight": 1.0,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Hello TORQ, what can you help me with?"
+        },
+        {
+          "role": "user",
+          "content": "Remember my favorite color is blue."
+        },
+        {
+          "role": "user",
+          "content": "What did I just tell you my favorite color is?"
+        }
+      ],
+      "expected_outputs": [
+        {
+          "contains": "blue",
+          "type": "string_match",
+          "weight": 0.5
+        },
+        {
+          "type": "context_retention",
+          "weight": 0.5
+        }
+      ],
+      "tool_requirements": [],
+      "max_latency_ms": 3000,
+      "max_tokens": 1000
+    },
+    {
+      "id": "code_generation_001",
+      "type": "code",
+      "category": "core",
+      "description": "Generate Python function with proper error handling",
+      "weight": 1.5,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Write a Python function that reads a JSON file and returns the parsed data with proper error handling for file not found and invalid JSON."
+        }
+      ],
+      "expected_outputs": [
+        {
+          "type": "valid_python",
+          "weight": 0.4
+        },
+        {
+          "type": "error_handling",
+          "errors_expected": ["FileNotFoundError", "json.JSONDecodeError"],
+          "weight": 0.6
+        }
+      ],
+      "tool_requirements": ["python_executor"],
+      "max_latency_ms": 5000,
+      "max_tokens": 2000
+    },
+    {
+      "id": "web_search_001",
+      "type": "research",
+      "category": "tools",
+      "description": "Perform web search and synthesize results",
+      "weight": 1.2,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Search for the latest developments in quantum computing in 2024 and summarize the key breakthroughs."
+        }
+      ],
+      "expected_outputs": [
+        {
+          "type": "search_results_count",
+          "min_results": 3,
+          "weight": 0.3
+        },
+        {
+          "type": "synthesis_quality",
+          "min_length": 200,
+          "weight": 0.7
+        }
+      ],
+      "tool_requirements": ["web_search"],
+      "max_latency_ms": 10000,
+      "max_tokens": 3000
+    },
+    {
+      "id": "file_operations_001",
+      "type": "automation",
+      "category": "tools",
+      "description": "Read, process, and write files",
+      "weight": 1.0,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Create a sample CSV file with student grades, then calculate and write the average grade to a new file."
+        }
+      ],
+      "expected_outputs": [
+        {
+          "type": "file_created",
+          "pattern": "*.csv",
+          "weight": 0.5
+        },
+        {
+          "type": "calculation_accuracy",
+          "expected_operation": "average",
+          "weight": 0.5
+        }
+      ],
+      "tool_requirements": ["file_operations"],
+      "max_latency_ms": 7000,
+      "max_tokens": 1500
+    },
+    {
+      "id": "api_integration_001",
+      "type": "automation",
+      "category": "tools",
+      "description": "Call external API and process response",
+      "weight": 1.3,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Use the JSONPlaceholder API to fetch user data for user ID 1, then extract and format their name, email, and company."
+        }
+      ],
+      "expected_outputs": [
+        {
+          "type": "api_call_success",
+          "weight": 0.4
+        },
+        {
+          "type": "data_extraction",
+          "fields": ["name", "email", "company"],
+          "weight": 0.6
+        }
+      ],
+      "tool_requirements": ["http_client"],
+      "max_latency_ms": 8000,
+      "max_tokens": 2000
+    },
+    {
+      "id": "memory_system_001",
+      "type": "chat",
+      "category": "core",
+      "description": "Long-term memory retention and retrieval",
+      "weight": 1.1,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Store this information: I'm working on a machine learning project using PyTorch, focused on computer vision for autonomous vehicles."
+        },
+        {
+          "role": "user",
+          "content": "What project details did I just share?"
+        }
+      ],
+      "expected_outputs": [
+        {
+          "contains": ["PyTorch", "computer vision", "autonomous vehicles"],
+          "type": "keyword_match",
+          "weight": 0.6
+        },
+        {
+          "type": "memory_retrieval",
+          "weight": 0.4
+        }
+      ],
+      "tool_requirements": ["memory_system"],
+      "max_latency_ms": 4000,
+      "max_tokens": 1500
+    },
+    {
+      "id": "multi_tool_coordination_001",
+      "type": "automation",
+      "category": "complex",
+      "description": "Coordinate multiple tools in sequence",
+      "weight": 1.8,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Search for Python performance optimization tips, create a markdown file with the top 5 tips, and save it to disk."
+        }
+      ],
+      "expected_outputs": [
+        {
+          "type": "tool_sequence",
+          "sequence": ["web_search", "content_processing", "file_write"],
+          "weight": 0.4
+        },
+        {
+          "type": "file_created",
+          "pattern": "*.md",
+          "weight": 0.6
+        }
+      ],
+      "tool_requirements": ["web_search", "file_operations"],
+      "max_latency_ms": 12000,
+      "max_tokens": 2500
+    },
+    {
+      "id": "error_recovery_001",
+      "type": "recovery",
+      "category": "robustness",
+      "description": "Handle tool failures gracefully",
+      "weight": 1.4,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Try to read from a non-existent file 'missing_config.json', and if it fails, create a default configuration file."
+        }
+      ],
+      "expected_outputs": [
+        {
+          "type": "error_handling",
+          "expected_errors": ["FileNotFoundError"],
+          "weight": 0.5
+        },
+        {
+          "type": "recovery_action",
+          "action": "create_default",
+          "weight": 0.5
+        }
+      ],
+      "tool_requirements": ["file_operations"],
+      "max_latency_ms": 6000,
+      "max_tokens": 2000
+    },
+    {
+      "id": "spec_analysis_001",
+      "type": "analysis",
+      "category": "specialized",
+      "description": "Analyze technical specification",
+      "weight": 1.2,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "Here's a simple API spec:\n\nGET /api/users/{id}\nResponse: {\"id\": int, \"name\": str, \"email\": str}\n\nWhat are the required response fields and what type should they be?"
+        }
+      ],
+      "expected_outputs": [
+        {
+          "contains": ["id", "name", "email"],
+          "type": "keyword_match",
+          "weight": 0.5
+        },
+        {
+          "contains": ["int", "str"],
+          "type": "keyword_match",
+          "weight": 0.5
+        }
+      ],
+      "tool_requirements": [],
+      "max_latency_ms": 5000,
+      "max_tokens": 1500
+    },
+    {
+      "id": "routing_efficiency_001",
+      "type": "routing",
+      "category": "performance",
+      "description": "Test routing decision efficiency",
+      "weight": 0.8,
+      "inputs": [
+        {
+          "role": "user",
+          "content": "I need help with debugging Python code"
+        }
+      ],
+      "expected_outputs": [
+        {
+          "type": "agent_selection",
+          "expected_agent": "code",
+          "weight": 0.6
+        },
+        {
+          "type": "routing_latency",
+          "max_routing_ms": 500,
+          "weight": 0.4
+        }
+      ],
+      "tool_requirements": ["routing_system"],
+      "max_latency_ms": 2000,
+      "max_tokens": 1000
+    }
+  ],
+  "scoring_weights": {
+    "overall": {
+      "accuracy": 0.4,
+      "efficiency": 0.2,
+      "robustness": 0.2,
+      "tool_usage": 0.2
+    },
+    "categories": {
+      "core": 1.5,
+      "tools": 1.2,
+      "complex": 1.8,
+      "robustness": 1.4,
+      "specialized": 1.0,
+      "performance": 0.8
+    }
+  },
+  "passing_criteria": {
+    "overall_score_min": 8.0,
+    "category_min": 7.0,
+    "tool_f1_min": 0.75,
+    "max_regression_drop": 2.0,
+    "max_domain_regression_drop": 3.0
+  }
+}

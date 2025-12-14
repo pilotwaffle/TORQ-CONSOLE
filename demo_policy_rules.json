@@ -1,0 +1,77 @@
+{
+  "policy_version": "2.1.0",
+  "last_updated": "2025-12-14T10:29:30.461280",
+  "rules": {
+    "slo_compliance": {
+      "enabled": true,
+      "conditions": {
+        "response_time_ms": 100,
+        "error_rate_threshold": 0.01,
+        "memory_usage_mb": 512
+      },
+      "actions": {
+        "on_violation": "route_to_backup",
+        "escalation": "alert_team"
+      }
+    },
+    "security_context": {
+      "enabled": true,
+      "authentication": {
+        "required": true,
+        "methods": [
+          "api_key",
+          "oauth2"
+        ],
+        "timeout": 300
+      },
+      "authorization": {
+        "allowed_tools": [
+          "read",
+          "write",
+          "list",
+          "analyze"
+        ],
+        "restricted_paths": [
+          "/etc",
+          "/root",
+          "/system"
+        ],
+        "action": "allow_with_audit"
+      }
+    },
+    "resource_limits": {
+      "enabled": true,
+      "limits": {
+        "memory_mb": 512,
+        "cpu_percent": 50,
+        "timeout_seconds": 30,
+        "max_file_size_mb": 100
+      },
+      "enforcement": "strict",
+      "action": "deny_if_exceeded"
+    },
+    "circuit_breaker": {
+      "enabled": true,
+      "threshold": {
+        "error_rate": 0.05,
+        "timeout_seconds": 60
+      },
+      "recovery": {
+        "half_open_requests": 3,
+        "success_threshold": 2
+      }
+    }
+  },
+  "routing_table": {
+    "primary_route": {
+      "endpoint": "https://api.torq.primary",
+      "weight": 80,
+      "health_check": "/health"
+    },
+    "backup_route": {
+      "endpoint": "https://api.torq.backup",
+      "weight": 20,
+      "health_check": "/health"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "trace_id": "trace_1765729770_5805",
+  "timestamp": "2025-12-14T10:29:30.461280",
+  "tool_execution": {
+    "tool_name": "write_file",
+    "parameters": {
+      "path": "/workspace/main.py",
+      "options": {
+        "timeout": 12
+      }
+    },
+    "duration_ms": 48,
+    "status": "SUCCESS",
+    "memory_usage_mb": 7.75,
+    "cpu_usage_percent": 11.6,
+    "context_id": "ctx_610224"
+  },
+  "system_metrics": {
+    "uptime_seconds": 64490,
+    "total_requests": 1935,
+    "active_connections": 43,
+    "error_rate": 0.0414
+  }
+}
