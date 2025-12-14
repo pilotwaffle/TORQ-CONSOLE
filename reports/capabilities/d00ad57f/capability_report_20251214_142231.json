@@ -1,0 +1,531 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-14T14:22:13.501197",
+    "git_sha": "d00ad57f329e9aa6d7f3493167cb54932373657d",
+    "git_short_sha": "d00ad57f",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "working_directory": "E:\\TORQ-CONSOLE",
+    "torq_console_version": "0.70.0"
+  },
+  "contract": {
+    "version": 1,
+    "date": "2025-12-14",
+    "description": "TORQ Console Capability Contract - All claims backed by tests",
+    "personas": {
+      "basic_user": {
+        "description": "Local usage, no external API keys required",
+        "requirements": []
+      },
+      "power_user": {
+        "description": "Uses evaluation systems, policies, and ML features",
+        "requirements": [
+          "python>=3.10",
+          "pip install -e ."
+        ]
+      }
+    },
+    "capabilities": [
+      {
+        "id": "cli_help_torq",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "core",
+        "description": "Display CLI help for torq command",
+        "verify": {
+          "command": "torq --help",
+          "success_contains": [
+            "eval",
+            "bench",
+            "config-init",
+            "serve",
+            "mcp",
+            "agent"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "cli_help_torq_console",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "core",
+        "description": "Display CLI help for torq-console command",
+        "verify": {
+          "command": "torq-console --help",
+          "success_contains": [
+            "eval",
+            "telemetry",
+            "trace",
+            "web",
+            "mcp-connect"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "package_import",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "core",
+        "description": "Import torq_console package in Python",
+        "verify": {
+          "python_code": "import torq_console; print('Import successful')",
+          "success_contains": [
+            "Import successful"
+          ]
+        }
+      },
+      {
+        "id": "eval_help",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Display evaluation command help",
+        "verify": {
+          "command": "torq eval --help",
+          "success_contains": [
+            "--set",
+            "--seed",
+            "--output",
+            "--no-baseline"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "eval_v1_deterministic",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Run v1.0 evaluation set deterministically",
+        "verify": {
+          "command": "torq eval --set v1.0 --seed 42 --output test_eval_output.json",
+          "artifacts": {
+            "must_write_glob": [
+              "test_eval_output.json"
+            ],
+            "must_contain": [
+              "overall_score",
+              "task_results"
+            ]
+          },
+          "success_criteria": [
+            "Output file created",
+            "JSON valid and parseable"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "eval_set_exists",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Evaluation v1.0 set files exist and are valid",
+        "verify": {
+          "file_exists": [
+            "eval_sets/v1.0/tasks.json",
+            "eval_sets/v1.0/metadata.json"
+          ],
+          "json_valid": [
+            "eval_sets/v1.0/tasks.json"
+          ],
+          "must_contain": [
+            "tasks",
+            "version"
+          ]
+        }
+      },
+      {
+        "id": "config_init",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "configuration",
+        "description": "Initialize TORQ Console configuration",
+        "verify": {
+          "command": "torq config-init",
+          "artifacts": {
+            "may_write_glob": [
+              "config.json",
+              ".torq/*"
+            ]
+          },
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "routing_policy_exists",
+        "personas": [
+          "power_user"
+        ],
+        "category": "policy",
+        "description": "Routing policy configuration exists and is valid",
+        "verify": {
+          "file_exists": [
+            "policies/routing/v1.yaml"
+          ],
+          "yaml_valid": [
+            "policies/routing/v1.yaml"
+          ],
+          "must_contain": [
+            "policies",
+            "routing",
+            "intent_mappings"
+          ]
+        }
+      },
+      {
+        "id": "slo_config_exists",
+        "personas": [
+          "power_user"
+        ],
+        "category": "policy",
+        "description": "SLO configuration exists and is valid",
+        "verify": {
+          "file_exists": [
+            "slo.yml"
+          ],
+          "yaml_valid": [
+            "slo.yml"
+          ],
+          "must_contain": [
+            "slos",
+            "interactive",
+            "tool_heavy"
+          ]
+        }
+      },
+      {
+        "id": "web_help_available",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "web",
+        "description": "Web interface help is available",
+        "verify": {
+          "command": "torq --help",
+          "success_contains": [
+            "--web",
+            "Launch web UI interface"
+          ]
+        }
+      },
+      {
+        "id": "web_server_command",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "category": "web",
+        "description": "Web server command is available",
+        "verify": {
+          "command": "torq serve --help",
+          "success_contains": [
+            "serve",
+            "Launch web UI server"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "mcp_option_available",
+        "personas": [
+          "power_user"
+        ],
+        "category": "mcp",
+        "description": "MCP connection option is available",
+        "verify": {
+          "command": "torq --help",
+          "success_contains": [
+            "--mcp-connect",
+            "Connect to MCP server"
+          ]
+        }
+      },
+      {
+        "id": "mcp_command_available",
+        "personas": [
+          "power_user"
+        ],
+        "category": "mcp",
+        "description": "MCP management command is available",
+        "verify": {
+          "command": "torq mcp --help",
+          "success_contains": [
+            "Manage MCP server connections"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "agent_command_available",
+        "personas": [
+          "power_user"
+        ],
+        "category": "agents",
+        "description": "Agent command is available",
+        "verify": {
+          "command": "torq agent --help",
+          "success_contains": [
+            "Marvin-powered",
+            "AI agent"
+          ],
+          "exit_code": 0
+        }
+      },
+      {
+        "id": "agent_modules_exist",
+        "personas": [
+          "power_user"
+        ],
+        "category": "agents",
+        "description": "Agent system modules exist",
+        "verify": {
+          "file_exists": [
+            "torq_console/agents/__init__.py",
+            "torq_console/marvin_integration/__init__.py"
+          ]
+        }
+      },
+      {
+        "id": "eval_requires_set",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Evaluation command requires --set parameter",
+        "verify": {
+          "command": "torq eval",
+          "exit_code": 2,
+          "error_contains": [
+            "Missing option",
+            "--set"
+          ]
+        }
+      },
+      {
+        "id": "eval_invalid_set",
+        "personas": [
+          "power_user"
+        ],
+        "category": "evaluation",
+        "description": "Evaluation rejects invalid set names",
+        "verify": {
+          "command": "torq eval --set nonexistent",
+          "exit_code": 1,
+          "error_contains": [
+            "Error",
+            "not found"
+          ]
+        }
+      }
+    ]
+  },
+  "results": {
+    "pytest_output": "============================= test session starts =============================\nplatform win32 -- Python 3.12.10, pytest-7.4.3, pluggy-1.6.0 -- C:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\ncachedir: .pytest_cache\nmetadata: {'Python': '3.12.10', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '7.4.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '3.7.1', 'Faker': '37.12.0', 'logfire': '4.14.2', 'asyncio': '0.21.1', 'cov': '4.1.0', 'json-report': '1.5.0', 'metadata': '3.1.1', 'mock': '3.12.0', 'typeguard': '4.4.4'}}\nrootdir: E:\\TORQ-CONSOLE\nconfigfile: pyproject.toml\nplugins: anyio-3.7.1, Faker-37.12.0, logfire-4.14.2, asyncio-0.21.1, cov-4.1.0, json-report-1.5.0, metadata-3.1.1, mock-3.12.0, typeguard-4.4.4\nasyncio: mode=Mode.AUTO\ncollecting ... collected 34 items / 1 error\n\n=================================== ERRORS ====================================\n__________ ERROR collecting tests/capability/test_negative_cases.py ___________\nImportError while importing test module 'E:\\TORQ-CONSOLE\\tests\\capability\\test_negative_cases.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Users\\asdasd\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\importlib\\__init__.py:90: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests\\capability\\test_negative_cases.py:9: in <module>\n    from tests.capability import CapabilityTest\nE   ModuleNotFoundError: No module named 'tests.capability'\n============================== warnings summary ===============================\ntests\\capability\\test_core_capabilities.py:66\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:66: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:84\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:84: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:99\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:99: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:113\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:113: PytestUnknownMarkWarning: Unknown pytest.mark.power_user - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.power_user\n\ntests\\capability\\test_core_capabilities.py:117\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:117: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:132\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:132: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:170\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:170: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:193\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:193: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:216\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:216: PytestUnknownMarkWarning: Unknown pytest.mark.capability - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.capability\n\ntests\\capability\\test_core_capabilities.py:63\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:63: PytestCollectionWarning: cannot collect test class 'TestCoreCapabilities' because it has a __init__ constructor (from: tests/capability/test_core_capabilities.py)\n    class TestCoreCapabilities(CapabilityTest):\n\ntests\\capability\\test_core_capabilities.py:113\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_core_capabilities.py:113: PytestCollectionWarning: cannot collect test class 'TestPowerUserCapabilities' because it has a __init__ constructor (from: tests/capability/test_core_capabilities.py)\n    @pytest.mark.power_user\n\ntests\\capability\\test_persona_basic_user.py:15\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_basic_user.py:15: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"basic_user\")\n\ntests\\capability\\test_persona_basic_user.py:30\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_basic_user.py:30: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"basic_user\")\n\ntests\\capability\\test_persona_basic_user.py:44\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_basic_user.py:44: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"basic_user\")\n\ntests\\capability\\test_persona_basic_user.py:61\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_basic_user.py:61: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"basic_user\")\n\ntests\\capability\\test_persona_basic_user.py:75\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_basic_user.py:75: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"basic_user\")\n\ntests\\capability\\test_persona_basic_user.py:92\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_basic_user.py:92: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"basic_user\")\n\ntests\\capability\\test_persona_basic_user.py:108\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_basic_user.py:108: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"basic_user\")\n\ntests\\capability\\test_persona_power_user.py:16\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:16: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:32\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:32: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:47\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:60\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:60: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:76\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:76: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:92\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:92: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:109\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:109: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:124\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:124: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:141\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:141: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\ntests\\capability\\test_persona_power_user.py:161\n  E:\\TORQ-CONSOLE\\tests\\capability\\test_persona_power_user.py:161: PytestUnknownMarkWarning: Unknown pytest.mark.persona - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.persona(\"power_user\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n--------------------------------- JSON report ---------------------------------\nreport saved to: C:\\Users\\asdasd\\AppData\\Local\\Temp\\tmp2tz4lktk.json\n\n---------- coverage: platform win32, python 3.12.10-final-0 ----------\nName                                                                             Stmts   Miss  Cover   Missing\n--------------------------------------------------------------------------------------------------------------\ntorq_console\\__init__.py                                                             9      9     0%   8-18\ntorq_console\\__main__.py                                                           103    103     0%   6-164\ntorq_console\\agents\\__init__.py                                                     34     34     0%   9-231\ntorq_console\\agents\\action_learning.py                                              89     89     0%   8-382\ntorq_console\\agents\\adaptive_quality_manager.py                                    159    159     0%   13-392\ntorq_console\\agents\\advanced_memory_system.py                                      225    225     0%   15-514\ntorq_console\\agents\\agent_system_enhancements.py                                   205    205     0%   16-557\ntorq_console\\agents\\config.py                                                       69     69     0%   11-165\ntorq_console\\agents\\conversation_session.py                                        122    122     0%   7-423\ntorq_console\\agents\\coordination_benchmark.py                                      200    200     0%   19-548\ntorq_console\\agents\\enhanced_prince_flowers.py                                     128    128     0%   8-374\ntorq_console\\agents\\enhanced_prince_flowers_v2.py                                  446    446     0%   15-1119\ntorq_console\\agents\\enhanced_rl_system.py                                          174    174     0%   6-505\ntorq_console\\agents\\feedback_learning.py                                           133    133     0%   7-417\ntorq_console\\agents\\glm_prince_flowers.py                                           49     49     0%   7-268\ntorq_console\\agents\\handoff_context.py                                             121    121     0%   14-288\ntorq_console\\agents\\handoff_optimizer.py                                           261    261     0%   20-685\ntorq_console\\agents\\hierarchical_task_planner.py                                   214    214     0%   13-576\ntorq_console\\agents\\improved_debate_activation.py                                  117    117     0%   18-332\ntorq_console\\agents\\intent_detector.py                                             172    172     0%   17-591\ntorq_console\\agents\\marvin_commands.py                                             220    220     0%   6-686\ntorq_console\\agents\\marvin_memory.py                                               153    153     0%   8-406\ntorq_console\\agents\\marvin_orchestrator.py                                         171    171     0%   8-500\ntorq_console\\agents\\marvin_prince_flowers.py                                       118    118     0%   8-456\ntorq_console\\agents\\marvin_query_router.py                                         265    265     0%   16-723\ntorq_console\\agents\\marvin_query_router_fixed.py                                   202    202     0%   5-473\ntorq_console\\agents\\marvin_workflow_agents.py                                      107    107     0%   8-585\ntorq_console\\agents\\memory_integration.py                                          139    139     0%   8-450\ntorq_console\\agents\\meta_learning_engine.py                                        194    194     0%   13-570\ntorq_console\\agents\\multi_agent_debate.py                                          175    175     0%   14-494\ntorq_console\\agents\\n8n_architect_agent.py                                         112    112     0%   8-525\ntorq_console\\agents\\policy_driven_router.py                                        133    133     0%   8-495\ntorq_console\\agents\\policy_framework.py                                            219    219     0%   8-569\ntorq_console\\agents\\preference_learning.py                                         109    109     0%   7-367\ntorq_console\\agents\\prince_flowers_agent.py                                        236    236     0%   9-658\ntorq_console\\agents\\prince_flowers_enhanced.py                                      93     93     0%   8-505\ntorq_console\\agents\\prince_flowers_enhanced_integration.py                         199    199     0%   17-684\ntorq_console\\agents\\rl_learning_system.py                                          186    186     0%   8-387\ntorq_console\\agents\\rl_modules\\__init__.py                                           0      0   100%\ntorq_console\\agents\\rl_modules\\async_training.py                                   328    328     0%   6-609\ntorq_console\\agents\\rl_modules\\dynamic_actions.py                                  266    266     0%   6-507\ntorq_console\\agents\\rl_modules\\modular_agent.py                                    243    243     0%   6-497\ntorq_console\\agents\\search_formatters.py                                           117    117     0%   11-236\ntorq_console\\agents\\self_evaluation_system.py                                      252    252     0%   13-605\ntorq_console\\agents\\test_generation_agent.py                                       145    145     0%   13-511\ntorq_console\\agents\\tools\\__init__.py                                               10     10     0%   6-16\ntorq_console\\agents\\tools\\browser_automation_tool.py                               257    257     0%   6-809\ntorq_console\\agents\\tools\\code_generation_tool.py                                  159    159     0%   5-773\ntorq_console\\agents\\tools\\file_operations_tool.py                                  233    233     0%   5-644\ntorq_console\\agents\\tools\\image_generation_tool.py                                  93     93     0%   6-284\ntorq_console\\agents\\tools\\landing_page_generator.py                                 83     83     0%   5-428\ntorq_console\\agents\\tools\\linkedin_posting_tool.py                                  95     95     0%   6-335\ntorq_console\\agents\\tools\\mcp_client_tool.py                                       405    405     0%   17-1135\ntorq_console\\agents\\tools\\multi_tool_composition_tool.py                           413    413     0%   14-1136\ntorq_console\\agents\\tools\\n8n_workflow_tool.py                                     233    233     0%   6-752\ntorq_console\\agents\\tools\\terminal_commands_tool.py                                149    149     0%   20-623\ntorq_console\\agents\\tools\\twitter_posting_tool.py                                  106    106     0%   6-348\ntorq_console\\agents\\torq_prince_flowers.py                                        1672   1672     0%   14-4541\ntorq_console\\agents\\torq_search_master.py                                          492    492     0%   19-1071\ntorq_console\\api\\__init__.py                                                         4      4     0%   7-11\ntorq_console\\api\\routes.py                                                         124    124     0%   8-530\ntorq_console\\api\\server.py                                                          65     65     0%   8-255\ntorq_console\\api\\socketio_handler.py                                               160    160     0%   8-558\ntorq_console\\benchmarking\\__init__.py                                                7      7     0%   8-15\ntorq_console\\benchmarking\\__main__.py                                                3      3     0%   7-10\ntorq_console\\benchmarking\\bcli.py                                                  137    137     0%   7-236\ntorq_console\\benchmarking\\cli.py                                                   240    240     0%   7-418\ntorq_console\\benchmarking\\reporting.py                                             204    204     0%   7-473\ntorq_console\\benchmarking\\runner.py                                                206    206     0%   7-424\ntorq_console\\benchmarking\\slo_config.py                                            145    145     0%   7-245\ntorq_console\\benchmarking\\storage.py                                               200    200     0%   7-486\ntorq_console\\cli.py                                                                172    172     0%   8-351\ntorq_console\\cli_with_benchmark.py                                                 171    171     0%   8-351\ntorq_console\\core\\__init__.py                                                        5      5     0%   3-8\ntorq_console\\core\\chat_manager.py                                                  875    875     0%   17-1616\ntorq_console\\core\\config.py                                                        338    338     0%   8-692\ntorq_console\\core\\console.py                                                       498    498     0%   8-966\ntorq_console\\core\\console_telemetry.py                                             103    103     0%   8-328\ntorq_console\\core\\context_manager.py                                               521    521     0%   8-1020\ntorq_console\\core\\evaluation\\__init__.py                                             3      3     0%   11-14\ntorq_console\\core\\evaluation\\runner.py                                             190    190     0%   12-489\ntorq_console\\core\\evaluation\\scoring.py                                            222    222     0%   12-455\ntorq_console\\core\\executor_pool.py                                                  33     33     0%   14-101\ntorq_console\\core\\logger.py                                                         21     21     0%   5-42\ntorq_console\\core\\telemetry\\__init__.py                                              6      6     0%   8-98\ntorq_console\\core\\telemetry\\collector.py                                           399    399     0%   8-820\ntorq_console\\core\\telemetry\\compliance.py                                          221    221     0%   8-601\ntorq_console\\core\\telemetry\\event.py                                               273    273     0%   8-537\ntorq_console\\core\\telemetry\\trace.py                                               309    309     0%   8-657\ntorq_console\\indexer\\__init__.py                                                     5      5     0%   12-17\ntorq_console\\indexer\\code_scanner.py                                                92     92     0%   8-222\ntorq_console\\indexer\\embeddings.py                                                 143    143     0%   8-363\ntorq_console\\indexer\\semantic_search.py                                            187    187     0%   8-425\ntorq_console\\indexer\\vector_store.py                                               167    167     0%   7-351\ntorq_console\\integrations\\__init__.py                                                2      2     0%   7-14\ntorq_console\\integrations\\github_push.py                                            99     99     0%   6-225\ntorq_console\\integrations\\huggingface_models.py                                    299    299     0%   8-822\ntorq_console\\integrations\\image_generation.py                                       65     65     0%   6-187\ntorq_console\\integrations\\n8n_workflows.py                                         216    216     0%   8-686\ntorq_console\\integrations\\perplexity_search.py                                      97     97     0%   7-241\ntorq_console\\integrations\\torq_integration.py                                       67     67     0%   7-195\ntorq_console\\integrations\\video_generation.py                                      124    124     0%   6-346\ntorq_console\\llm\\__init__.py                                                         4      4     0%   11-15\ntorq_console\\llm\\glm_client.py                                                      65     65     0%   14-291\ntorq_console\\llm\\manager.py                                                        276    276     0%   8-662\ntorq_console\\llm\\providers\\__init__.py                                               2      2     0%   9-11\ntorq_console\\llm\\providers\\base.py                                                  40     40     0%   5-78\ntorq_console\\llm\\providers\\claude.py                                                75     75     0%   7-291\ntorq_console\\llm\\providers\\content_safety.py                                       188    188     0%   14-493\ntorq_console\\llm\\providers\\content_synthesis\\__init__.py                             5      5     0%   12-34\ntorq_console\\llm\\providers\\content_synthesis\\confidence.py                         168    168     0%   12-435\ntorq_console\\llm\\providers\\content_synthesis\\extractor.py                          217    217     0%   12-417\ntorq_console\\llm\\providers\\content_synthesis\\synthesizer.py                        157    157     0%   7-373\ntorq_console\\llm\\providers\\deepseek.py                                             110    110     0%   11-304\ntorq_console\\llm\\providers\\export\\__init__.py                                        7      7     0%   13-27\ntorq_console\\llm\\providers\\export\\csv_exporter.py                                   62     62     0%   7-145\ntorq_console\\llm\\providers\\export\\export_manager.py                                 68     68     0%   7-273\ntorq_console\\llm\\providers\\export\\json_exporter.py                                  51     51     0%   7-152\ntorq_console\\llm\\providers\\export\\markdown_exporter.py                             115    115     0%   7-223\ntorq_console\\llm\\providers\\export\\pdf_exporter.py                                  130    130     0%   7-294\ntorq_console\\llm\\providers\\glm.py                                                   44     44     0%   8-196\ntorq_console\\llm\\providers\\llama_cpp_provider.py                                   148    148     0%   8-445\ntorq_console\\llm\\providers\\ollama.py                                               126    126     0%   12-343\ntorq_console\\llm\\providers\\progress\\__init__.py                                      3      3     0%   9-16\ntorq_console\\llm\\providers\\progress\\progress_tracker.py                            101    101     0%   7-274\ntorq_console\\llm\\providers\\search_plugins\\__init__.py                                5      5     0%   10-23\ntorq_console\\llm\\providers\\search_plugins\\base.py                                   73     73     0%   8-260\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\__init__.py                5      5     0%   7-18\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\arxiv_plugin.py           49     49     0%   8-151\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\hackernews_plugin.py      37     37     0%   7-128\ntorq_console\\llm\\providers\\search_plugins\\builtin_plugins\\reddit_plugin.py          39     39     0%   8-131\ntorq_console\\llm\\providers\\search_plugins\\loader.py                                 99     99     0%   7-247\ntorq_console\\llm\\providers\\search_plugins\\registry.py                              118    118     0%   7-323\ntorq_console\\llm\\providers\\websearch.py                                            549    549     0%   13-1315\ntorq_console\\marvin_integration\\__init__.py                                          5      5     0%   14-62\ntorq_console\\marvin_integration\\agents.py                                           36     36     0%   7-356\ntorq_console\\marvin_integration\\core.py                                             60     60     0%   7-300\ntorq_console\\marvin_integration\\models.py                                          107    107     0%   7-371\ntorq_console\\mcp\\__init__.py                                                         3      3     0%   3-6\ntorq_console\\mcp\\claude_code_bridge.py                                             244    244     0%   8-524\ntorq_console\\mcp\\client.py                                                         258    258     0%   8-487\ntorq_console\\mcp\\enhanced_client.py                                                201    201     0%   8-477\ntorq_console\\mcp\\enhanced_integration.py                                            69     69     0%   6-135\ntorq_console\\mcp\\mcp_commands.py                                                    99     99     0%   4-196\ntorq_console\\mcp\\mcp_manager.py                                                     96     96     0%   4-209\ntorq_console\\memory\\__init__.py                                                      2      2     0%   7-14\ntorq_console\\memory\\letta_integration.py                                           148    148     0%   8-406\ntorq_console\\orchestration\\__init__.py                                               3      3     0%   28-32\ntorq_console\\orchestration\\agents\\__init__.py                                        2      2     0%   7-15\ntorq_console\\orchestration\\agents\\base_agents.py                                    31     31     0%   7-287\ntorq_console\\orchestration\\flows\\__init__.py                                         3      3     0%   7-10\ntorq_console\\orchestration\\flows\\analysis_flow.py                                   31     31     0%   7-180\ntorq_console\\orchestration\\flows\\research_flow.py                                   41     41     0%   7-211\ntorq_console\\orchestration\\integration.py                                           39     39     0%   7-116\ntorq_console\\orchestration\\tasks\\__init__.py                                         2      2     0%   7-15\ntorq_console\\orchestration\\tasks\\base_tasks.py                                      52     52     0%   7-185\ntorq_console\\reasoning\\__init__.py                                                   6      6     0%   14-20\ntorq_console\\reasoning\\core.py                                                     182    182     0%   14-409\ntorq_console\\reasoning\\enhancers.py                                                207    207     0%   16-652\ntorq_console\\reasoning\\templates.py                                                206    206     0%   22-759\ntorq_console\\reasoning\\validator.py                                                209    209     0%   21-562\ntorq_console\\safety\\__init__.py                                                      9      9     0%   13-22\ntorq_console\\safety\\audit_logger.py                                                185    185     0%   7-537\ntorq_console\\safety\\confirmation.py                                                140    140     0%   7-383\ntorq_console\\safety\\models.py                                                      129    129     0%   5-173\ntorq_console\\safety\\policy_engine.py                                               144    144     0%   7-371\ntorq_console\\safety\\rate_limiter.py                                                188    188     0%   7-479\ntorq_console\\safety\\safety_manager.py                                              126    126     0%   7-442\ntorq_console\\safety\\sandbox.py                                                     185    185     0%   7-444\ntorq_console\\safety\\security.py                                                    170    170     0%   8-474\ntorq_console\\spec_kit\\__init__.py                                                   11     11     0%   8-53\ntorq_console\\spec_kit\\adaptive_intelligence.py                                     199    199     0%   7-496\ntorq_console\\spec_kit\\collaboration_server.py                                      216    216     0%   7-484\ntorq_console\\spec_kit\\ecosystem_intelligence.py                                    382    382     0%   7-792\ntorq_console\\spec_kit\\marvin_integration.py                                         76     76     0%   9-332\ntorq_console\\spec_kit\\marvin_quality_engine.py                                     163    163     0%   8-465\ntorq_console\\spec_kit\\marvin_spec_analyzer.py                                       94     94     0%   9-368\ntorq_console\\spec_kit\\realtime_editor.py                                           183    183     0%   7-549\ntorq_console\\spec_kit\\rl_spec_analyzer.py                                          188    188     0%   6-383\ntorq_console\\spec_kit\\spec_commands.py                                             410    410     0%   7-963\ntorq_console\\spec_kit\\spec_engine.py                                               433    433     0%   6-840\ntorq_console\\swarm\\__init__.py                                                       7      7     0%   14-27\ntorq_console\\swarm\\agents\\__init__.py                                                5      5     0%   11-16\ntorq_console\\swarm\\agents\\analysis_agent.py                                         59     59     0%   6-123\ntorq_console\\swarm\\agents\\code_agent.py                                            276    276     0%   8-741\ntorq_console\\swarm\\agents\\documentation_agent.py                                   234    234     0%   8-708\ntorq_console\\swarm\\agents\\performance_agent.py                                     220    220     0%   8-651\ntorq_console\\swarm\\agents\\response_agent.py                                         77     77     0%   6-164\ntorq_console\\swarm\\agents\\search_agent.py                                           77     77     0%   8-239\ntorq_console\\swarm\\agents\\synthesis_agent.py                                        68     68     0%   6-149\ntorq_console\\swarm\\agents\\testing_agent.py                                         235    235     0%   8-669\ntorq_console\\swarm\\communication_parser.py                                         104    104     0%   8-245\ntorq_console\\swarm\\communication_tools.py                                           97     97     0%   8-408\ntorq_console\\swarm\\memory_system.py                                                221    221     0%   8-516\ntorq_console\\swarm\\message_system.py                                               213    213     0%   8-447\ntorq_console\\swarm\\orchestrator.py                                                  94     94     0%   8-293\ntorq_console\\swarm\\orchestrator_advanced.py                                        252    252     0%   12-653\ntorq_console\\ui\\__init__.py                                                          2      2     0%   3-5\ntorq_console\\ui\\app.py                                                              18     18     0%   6-272\ntorq_console\\ui\\command_palette.py                                                 748    748     0%   24-1794\ntorq_console\\ui\\inline_editor.py                                                   601    601     0%   14-1230\ntorq_console\\ui\\intent_detector.py                                                 188    188     0%   8-456\ntorq_console\\ui\\learning_system.py                                                 232    232     0%   14-513\ntorq_console\\ui\\main.py                                                             29     29     0%   7-48\ntorq_console\\ui\\shell.py                                                            60     60     0%   5-113\ntorq_console\\ui\\terminal_ui.py                                                     217    217     0%   6-500\ntorq_console\\ui\\web.py                                                             981    981     0%   8-2365\ntorq_console\\ui\\web_ai_fix.py                                                      268    268     0%   8-544\ntorq_console\\utils\\__init__.py                                                       2      2     0%   3-5\ntorq_console\\utils\\advanced_web_search.py                                          260    260     0%   8-653\ntorq_console\\utils\\ai_integration.py                                               233    233     0%   9-596\ntorq_console\\utils\\app_builder.py                                                  333    333     0%   8-1178\ntorq_console\\utils\\edit_tools.py                                                   111    111     0%   8-367\ntorq_console\\utils\\file_monitor.py                                                  18     18     0%   5-32\ntorq_console\\utils\\file_tools.py                                                    59     59     0%   8-172\ntorq_console\\utils\\git_manager.py                                                   91     91     0%   5-174\ntorq_console\\utils\\notebook_tools.py                                               200    200     0%   8-563\ntorq_console\\utils\\planning_tools.py                                               201    201     0%   8-607\ntorq_console\\utils\\profiling.py                                                    121    121     0%   8-318\ntorq_console\\utils\\search_tools.py                                                 162    162     0%   8-398\ntorq_console\\utils\\unicode_safe.py                                                  28     28     0%   5-78\ntorq_console\\utils\\visual_diff.py                                                  227    227     0%   8-496\ntorq_console\\utils\\web_tools.py                                                    206    206     0%   8-448\n--------------------------------------------------------------------------------------------------------------\nTOTAL                                                                            36174  36174     0%\nCoverage HTML written to dir htmlcov\n\n=========================== short test summary info ===========================\nERROR tests/capability/test_negative_cases.py\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n======================== 28 warnings, 1 error in 8.51s ========================\n",
+    "test_summary": {
+      "total": 0,
+      "collected": 34
+    },
+    "tests": [],
+    "capability_matrix": {
+      "cli_help_torq": {
+        "id": "cli_help_torq",
+        "category": "core",
+        "description": "Display CLI help for torq command",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "cli_help_torq_console": {
+        "id": "cli_help_torq_console",
+        "category": "core",
+        "description": "Display CLI help for torq-console command",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "package_import": {
+        "id": "package_import",
+        "category": "core",
+        "description": "Import torq_console package in Python",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_help": {
+        "id": "eval_help",
+        "category": "evaluation",
+        "description": "Display evaluation command help",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_v1_deterministic": {
+        "id": "eval_v1_deterministic",
+        "category": "evaluation",
+        "description": "Run v1.0 evaluation set deterministically",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_set_exists": {
+        "id": "eval_set_exists",
+        "category": "evaluation",
+        "description": "Evaluation v1.0 set files exist and are valid",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "config_init": {
+        "id": "config_init",
+        "category": "configuration",
+        "description": "Initialize TORQ Console configuration",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "routing_policy_exists": {
+        "id": "routing_policy_exists",
+        "category": "policy",
+        "description": "Routing policy configuration exists and is valid",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "slo_config_exists": {
+        "id": "slo_config_exists",
+        "category": "policy",
+        "description": "SLO configuration exists and is valid",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "web_help_available": {
+        "id": "web_help_available",
+        "category": "web",
+        "description": "Web interface help is available",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "web_server_command": {
+        "id": "web_server_command",
+        "category": "web",
+        "description": "Web server command is available",
+        "personas": [
+          "basic_user",
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "mcp_option_available": {
+        "id": "mcp_option_available",
+        "category": "mcp",
+        "description": "MCP connection option is available",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "mcp_command_available": {
+        "id": "mcp_command_available",
+        "category": "mcp",
+        "description": "MCP management command is available",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "agent_command_available": {
+        "id": "agent_command_available",
+        "category": "agents",
+        "description": "Agent command is available",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "agent_modules_exist": {
+        "id": "agent_modules_exist",
+        "category": "agents",
+        "description": "Agent system modules exist",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_requires_set": {
+        "id": "eval_requires_set",
+        "category": "evaluation",
+        "description": "Evaluation command requires --set parameter",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      },
+      "eval_invalid_set": {
+        "id": "eval_invalid_set",
+        "category": "evaluation",
+        "description": "Evaluation rejects invalid set names",
+        "personas": [
+          "power_user"
+        ],
+        "status": "UNKNOWN",
+        "details": "No test result found"
+      }
+    }
+  },
+  "summary": {
+    "total_capabilities": 17,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "unknown": 17,
+    "success_rate": 0.0
+  }
+}

@@ -1,0 +1,186 @@
+version: 1
+date: "2025-12-14"
+description: "TORQ Console Capability Contract - All claims backed by tests"
+
+personas:
+  basic_user:
+    description: "Local usage, no external API keys required"
+    requirements: []
+
+  power_user:
+    description: "Uses evaluation systems, policies, and ML features"
+    requirements: ["python>=3.10", "pip install -e ."]
+
+capabilities:
+  # Tier 0 - Smoke Tests (verified working)
+
+  - id: cli_help_torq
+    personas: [basic_user, power_user]
+    category: "core"
+    description: "Display CLI help for torq command"
+    verify:
+      command: "torq --help"
+      success_contains: ["eval", "bench", "config-init", "serve", "mcp", "agent"]
+      exit_code: 0
+
+  - id: cli_help_torq_console
+    personas: [basic_user, power_user]
+    category: "core"
+    description: "Display CLI help for torq-console command"
+    verify:
+      command: "torq-console --help"
+      success_contains: ["eval", "telemetry", "trace", "web", "mcp-connect"]
+      exit_code: 0
+
+  - id: package_import
+    personas: [basic_user, power_user]
+    category: "core"
+    description: "Import torq_console package in Python"
+    verify:
+      python_code: "import torq_console; print('Import successful')"
+      success_contains: ["Import successful"]
+
+  # Tier 1 - Evaluation System (verified working)
+
+  - id: eval_help
+    personas: [power_user]
+    category: "evaluation"
+    description: "Display evaluation command help"
+    verify:
+      command: "torq eval --help"
+      success_contains: ["--set", "--seed", "--output", "--no-baseline"]
+      exit_code: 0
+
+  - id: eval_v1_deterministic
+    personas: [power_user]
+    category: "evaluation"
+    description: "Run v1.0 evaluation set deterministically"
+    verify:
+      command: "torq eval --set v1.0 --seed 42 --output test_eval_output.json"
+      artifacts:
+        must_write_glob: ["test_eval_output.json"]
+        must_contain: ["overall_score", "task_results"]
+      success_criteria:
+        - "Output file created"
+        - "JSON valid and parseable"
+      exit_code: 0
+
+  - id: eval_set_exists
+    personas: [power_user]
+    category: "evaluation"
+    description: "Evaluation v1.0 set files exist and are valid"
+    verify:
+      file_exists: ["eval_sets/v1.0/tasks.json", "eval_sets/v1.0/metadata.json"]
+      json_valid: ["eval_sets/v1.0/tasks.json"]
+      must_contain: ["tasks", "version"]
+
+  # Tier 1 - Configuration System
+
+  - id: config_init
+    personas: [basic_user, power_user]
+    category: "configuration"
+    description: "Initialize TORQ Console configuration"
+    verify:
+      command: "torq config-init"
+      artifacts:
+        may_write_glob: ["config.json", ".torq/*"]
+      exit_code: 0
+
+  # Tier 1 - Policy System
+
+  - id: routing_policy_exists
+    personas: [power_user]
+    category: "policy"
+    description: "Routing policy configuration exists and is valid"
+    verify:
+      file_exists: ["policies/routing/v1.yaml"]
+      yaml_valid: ["policies/routing/v1.yaml"]
+      must_contain: ["policies", "routing", "intent_mappings"]
+
+  - id: slo_config_exists
+    personas: [power_user]
+    category: "policy"
+    description: "SLO configuration exists and is valid"
+    verify:
+      file_exists: ["slo.yml"]
+      yaml_valid: ["slo.yml"]
+      must_contain: ["slos", "interactive", "tool_heavy"]
+
+  # Tier 2 - Web Interface (basic validation)
+
+  - id: web_help_available
+    personas: [basic_user, power_user]
+    category: "web"
+    description: "Web interface help is available"
+    verify:
+      command: "torq --help"
+      success_contains: ["--web", "Launch web UI interface"]
+
+  - id: web_server_command
+    personas: [basic_user, power_user]
+    category: "web"
+    description: "Web server command is available"
+    verify:
+      command: "torq serve --help"
+      success_contains: ["serve", "Launch web UI server"]
+      exit_code: 0
+
+  # Tier 2 - MCP Integration (framework validation)
+
+  - id: mcp_option_available
+    personas: [power_user]
+    category: "mcp"
+    description: "MCP connection option is available"
+    verify:
+      command: "torq --help"
+      success_contains: ["--mcp-connect", "Connect to MCP server"]
+
+  - id: mcp_command_available
+    personas: [power_user]
+    category: "mcp"
+    description: "MCP management command is available"
+    verify:
+      command: "torq mcp --help"
+      success_contains: ["Manage MCP server connections"]
+      exit_code: 0
+
+  # Tier 2 - Agent System (foundation validation)
+
+  - id: agent_command_available
+    personas: [power_user]
+    category: "agents"
+    description: "Agent command is available"
+    verify:
+      command: "torq agent --help"
+      success_contains: ["Marvin-powered", "AI agent"]
+      exit_code: 0
+
+  - id: agent_modules_exist
+    personas: [power_user]
+    category: "agents"
+    description: "Agent system modules exist"
+    verify:
+      file_exists: [
+        "torq_console/agents/__init__.py",
+        "torq_console/marvin_integration/__init__.py"
+      ]
+
+  # Negative Cases (must fail appropriately)
+
+  - id: eval_requires_set
+    personas: [power_user]
+    category: "evaluation"
+    description: "Evaluation command requires --set parameter"
+    verify:
+      command: "torq eval"
+      exit_code: 2
+      error_contains: ["Missing option", "--set"]
+
+  - id: eval_invalid_set
+    personas: [power_user]
+    category: "evaluation"
+    description: "Evaluation rejects invalid set names"
+    verify:
+      command: "torq eval --set nonexistent"
+      exit_code: 1
+      error_contains: ["Error", "not found"]

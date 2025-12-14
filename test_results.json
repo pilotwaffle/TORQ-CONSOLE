@@ -1,12 +1,1 @@
-{
-  "phase1": {
-    "success": true
-  },
-  "phase2": {
-    "success": false
-  },
-  "phase3": {
-    "success": true
-  },
-  "timestamp": 1763057137.5840945
-}
+{"created": 1765742128.9664798, "duration": 88.50877857208252, "exitcode": 0, "root": "E:\\TORQ-CONSOLE", "environment": {}, "summary": {"passed": 1, "total": 1, "collected": 1}, "collectors": [{"nodeid": "", "outcome": "passed", "result": [{"nodeid": "tests/capability/test_simple_capabilities.py::test_cli_help_torq", "type": "Function", "lineno": 14}]}], "tests": [{"nodeid": "tests/capability/test_simple_capabilities.py::test_cli_help_torq", "lineno": 14, "outcome": "passed", "keywords": ["test_cli_help_torq", "test_simple_capabilities.py", "tests/capability/__init__.py", "TORQ-CONSOLE"], "setup": {"duration": 0.6059852000325918, "outcome": "passed"}, "call": {"duration": 65.09767509996891, "outcome": "passed"}, "teardown": {"duration": 0.0015187999233603477, "outcome": "passed"}}]}
