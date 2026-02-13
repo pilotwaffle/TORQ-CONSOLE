@@ -29,6 +29,10 @@ class MemoryIntegration:
         self.user_id = user_id
         self.logger = logging.getLogger(f"MemoryIntegration.{agent_id}")
 
+        # Cached clients to avoid per-call re-creation overhead
+        self._supabase_client = None
+        self._openai_client = None
+
         # Check if Supabase memory is available
         self.enabled = self._check_availability()
 
@@ -44,6 +48,23 @@ class MemoryIntegration:
         openai_key = os.getenv("OPENAI_API_KEY")
 
         return all([supabase_url, supabase_key, openai_key])
+
+    def _get_supabase(self):
+        """Get or create cached Supabase client."""
+        if self._supabase_client is None:
+            from supabase import create_client
+            self._supabase_client = create_client(
+                os.getenv("SUPABASE_URL"),
+                os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+            )
+        return self._supabase_client
+
+    def _get_openai(self):
+        """Get or create cached OpenAI client."""
+        if self._openai_client is None:
+            from openai import OpenAI
+            self._openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        return self._openai_client
 
     async def store_interaction(
         self,
@@ -70,14 +91,9 @@ class MemoryIntegration:
             return False
 
         try:
-            # Import MCP client (lazy import to avoid dependency issues)
-            from supabase import create_client
             import hashlib
 
-            supabase = create_client(
-                os.getenv("SUPABASE_URL"),
-                os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            )
+            supabase = self._get_supabase()
 
             # Store the interaction as knowledge
             content = f"Query: {query}\nResponse: {response}\nTools: {', '.join(tools_used)}"
@@ -136,12 +152,7 @@ class MemoryIntegration:
             return False
 
         try:
-            from supabase import create_client
-
-            supabase = create_client(
-                os.getenv("SUPABASE_URL"),
-                os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            )
+            supabase = self._get_supabase()
 
             data = {
                 'agent_id': self.agent_id,
@@ -186,11 +197,8 @@ class MemoryIntegration:
             return {'memories': [], 'patterns': []}
 
         try:
-            from supabase import create_client
-            from openai import OpenAI
-
-            # Generate embedding for query
-            openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            # Use cached clients instead of recreating per call
+            openai_client = self._get_openai()
 
             response = await asyncio.to_thread(
                 lambda: openai_client.embeddings.create(
@@ -200,10 +208,7 @@ class MemoryIntegration:
             )
             query_embedding = response.data[0].embedding
 
-            supabase = create_client(
-                os.getenv("SUPABASE_URL"),
-                os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            )
+            supabase = self._get_supabase()
 
             # Search memories
             memories_result = await asyncio.to_thread(
@@ -263,12 +268,7 @@ class MemoryIntegration:
             return False
 
         try:
-            from supabase import create_client
-
-            supabase = create_client(
-                os.getenv("SUPABASE_URL"),
-                os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            )
+            supabase = self._get_supabase()
 
             data = {
                 'user_id': self.user_id,
@@ -311,12 +311,7 @@ class MemoryIntegration:
             return None
 
         try:
-            from supabase import create_client
-
-            supabase = create_client(
-                os.getenv("SUPABASE_URL"),
-                os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            )
+            supabase = self._get_supabase()
 
             result = await asyncio.to_thread(
                 lambda: supabase.table('codebase_entities')

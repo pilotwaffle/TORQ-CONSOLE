@@ -20,6 +20,7 @@ Phase B.1: Comprehensive logging and metrics for observability
 import asyncio
 import logging
 import time
+from collections import deque
 from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -46,7 +47,7 @@ class MetricsCollector:
     """Collect and export metrics for monitoring."""
 
     def __init__(self):
-        self.metrics: List[OptimizationMetrics] = []
+        self.metrics: deque = deque(maxlen=1000)
         self.operation_counts: Dict[str, int] = {}
         self.total_processing_time: float = 0.0
 
@@ -55,10 +56,6 @@ class MetricsCollector:
         self.metrics.append(metric)
         self.operation_counts[metric.operation] = self.operation_counts.get(metric.operation, 0) + 1
         self.total_processing_time += metric.duration_ms
-
-        # Keep last 1000 metrics
-        if len(self.metrics) > 1000:
-            self.metrics = self.metrics[-1000:]
 
         # Log slow operations
         if metric.duration_ms > 100:  # >100ms is slow
@@ -72,15 +69,24 @@ class MetricsCollector:
         if not self.metrics:
             return {"no_data": True}
 
-        recent_metrics = self.metrics[-100:]  # Last 100 operations
+        # Take last 100 and compute all averages in a single pass
+        recent_metrics = list(self.metrics)[-100:]
+        count = len(recent_metrics)
+        total_compression = 0.0
+        total_quality = 0.0
+        total_duration = 0.0
+        for m in recent_metrics:
+            total_compression += m.compression_ratio
+            total_quality += m.quality_score
+            total_duration += m.duration_ms
 
         return {
             "total_operations": len(self.metrics),
             "operation_counts": self.operation_counts.copy(),
             "total_processing_time_ms": self.total_processing_time,
-            "avg_compression_ratio": sum(m.compression_ratio for m in recent_metrics) / len(recent_metrics),
-            "avg_quality_score": sum(m.quality_score for m in recent_metrics) / len(recent_metrics),
-            "avg_duration_ms": sum(m.duration_ms for m in recent_metrics) / len(recent_metrics),
+            "avg_compression_ratio": total_compression / count,
+            "avg_quality_score": total_quality / count,
+            "avg_duration_ms": total_duration / count,
         }
 
 
@@ -155,20 +161,20 @@ class EntityExtractor:
 
         # Extract common technical phrases (2-3 words)
         text_lower = text.lower()
-
-        # Bigrams
         words = text_lower.split()
-        for i in range(len(words) - 1):
-            bigram = f"{words[i]} {words[i+1]}"
-            # Keep if contains tech terms or patterns
-            if any(term in bigram for term in self.tech_terms | self.pattern_keywords):
-                concepts.add(bigram)
+        all_terms = self.tech_terms | self.pattern_keywords
 
-        # Trigrams with common patterns
+        # Bigrams - use set membership on individual words for O(1) checks
+        for i in range(len(words) - 1):
+            w1, w2 = words[i], words[i + 1]
+            if w1 in all_terms or w2 in all_terms:
+                concepts.add(f"{w1} {w2}")
+
+        # Trigrams - same O(1) word-level check
         for i in range(len(words) - 2):
-            trigram = f"{words[i]} {words[i+1]} {words[i+2]}"
-            if any(term in trigram for term in self.tech_terms):
-                concepts.add(trigram)
+            w1, w2, w3 = words[i], words[i + 1], words[i + 2]
+            if w1 in self.tech_terms or w2 in self.tech_terms or w3 in self.tech_terms:
+                concepts.add(f"{w1} {w2} {w3}")
 
         return concepts
 

@@ -6,6 +6,7 @@ Tree-sitter integration, and memory-efficient caching for enhanced AI pair progr
 """
 
 import asyncio
+import linecache
 import logging
 import re
 import json
@@ -19,6 +20,9 @@ from collections import defaultdict, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import weakref
 import os
+
+# Pre-compiled regex patterns for hot paths
+_WORD_PATTERN = re.compile(r'\b\w+\b')
 
 try:
     import tree_sitter
@@ -435,9 +439,9 @@ class KeywordRetriever:
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                             for line_num, line in enumerate(f, 1):
                                 line_lower = line.lower()
-                                # Extract words and index them
-                                words = re.findall(r'\b\w+\b', line_lower)
-                                for word in words:
+                                # Extract words and index them (pre-compiled regex)
+                                for match in _WORD_PATTERN.finditer(line_lower):
+                                    word = match.group()
                                     if len(word) > 2:  # Skip very short words
                                         new_index[word][file_path].append(line_num)
                     except Exception:
@@ -479,27 +483,30 @@ class KeywordRetriever:
                     for file_path, line_numbers in self.inverted_index[term_lower].items():
                         candidate_files[file_path].update(line_numbers)
 
-            # Read only the relevant lines from candidate files
+            # Read only the relevant lines from candidate files using linecache
+            search_terms_lower = [term.lower() for term in search_terms]
+            num_search_terms = len(search_terms)
             for file_path, line_numbers in candidate_files.items():
                 try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        lines = f.readlines()
-                        for line_num in sorted(line_numbers)[:10]:  # Top 10 lines per file
-                            if 0 < line_num <= len(lines):
-                                line_content = lines[line_num - 1].strip()
-                                # Calculate relevance score
-                                score = sum(1 for term in search_terms if term.lower() in line_content.lower())
-                                if score > 0:
-                                    matches.append(ContextMatch(
-                                        pattern=query,
-                                        match_type='keyword',
-                                        content=line_content,
-                                        file_path=file_path,
-                                        line_number=line_num,
-                                        score=float(score) / len(search_terms)
-                                    ))
+                    file_str = str(file_path)
+                    for line_num in sorted(line_numbers)[:10]:  # Top 10 lines per file
+                        line_content = linecache.getline(file_str, line_num).strip()
+                        if line_content:
+                            # Calculate relevance score
+                            line_lower = line_content.lower()
+                            score = sum(1 for term in search_terms_lower if term in line_lower)
+                            if score > 0:
+                                matches.append(ContextMatch(
+                                    pattern=query,
+                                    match_type='keyword',
+                                    content=line_content,
+                                    file_path=file_path,
+                                    line_number=line_num,
+                                    score=float(score) / num_search_terms
+                                ))
                 except Exception:
                     continue
+            linecache.clearcache()
 
             # Sort by relevance score
             matches.sort(key=lambda x: x.score, reverse=True)
@@ -573,17 +580,15 @@ class KeywordRetriever:
 
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
+                for line_num, line in enumerate(f, 1):
+                    line_lower = line.lower()
+                    score = 0
+                    found_terms = []
 
-            for line_num, line in enumerate(lines, 1):
-                line_lower = line.lower()
-                score = 0
-                found_terms = []
-
-                for term in search_terms:
-                    if term in line_lower:
-                        score += line_lower.count(term)
-                        found_terms.append(term)
+                    for term in search_terms:
+                        if term in line_lower:
+                            score += line_lower.count(term)
+                            found_terms.append(term)
 
                 if score > 0:
                     match = ContextMatch(
