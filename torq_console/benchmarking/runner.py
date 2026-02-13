@@ -9,6 +9,7 @@ import time
 import psutil
 import uuid
 import threading
+from collections import deque
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable, Union
 from dataclasses import dataclass
@@ -53,7 +54,7 @@ class PerformanceMonitor:
 
     def __init__(self):
         self.monitoring = False
-        self.metrics = []
+        self.metrics: deque = deque(maxlen=10000)
         self.start_time = None
         self.ttfuo_time = None  # Time to First Useful Output
         self.process = psutil.Process()
@@ -62,7 +63,7 @@ class PerformanceMonitor:
         """Start performance monitoring."""
         self.monitoring = True
         self.start_time = time.time()
-        self.metrics = []
+        self.metrics.clear()
         self.ttfuo_time = None
 
         # Start monitoring thread
@@ -107,14 +108,27 @@ class PerformanceMonitor:
         if not self.metrics:
             return {}
 
-        cpu_values = [m['cpu_percent'] for m in self.metrics]
-        memory_values = [m['memory_mb'] for m in self.metrics]
+        # Single-pass computation instead of multiple list comprehensions
+        peak_cpu = 0.0
+        peak_mem = 0.0
+        total_cpu = 0.0
+        total_mem = 0.0
+        count = len(self.metrics)
+        for m in self.metrics:
+            cpu = m['cpu_percent']
+            mem = m['memory_mb']
+            total_cpu += cpu
+            total_mem += mem
+            if cpu > peak_cpu:
+                peak_cpu = cpu
+            if mem > peak_mem:
+                peak_mem = mem
 
         return {
-            'peak_memory_mb': max(memory_values),
-            'avg_memory_mb': sum(memory_values) / len(memory_values),
-            'peak_cpu_percent': max(cpu_values),
-            'avg_cpu_percent': sum(cpu_values) / len(cpu_values),
+            'peak_memory_mb': peak_mem,
+            'avg_memory_mb': total_mem / count,
+            'peak_cpu_percent': peak_cpu,
+            'avg_cpu_percent': total_cpu / count,
             'duration_ms': (time.time() - self.start_time) * 1000 if self.start_time else 0,
             'ttfuo_ms': self.ttfuo_time
         }
