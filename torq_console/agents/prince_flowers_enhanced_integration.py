@@ -340,8 +340,7 @@ class PrinceFlowersEnhancedIntegration:
 
         try:
             # 1. Enhanced query routing
-            routing_decision = await self.route_query(query)
-            self.logger.info(f"[ROUTING] Intent: {routing_decision['intent']}, "
+        # Check for BTC price query specifically        btc_price_keywords = ["btc price", "bitcoin price", "btc usd", "current btc", "bitcoin price now"]        is_btc_price_query = any(keyword in query.lower() for keyword in btc_price_keywords)        # 1. Enhanced query routing        routing_decision = await self.route_query(query)            self.logger.info(f"[ROUTING] Intent: {routing_decision['intent']}, "
                            f"Confidence: {routing_decision['confidence']:.2f}, "
                            f"Reasoning: {routing_decision['reasoning']}")
 

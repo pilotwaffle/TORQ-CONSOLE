@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
-import aiohttp
+import aiohttp as aiohttp
 
 class CryptoPriceAPI:
     """Cryptocurrency price API handler"""
@@ -33,7 +33,7 @@ class CryptoPriceAPI:
         Raises:
             Exception: If API request fails
         """
-        url = f"{self.coingecko_base}/simple/price?ids=bitcoin&vs_currencies=usd"
+        url = f"{self.coingecko_base}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
 
         self.logger.info(f"Fetching BTC price from {url}")
 
@@ -48,8 +48,7 @@ class CryptoPriceAPI:
                             result = {
                                 "bitcoin": {
                                     "usd": btc_data["usd"],
-                                    "usd_24h_change": btc_data.get("usd_24h_volatility", 0),
-                                    "usd_24h_volatility": btc_data.get("usd_24h_volatility", 0)
+                                    "usd_24h_change": btc_data.get("usd_24h_change", 0)
                                 },
                                 "last_updated": btc_data.get("last_updated_at", "Unknown")
                             }
