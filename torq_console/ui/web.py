@@ -136,8 +136,9 @@ class WebUI:
             self.logger.warning(f"No API key set. Generated temporary key: {self.api_key}")
             self.logger.warning("Set TORQ_CONSOLE_API_KEY environment variable for production use")
 
-        # Mount static files
-        self.app.mount("/static", StaticFiles(directory="torq_console/ui/static"), name="static")
+        # Mount static files (use absolute path)
+        static_dir = Path(__file__).parent / "static"
+        self.app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
         # Socket.IO setup
         self.sio = None
@@ -164,8 +165,9 @@ class WebUI:
         self._setup_command_palette_routes()
         self._setup_swarm_api_routes()  # NEW: Swarm Agent API endpoints
 
-        # Templates and static files
-        self.templates = Jinja2Templates(directory="torq_console/ui/templates")
+        # Templates (use absolute path)
+        templates_dir = Path(__file__).parent / "templates"
+        self.templates = Jinja2Templates(directory=str(templates_dir))
 
         # CRITICAL FIX: Apply AI integration fixes
         if AI_FIXES_AVAILABLE:
@@ -902,6 +904,32 @@ class WebUI:
 
             # Check if this is a Prince Flowers command
             content_lower = user_content.lower().strip()
+
+            # Check if this is a BTC/Bitcoin price query - handle directly
+            if any(keyword in content_lower for keyword in ["btc price", "bitcoin price", "price of btc", "price of bitcoin", "current btc", "current bitcoin"]):
+                # Use crypto price API directly
+                try:
+                    import sys
+                    from pathlib import Path
+                    import importlib.util
+
+                    api_path = str(Path(__file__).parent.parent / "api")
+                    if api_path not in sys.path:
+                        sys.path.insert(0, api_path)
+
+                    spec = importlib.util.spec_from_file_location("crypto_price", f"{api_path}/crypto_price.py")
+                    crypto_price = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(crypto_price)
+
+                    price_result = await crypto_price.get_btc_price()
+
+                    if "error" not in price_result:
+                        btc_data = price_result.get("bitcoin", {})
+                        price = btc_data.get("usd", 0)
+                        change_24h = btc_data.get("usd_24h_change", 0)
+                        return f"Current Bitcoin (BTC) price is ${price:,.2f} USD. 24h change: {change_24h:+.2f}%."
+                except Exception as e:
+                    self.logger.error(f"Crypto price query error: {e}")
 
             # Enhanced detection for Prince Flowers commands and search queries
             is_prince_command = (
