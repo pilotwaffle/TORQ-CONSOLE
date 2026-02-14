@@ -27,5 +27,7 @@ RUN pip install --upgrade pip && pip install -r requirements-railway.txt
 # Copy application code
 COPY . .
 
-# Run application with Railway PORT
-CMD uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port ${PORT}
+# Use a wrapper script to handle PORT environment variable
+RUN echo '#!/bin/sh\nexec uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port ${PORT:-8080}' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+CMD ["/app/entrypoint.sh"]
