@@ -400,6 +400,15 @@ class PrinceFlowersEnhancedIntegration:
                 metadata={'error': str(e)}
             )
 
+    # Alias methods for web UI compatibility
+    async def process_query(self, query: str, context: Optional[Dict] = None) -> EnhancedAgentResult:
+        """Alias for process_query_enhanced - web UI compatibility"""
+        return await self.process_query_enhanced(query, context)
+
+    async def process_query_async(self, query: str, context: Optional[Dict] = None) -> EnhancedAgentResult:
+        """Alias for process_query_enhanced - web UI compatibility"""
+        return await self.process_query_enhanced(query, context)
+
     async def _execute_web_search_workflow(
         self,
         query: str,
