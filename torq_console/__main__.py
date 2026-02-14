@@ -64,16 +64,28 @@ For more information, see: E:\\TORQ-TEST-REPORT.md
             elif sys.argv[1] == '--web':
                 # Start web UI
                 print("Starting TORQ Console Web UI...")
+                import asyncio
+
                 from torq_console.ui.web import WebUI
                 from torq_console.core.config import TorqConfig
+                from torq_console.core.console import TorqConsole
                 from torq_console.core.context_manager import ContextManager
 
-                console = TorqConfig()
-                console.context_manager = ContextManager(config=console)
+                async def run_web():
+                    config = TorqConfig()
+                    console = TorqConsole(config)
+                    console.context_manager = ContextManager(config=config)
 
-                web_ui = WebUI(console)
-                import asyncio
-                asyncio.run(web_ui.start_server(host="127.0.0.1", port=8000))
+                    # Skip async initialization for now - it's timing out
+                    print("Skipping async initialization (timing out)")
+                    print("Web server will start with limited functionality")
+
+                    # Create and start web UI
+                    web_ui = WebUI(console=console)
+                    print("Starting web server on http://127.0.0.1:8088")
+                    await web_ui.start_server(host="127.0.0.1", port=8088)
+
+                asyncio.run(run_web())
                 return 0
             elif sys.argv[1] == '--terminal' or sys.argv[1] == '--tui':
                 # Start Rich Terminal UI

@@ -9,11 +9,15 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import time
 from typing import Dict, List, Any, Optional, Tuple, Union
 from datetime import datetime
 
-from ..llm.providers.base import BaseLLMProvider
+# Add parent directory to path for absolute imports
+sys.path.insert(0, str(__file__).replace('\\', '/').split('/torq_console/')[0])
+
+from torq_console.llm.providers.base import BaseLLMProvider
 from .state import ReasoningMode, AgenticAction, ReasoningTrajectory, TORQAgentResult
 from ..capabilities.reasoning import ReasoningEngine
 from ..capabilities.planning import PlanningEngine

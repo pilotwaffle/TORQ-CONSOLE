@@ -54,12 +54,12 @@ except ImportError as e:
     print(f"Warning: TORQ Console components not available: {e}")
     TORQ_CONSOLE_AVAILABLE = False
 
-# Try importing local torq_prince_flowers for fallback
+# Try importing from modular torq_console structure
 try:
-    from torq_prince_flowers import TORQPrinceFlowersInterface as LocalTORQPrinceFlowersInterface
+    from torq_console.agents.torq_prince_flowers import TORQPrinceFlowersInterface as LocalTORQPrinceFlowersInterface
     LOCAL_INTERFACE_AVAILABLE = True
 except ImportError:
-    print("[WARN] Could not import local torq_prince_flowers.py")
+    print("[WARN] Could not import TORQPrinceFlowersInterface from torq_console.agents.torq_prince_flowers")
     LOCAL_INTERFACE_AVAILABLE = False
 
 # Setup logging
