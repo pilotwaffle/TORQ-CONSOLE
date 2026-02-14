@@ -20,10 +20,10 @@ from datetime import datetime
 from torq_console.agents.tools import (
     # Unified interface
     UnifiedToolManager,
-    get_unified_tool_manager,
     ToolCategory,
     ToolStatus,
     UnifiedResult,
+)
 
     # Core tools
     CoreToolsManager,
