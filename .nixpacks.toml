@@ -11,4 +11,4 @@ cmds = [
 cmds = []
 
 [start]
-cmd = "python -m torq_console.ui.railway_main --host 0.0.0.0 --port $PORT"
+cmd = "uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT"

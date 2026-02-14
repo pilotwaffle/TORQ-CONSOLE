@@ -9,8 +9,8 @@ providers = ["python"]
 pipInstallFlags = "--no-cache-dir"
 
 [deploy]
-# Railway-optimized entry point with fallback support
-startCommand = "python -m torq_console.ui.railway_main --host 0.0.0.0 --port $PORT"
+# Railway-optimized entry point using uvicorn with FastAPI app
+startCommand = "uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 # Simple healthcheck endpoint that returns immediately (doesn't wait for full initialization)

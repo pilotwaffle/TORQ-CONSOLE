@@ -1,5 +1,4 @@
 # TORQ Console - Railway Production Dockerfile
-# Multi-stage build for optimal image size and security
 
 FROM python:3.11-slim
 
@@ -28,12 +27,5 @@ RUN pip install --upgrade pip && pip install -r requirements-railway.txt
 # Copy application code
 COPY . .
 
-# Create non-root user for security
-RUN useradd -m -u 1001 torq && chown -R torq:torq /app
-USER torq
-
-# Expose port
-EXPOSE 8080
-
-# Run application
-CMD ["python", "-m", "torq_console.ui.railway_main", "--host", "0.0.0.0", "--port", "8080"]
+# Run application with Railway PORT
+CMD uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port ${PORT}
