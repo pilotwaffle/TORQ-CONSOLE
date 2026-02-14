@@ -5,7 +5,7 @@ Combines the speed of Aider with the polish of Cursor, enhanced with
 Model Context Protocol (MCP) for agentic workflows and Claude Code compatibility.
 """
 
-__version__ = "0.70.0"
+__version__ = "1.0.0"
 __author__ = "B Flowers"
 __email__ = "flowers@example.com"
 
