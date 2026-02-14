@@ -4,11 +4,11 @@ nixPkgs = ["python311", "pip"]
 [phases.install]
 cmds = [
     "pip install --upgrade pip",
-    "pip install --no-cache-dir --no-deps -r requirements.txt"
+    "pip install --no-cache-dir -r requirements.txt"
 ]
 
 [phases.build]
 cmds = []
 
 [start]
-cmd = "uvicorn torq_console.ui.web:app --host 0.0.0.0 --port $PORT"
+cmd = "python -m torq_console.ui.main --host 0.0.0.0 --port $PORT"
