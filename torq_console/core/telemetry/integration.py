@@ -60,7 +60,7 @@ class TelemetryIntegration:
 
         async def async_wrapper(*args, **kwargs):
             # Extract context from kwargs or create new
-            run_id = kwargs.get('_telemetry_run_id') or str(uuid.uuid4()))
+            run_id = kwargs.get('_telemetry_run_id') or str(uuid.uuid4())
             trace_context = kwargs.get('_trace_context')
 
             # Create event based on type or use generic system event
