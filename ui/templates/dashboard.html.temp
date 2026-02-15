@@ -1,0 +1,41 @@
+              getCommandPaletteStatus() {
+                    const totalResults = this.filteredCommandResults.length;
+                    if (totalResults === 0) {
+                        return 'No commands found';
+                    }
+
+                    const selectedIndex = this.commandSelectedIndex + 1;
+                    return `${selectedIndex} of ${totalResults}`;
+                },
+
+                // Format diff content for better display
+                formatDiff(diffText) {
+                    if (!diffText) return 'No changes to display';
+
+                    try {
+                        // Add syntax highlighting for diff
+                        let formatted = diffText
+                            // Add colors for diff indicators
+                            .replace(/^(\+.*$)/gm, '<span class="text-green-400">$1</span>')
+                            .replace(/^(-.*$)/gm, '<span class="text-red-400">$1</span>')
+                            .replace(/^(@@.*@@)/gm, '<span class="text-blue-400">$1</span>')
+                            // Handle common diff patterns
+                            .replace(/^(\s*index .*)$/gm, '<span class="text-gray-500">$1</span>')
+                            .replace(/^(\s*diff --git.*)$/gm, '<span class="text-yellow-400">$1</span>')
+                            .replace(/^(\s*--- a\/.*)$/gm, '<span class="text-red-300">$1</span>')
+                            .replace(/^(\s*\+\+\+ b\/.*)$/gm, '<span class="text-green-300">$1</span>')
+                            // Preserve line breaks
+                            .replace(/\n/g, '\n')
+                            // Escape HTML
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            // Restore diff line coloring after HTML escaping
+                            .replace(/&lt;span class="text-(green|red|blue|gray|yellow|green|red)-400"&gt;(.*?)&lt;\/span&gt;/g, '<span class="text-$1-400">$2</span>')
+                            .replace(/&lt;span class="text-(green|red|gray|yellow)-300"&gt;(.*?)&lt;\/span&gt;/g, '<span class="text-$1-300">$2</span>');
+
+                        return `<pre class="text-xs font-mono whitespace-pre-wrap">${formatted}</pre>`;
+                    } catch (error) {
+                        console.error('Error formatting diff:', error);
+                        return `<pre class="text-xs font-mono whitespace-pre-wrap">${diffText}</pre>`;
+                    }
+                }

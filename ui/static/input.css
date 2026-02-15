@@ -1,0 +1,234 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Professional Typography - JetBrains Mono */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Custom styles for TORQ CONSOLE */
+
+/* C. Professional Typography System */
+:root {
+  /* Typography - Font Families */
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+
+  /* Typography - Font Weights */
+  --font-weight-regular: 400;    /* Body text, paragraphs */
+  --font-weight-medium: 500;     /* Buttons, labels */
+  --font-weight-semibold: 600;   /* Headers, titles */
+
+  /* Typography - Line Heights */
+  --line-height-tight: 1.2;      /* Headers, code */
+  --line-height-normal: 1.5;     /* Body text */
+  --line-height-relaxed: 1.75;   /* Long-form content */
+
+  /* D. Consistent Spacing System (8px grid) */
+  --spacing-1: 0.5rem;   /* 8px */
+  --spacing-2: 1rem;     /* 16px */
+  --spacing-3: 1.5rem;   /* 24px */
+  --spacing-4: 2rem;     /* 32px */
+  --spacing-5: 2.5rem;   /* 40px */
+  --spacing-6: 3rem;     /* 48px */
+  --spacing-8: 4rem;     /* 64px */
+}
+
+/* Apply professional typography globally */
+body {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  font-size: 14px;
+}
+
+/* Headers use semibold weight and tight line-height */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.025em;
+}
+
+/* Buttons use medium weight */
+button, .btn, .button {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+/* Code blocks use tight line-height */
+code, pre, .code-block {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-tight);
+}
+
+/* Input fields use regular weight */
+input, textarea, select {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+}
+
+/* Labels use medium weight */
+label {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+/* Apply consistent spacing to common elements */
+.panel, .card, .section {
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-3);
+}
+
+.panel-header {
+  margin-bottom: var(--spacing-3);
+  padding-bottom: var(--spacing-2);
+}
+
+.button-group {
+  gap: var(--spacing-2);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-3);
+}
+
+.form-label {
+  margin-bottom: var(--spacing-1);
+}
+.panel-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+.mcp-panel {
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.chat-panel {
+  min-width: 400px;
+}
+
+.diff-panel {
+  min-width: 350px;
+}
+
+.monaco-editor {
+  border-radius: 8px;
+}
+
+.diff-viewer {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.guided-prompt {
+  background: linear-gradient(135deg, #1e40af, #7c3aed);
+  border: 1px solid #3b82f6;
+  animation: pulse 2s infinite;
+}
+
+.mcp-tool-card {
+  background: linear-gradient(135deg, #065f46, #064e3b);
+  border: 1px solid #10b981;
+}
+
+.voice-indicator {
+  animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+.ideation-mode {
+  background: linear-gradient(135deg, #7c2d12, #ea580c);
+  border: 1px solid #f97316;
+}
+
+/* Inline Editor Styles */
+.inline-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inline-editor-modal {
+  background: #1f2937;
+  border-radius: 12px;
+  border: 1px solid #374151;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.ghost-text {
+  color: #6b7280;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.refinement-controls {
+  background: #374151;
+  border-top: 1px solid #4b5563;
+}
+
+/* Command Palette Styles */
+.command-palette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+}
+
+.command-palette-modal {
+  background: #1f2937;
+  border-radius: 8px;
+  border: 1px solid #374151;
+  width: 600px;
+  max-height: 70vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.command-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #374151;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.command-item:hover,
+.command-item.selected {
+  background: #374151;
+}
+
+.command-item.selected {
+  border-left: 3px solid #3b82f6;
+}
+
+.command-shortcut {
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: monospace;
+}
+
+@keyframes voice-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
