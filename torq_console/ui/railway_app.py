@@ -7,7 +7,7 @@ This module provides the complete TORQ Console WebUI with:
 - Template rendering
 - All web features working identically to local
 
-CRITICAL FIX: Export app as FastAPI instance, NOT as package name.
+Railway startup command: uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT
 """
 
 import os
@@ -36,9 +36,8 @@ def create_railway_app():
     """
     Create FastAPI app for Railway deployment.
 
-    CRITICAL: Must return web_ui.app (FastAPI instance), NOT a package name.
-    Railway runs: uvicorn torq_console.ui.railway_app:app
-    Python imports: from torq_console.ui.railway_app import app
+    Returns a FastAPI app instance that Railway can run with:
+    uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT
     """
     try:
         # Import full WebUI - NOT minimal app
@@ -46,42 +45,66 @@ def create_railway_app():
         from torq_console.core.console import TorqConsole
         from torq_console.core.config import TorqConfig
 
-        logger.info("Importing full TORQ Console WebUI for Railway...")
-        logger.info("This creates complete WebUI with all routes and features")
+        logger.info("=" * 60)
+        logger.info("TORQ Console - Railway Deployment")
+        logger.info("=" * 60)
+        logger.info("Initializing full WebUI with all routes...")
 
         # Initialize console and web UI
         config = TorqConfig()
         console = TorqConsole(config=config)
         web_ui = WebUI(console=console)
 
-        logger.info("WebUI instance created")
-        logger.info(f"App type: {type(web_ui).__name__}")
-        logger.info(f"Routes: {len(web_ui.app.routes)}")
+        logger.info(f"WebUI instance created: {type(web_ui).__name__}")
+        logger.info(f"Total routes: {len(web_ui.app.routes)}")
+        logger.info(f"FastAPI app: {type(web_ui.app).__name__}")
 
-        # CRITICAL: Return the FastAPI app instance directly
-        # Railway will run: uvicorn torq_console.ui.railway_app:app --host ...
-        # It needs to import app, so return web_ui.app
+        # Get the FastAPI app instance
         app = web_ui.app
-        
-        logger.info("Exporting FastAPI app instance (not package name)")
+
+        # Add health check endpoint for Railway
+        @app.get("/health")
+        async def health_check():
+            return {"status": "healthy", "service": "torq-console"}
+
+        logger.info("=" * 60)
+        logger.info("Ready for Railway deployment")
         logger.info(f"Static files: /static")
         logger.info(f"Chat endpoint: /api/chat")
         logger.info(f"Health check: /health")
-        
+        logger.info("=" * 60)
+
         return app
 
     except Exception as e:
+        logger.error("=" * 60)
         logger.error(f"Failed to create Railway app: {e}")
-        logger.info("Falling back to minimal app...")
-        
-        # Fallback to minimal app (original behavior)
-        from torq_console.ui.railway_main import create_minimal_app
-        return create_minimal_app()
+        logger.error("Creating fallback minimal app...")
+        logger.error("=" * 60)
+
+        # Fallback to minimal app
+        from fastapi import FastAPI
+        from fastapi.responses import JSONResponse
+
+        app = FastAPI(title="TORQ Console")
+
+        @app.get("/health")
+        async def health_check():
+            return {"status": "healthy", "service": "torq-console-minimal"}
+
+        @app.get("/")
+        async def root():
+            return JSONResponse({
+                "message": "TORQ Console - Minimal deployment",
+                "full_webui_unavailable": str(e)
+            })
+
+        return app
 
 
 # Create app at module level for Railway uvicorn startup
-# This is the PRIMARY entry point - use full WebUI
+# Railway runs: uvicorn torq_console.ui.railway_app:app
 app = create_railway_app()
 
-# Export for Railway - must be app instance, not package name
+# Export for Railway
 __all__ = ["app"]
