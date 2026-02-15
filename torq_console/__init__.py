@@ -29,4 +29,4 @@ __all__ = [
     "MCPClient",
     "InteractiveShell",
     "GitManager",
-]
+]# Trigger cache update
