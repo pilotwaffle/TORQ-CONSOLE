@@ -18,6 +18,7 @@
     "TORQ_CONSOLE_PRODUCTION": "true",
     "TORQ_DISABLE_LOCAL_LLM": "true",
     "TORQ_DISABLE_GPU": "true",
+    "ANTHROPIC_API_KEY": "@anthropic_api_key",
     "OPENAI_API_KEY": "@openai_api_key",
     "PYTHON_VERSION": "3.11"
   }
