@@ -2,16 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "torq-console",
+  "buildCommand": "pip install -r requirements.txt",
+  "outputDirectory": "",
   "builds": [
     {
-      "src": "torq_console/ui/railway_app.py",
+      "src": "api/index.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "torq_console/ui/railway_app.py"
+      "dest": "api/index.py"
     }
   ],
   "env": {
