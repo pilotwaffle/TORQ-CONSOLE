@@ -209,7 +209,8 @@ class EnhancedPrinceFlowers:
         enable_advanced_features: bool = True,
         use_hierarchical_planning: bool = True,
         use_multi_agent_debate: bool = True,
-        use_self_evaluation: bool = True
+        use_self_evaluation: bool = True,
+        llm_manager = None
     ):
         """
         Initialize Enhanced Prince Flowers with state-of-the-art AI.
@@ -222,9 +223,11 @@ class EnhancedPrinceFlowers:
             use_hierarchical_planning: Use hierarchical task planning
             use_multi_agent_debate: Use multi-agent debate for responses
             use_self_evaluation: Use self-evaluation for quality control
+            llm_manager: Optional TORQ LLM Manager for web search and AI capabilities
         """
         self.memory_enabled = memory_enabled and LETTA_AVAILABLE
         self.logger = logging.getLogger(__name__)
+        self.llm_manager = llm_manager
 
         # Feature flags
         self.advanced_features_enabled = enable_advanced_features
