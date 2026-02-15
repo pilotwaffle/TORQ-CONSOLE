@@ -333,6 +333,33 @@ torq-console telemetry --help
 
 ## Production Deployment
 
+### Vercel Deployment
+
+Quick deployment to Vercel serverless platform:
+
+```bash
+# Install Vercel CLI (first time only)
+npm install -g vercel
+
+# Deploy to production
+vercel --prod
+
+# Or use deployment script
+./deploy-vercel.sh
+```
+
+Set environment variables:
+
+```bash
+# Add API key
+vercel env add ANTHROPIC_API_KEY production
+
+# View logs
+vercel logs
+```
+
+**📘 Full Guide**: See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for complete instructions.
+
 ### Docker Deployment
 
 ```dockerfile

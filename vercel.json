@@ -1,9 +1,14 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "name": "torq-console-prince-api",
   "builds": [
     {
       "src": "enhanced_prince_api.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
   ],
   "routes": [
@@ -13,6 +18,14 @@
     }
   ],
   "env": {
-    "ANTHROPIC_API_KEY": "@anthropic_api_key"
+    "ANTHROPIC_API_KEY": "@anthropic_api_key",
+    "OPENAI_API_KEY": "@openai_api_key",
+    "PYTHON_VERSION": "3.11"
+  },
+  "functions": {
+    "enhanced_prince_api.py": {
+      "memory": 3008,
+      "maxDuration": 60
+    }
   }
 }
