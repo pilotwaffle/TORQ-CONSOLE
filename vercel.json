@@ -1,31 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "name": "torq-console-prince-api",
+  "name": "torq-console",
   "builds": [
     {
-      "src": "enhanced_prince_api.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+      "src": "torq_console/ui/railway_app.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "enhanced_prince_api.py"
+      "dest": "torq_console/ui/railway_app.py"
     }
   ],
   "env": {
+    "TORQ_CONSOLE_PRODUCTION": "true",
+    "TORQ_DISABLE_LOCAL_LLM": "true",
+    "TORQ_DISABLE_GPU": "true",
     "ANTHROPIC_API_KEY": "@anthropic_api_key",
     "OPENAI_API_KEY": "@openai_api_key",
     "PYTHON_VERSION": "3.11"
-  },
-  "functions": {
-    "enhanced_prince_api.py": {
-      "memory": 3008,
-      "maxDuration": 60
-    }
   }
 }
