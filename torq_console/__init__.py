@@ -16,6 +16,14 @@ from .ui.shell import InteractiveShell
 from .utils.git_manager import GitManager
 
 __all__ = [
+    "torq_console.core.console.TorqConsole",
+    "torq_console.core.config.TorqConfig",
+    "torq_console.llm.manager.LLMManager",
+    "torq_console.llm.providers.claude.ClaudeProvider",
+    "torq_console.llm.providers.deepseek.DeepSeekProvider",
+    "torq_console.llm.providers.ollama.OllamaProvider",
+    "torq_console.llm.providers.llama_cpp_provider.LlamaCppQualityProvider",
+    "torq_console.llm.providers.websearch.WebSearchProvider",
     "TorqConsole",
     "TorqConfig",
     "MCPClient",
