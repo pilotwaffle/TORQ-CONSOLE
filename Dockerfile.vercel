@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install only essential dependencies
+RUN pip install fastapi uvicorn python-multipart pydantic jinja2 python-dotenv aiofiles httpx anthropic openai
+
+# Copy the API entry point
+COPY api/index.py .
+
+# Copy necessary modules
+COPY torq_console/ ./torq_console/
+
+ENV PYTHONUNBUFFERED=1
+ENV TORQ_CONSOLE_PRODUCTION=true
+ENV TORQ_DISABLE_LOCAL_LLM=true
+ENV TORQ_DISABLE_GPU=true
+
+# Expose port
+EXPOSE 8000
+
+# Run the app
+CMD ["uvicorn", "api.index:app", "--host", "0.0.0.0", "--port", "8000"]
