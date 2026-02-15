@@ -20,8 +20,8 @@
     "TORQ_CONSOLE_PRODUCTION": "true",
     "TORQ_DISABLE_LOCAL_LLM": "true",
     "TORQ_DISABLE_GPU": "true",
-    "ANTHROPIC_API_KEY": "@anthropic_api_key",
-    "OPENAI_API_KEY": "@openai_api_key",
+    "ANTHROPIC_API_KEY": "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",
+    "OPENAI_API_KEY": "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",
     "PYTHON_VERSION": "3.11"
   }
 }
