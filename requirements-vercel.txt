@@ -1,35 +1,18 @@
-# TORQ Console - Vercel Deployment Requirements
-# Minimal dependencies for Enhanced Prince API on Vercel
+# Lightweight requirements for Vercel deployment
+# Only essential FastAPI dependencies - no ML/GPU packages
 
-# Core web framework (required for FastAPI)
 fastapi>=0.100.0
-uvicorn>=0.20.0
-pydantic>=2.8.0,<3.0.0
+uvicorn[standard]>=0.20.0
+websockets>=11.0.0
 python-multipart>=0.0.6
-
-# AI API clients (cloud-based, no local models)
+pydantic>=2.8.0,<3.0.0
+jinja2>=3.1.0
+python-dotenv>=1.0.0
+aiofiles>=23.0.0
+httpx>=0.24.0
 anthropic>=0.20.0
 openai>=1.0.0
-
-# HTTP clients and async support
-httpx>=0.24.0
-aiohttp>=3.8.0
-aiofiles>=23.0.0
-
-# Core utilities
+pyyaml>=6.0.0
 click>=8.0.0
 rich>=13.0.0
-PyYAML>=6.0.0
-
-# JSON-RPC for potential MCP communication
-jsonrpcserver>=5.0.0
-jsonrpcclient>=4.0.0
-
-# Git integration (lightweight)
-gitpython>=3.1.0
-
-# Configuration management
-python-dotenv>=1.0.0
-
-# Process utilities (minimal)
-psutil>=5.9.0
+prompt_toolkit>=3.0.0
