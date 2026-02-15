@@ -39,8 +39,15 @@ demo_workspace/
 tests/
 examples/
 
-# Node modules (if any)
+# Node.js / Frontend (use separate deployment for frontend)
+frontend/
 node_modules/
+package.json
+package-lock.json
+tsconfig.json
+vite.config.ts
+tailwind.config.js
+postcss.config.js
 
 # Git
 .git/
