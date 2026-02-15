@@ -1,0 +1,142 @@
+# Vercel Deployment - Ignore unnecessary files
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing and development
+tests/
+test_*.py
+*_test.py
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data and logs
+*.log
+.torq-data/
+.torq-index/
+.torq-specs/
+.torq_agent_json/
+evaluation_results/
+experiment_results/
+
+# Documentation and reports
+docs/
+*.md
+!README.md
+!VERCEL_DEPLOYMENT.md
+CHANGELOG.md
+*.txt
+!requirements.txt
+!requirements-vercel.txt
+!runtime.txt
+
+# Configuration (keep only essential)
+.env
+.env.example
+*.toml
+!pyproject.toml
+*.yaml
+*.yml
+!vercel.json
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# Archives and backups
+archive/
+*.backup
+*.bak
+
+# Node modules (if any)
+node_modules/
+package-lock.json
+
+# Large model files
+*.gguf
+*.bin
+*.pt
+*.pth
+
+# Demo and test data
+demo_*.py
+demo_*.json
+test_results.json
+validation_results.json
+
+# Scripts and batch files
+*.bat
+*.ps1
+*.sh
+!install.sh
+
+# Ruby and other language artifacts
+*.rb
+Rakefile
+Gemfile
+
+# Unnecessary API/integration files
+api_*.js
+api_*.py
+integration_*.py
+xai_grok_integration.py
+claude_websearch_real.py
+
+# Landing page (separate deployment)
+landing-page/
+
+# UI files (if not needed for API)
+ui/
+frontend/
+
+# Policies and configs not needed in production
+policies/
+slo.yml
+capabilities.yaml
+
+# Large evaluation sets
+eval_sets/
+
+# Screenshots and media
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!torq_console_icon.png
+*.ico
+
+# HTML files
+*.html
+
+# Duplicate/alternative deployment configs
+railway.json
+railway.toml
+render.yaml
+Dockerfile
+Procfile
+.nixpacks.toml
+.dockerignore
+.railwayignore
