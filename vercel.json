@@ -2,15 +2,24 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "torq-console",
-  "buildCommand": "pip install fastapi uvicorn python-multipart pydantic jinja2 python-dotenv aiofiles httpx anthropic openai pyyaml click rich",
-  "outputDirectory": "",
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/health",
+      "dest": "api/index.py"
+    },
     {
       "src": "/(.*)",
       "dest": "api/index.py"
@@ -20,8 +29,6 @@
     "TORQ_CONSOLE_PRODUCTION": "true",
     "TORQ_DISABLE_LOCAL_LLM": "true",
     "TORQ_DISABLE_GPU": "true",
-    "ANTHROPIC_API_KEY": "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",
-    "OPENAI_API_KEY": "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",
     "PYTHON_VERSION": "3.11"
   }
 }
