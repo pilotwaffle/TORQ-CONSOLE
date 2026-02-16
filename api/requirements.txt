@@ -1,0 +1,12 @@
+# Vercel auto-detects this file for the api/ directory.
+# Mirror of requirements-vercel.txt for @vercel/python builder.
+
+fastapi>=0.100.0
+uvicorn>=0.20.0
+python-multipart>=0.0.6
+pydantic>=2.8.0,<3.0.0
+python-dotenv>=1.0.0
+httpx>=0.24.0
+anthropic>=0.20.0
+openai>=1.0.0
+jinja2>=3.1.0
