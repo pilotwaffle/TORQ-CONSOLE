@@ -1,0 +1,25 @@
+# TORQ Console Code Owners
+# These owners will be automatically requested for review on PRs.
+
+# Default owner for everything
+* @pilotwaffle
+
+# Core application
+/torq_console/core/       @pilotwaffle
+/torq_console/agents/     @pilotwaffle
+/torq_console/llm/        @pilotwaffle
+
+# Deployment configuration (requires review to prevent secret leaks)
+vercel.json               @pilotwaffle
+Dockerfile                @pilotwaffle
+Dockerfile.vercel         @pilotwaffle
+render.yaml               @pilotwaffle
+Procfile                  @pilotwaffle
+api/                      @pilotwaffle
+
+# CI/CD workflows
+/.github/workflows/       @pilotwaffle
+
+# Security-sensitive files
+SECURITY.md               @pilotwaffle
+.gitignore                @pilotwaffle

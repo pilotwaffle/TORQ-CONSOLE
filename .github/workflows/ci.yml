@@ -49,12 +49,21 @@ jobs:
     - name: Lint check
       run: |
         pip install ruff
-        ruff check torq_console/ || true
+        ruff check torq_console/
 
     - name: Type check
       run: |
         pip install mypy
-        mypy torq_console/ || true
+        mypy torq_console/ --ignore-missing-imports
+
+    - name: Check for hardcoded secrets
+      run: |
+        # Fail if API keys are found in deployment configs
+        if grep -rE "sk-ant-|sk-proj-|AKIA[0-9A-Z]{16}" vercel.json Dockerfile* render.yaml 2>/dev/null; then
+          echo "ERROR: Hardcoded secrets detected in deployment configs!"
+          exit 1
+        fi
+        echo "No hardcoded secrets found."
 
     - name: Success
       run: echo "CI checks passed!"
