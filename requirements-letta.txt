@@ -5,7 +5,7 @@
 letta==0.13.0
 
 # Document Processing
-llama-index==0.14.8
+llama-index==0.14.14
 
 # Web Scraping
 trafilatura==2.0.0
