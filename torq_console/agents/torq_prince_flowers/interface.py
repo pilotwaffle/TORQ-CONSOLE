@@ -28,11 +28,23 @@ class TORQPrinceFlowersInterface:
         """Initialize the Prince Flowers agent."""
         try:
             # Get LLM provider from console instance
+            # Try llm_provider first, then fall back to llm_manager
             llm_provider = getattr(self.console_instance, 'llm_provider', None)
+
+            if llm_provider is None:
+                # Try getting from llm_manager
+                llm_manager = getattr(self.console_instance, 'llm_manager', None)
+                if llm_manager:
+                    # Get the Claude provider from the manager
+                    llm_provider = llm_manager.get_provider('claude')
 
             # Create agent instance
             self.agent = TORQPrinceFlowers(llm_provider=llm_provider)
-            self.logger.info("TORQ Prince Flowers agent initialized successfully")
+
+            if llm_provider:
+                self.logger.info("TORQ Prince Flowers agent initialized with LLM provider")
+            else:
+                self.logger.warning("TORQ Prince Flowers agent initialized without LLM provider (research mode only)")
 
         except Exception as e:
             self.logger.error(f"Failed to initialize TORQ Prince Flowers agent: {e}")

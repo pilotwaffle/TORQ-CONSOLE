@@ -308,48 +308,142 @@ class ReasoningEngine:
             self.logger.error(f"Error in enhanced query analysis: {e}")
             return {}
 
-    # Placeholder methods for different reasoning modes
     async def _execute_research_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
-        """Execute research reasoning strategy."""
-        # Implementation would be extracted from the original file
-        return {
-            "response": "Research reasoning execution (placeholder)",
-            "tools_used": ["web_search"],
-            "confidence": 0.8
-        }
+        """Execute research reasoning strategy with web search and LLM synthesis."""
+        try:
+            # Step 1: Perform web search
+            search_results = []
+            if hasattr(self.web_search_tool, 'search'):
+                try:
+                    results = await self.web_search_tool.search(query, num_results=5)
+                    search_results = results if results else []
+                except Exception as e:
+                    self.logger.warning(f"Web search failed: {e}")
 
-    async def _execute_analysis_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
-        """Execute analysis reasoning strategy."""
-        # Implementation would be extracted from the original file
-        return {
-            "response": "Analysis reasoning execution (placeholder)",
-            "confidence": 0.85
-        }
+            # Step 2: Build prompt with search results
+            prompt = f"User Query: {query}\n\n"
 
-    async def _execute_composition_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
-        """Execute composition reasoning strategy."""
-        # Implementation would be extracted from the original file
-        return {
-            "response": "Composition reasoning execution (placeholder)",
-            "tools_used": analysis.get("tools_needed", []),
-            "confidence": 0.75
-        }
+            if search_results:
+                prompt += "Web Search Results:\n"
+                for i, result in enumerate(search_results[:5], 1):
+                    if isinstance(result, dict):
+                        title = result.get('title', 'Unknown')
+                        snippet = result.get('snippet', result.get('body', ''))
+                        url = result.get('url', '')
+                    else:
+                        title = getattr(result, 'title', 'Unknown')
+                        snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
+                        url = getattr(result, 'url', '')
 
-    async def _execute_meta_planning_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
-        """Execute meta-planning reasoning strategy."""
-        # Implementation would be extracted from the original file
-        return {
-            "response": "Meta-planning reasoning execution (placeholder)",
-            "confidence": 0.9
-        }
+                    prompt += f"{i}. {title}\n"
+                    prompt += f"   {snippet[:400]}\n"
+                    if url:
+                        prompt += f"   Source: {url}\n"
+                    prompt += "\n"
+
+                prompt += "\nUsing the web search results above, provide a comprehensive and accurate response to the user's query.\n"
+
+            # Step 3: Call LLM if available
+            if self.llm_provider:
+                try:
+                    system_prompt = "You are Prince Flowers, an advanced AI research assistant. Provide accurate, well-researched responses based on the web search results."
+
+                    full_prompt = f"{system_prompt}\n\n{prompt}"
+
+                    # Use the LLM provider's generate_response method
+                    if hasattr(self.llm_provider, 'generate_response'):
+                        response_text = await self.llm_provider.generate_response(
+                            prompt=full_prompt,
+                            max_tokens=4000
+                        )
+
+                        return {
+                            "response": response_text,
+                            "tools_used": ["web_search", "llm"],
+                            "confidence": 0.9
+                        }
+                except Exception as e:
+                    self.logger.warning(f"LLM generation failed: {e}")
+
+            # Fallback: Return search results directly
+            if search_results:
+                response = f"Based on web search for '{query}':\n\n"
+                for i, result in enumerate(search_results[:5], 1):
+                    if isinstance(result, dict):
+                        title = result.get('title', 'Unknown')
+                        snippet = result.get('snippet', result.get('body', ''))
+                        url = result.get('url', '')
+                    else:
+                        title = getattr(result, 'title', 'Unknown')
+                        snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
+                        url = getattr(result, 'url', '')
+
+                    response += f"{i}. **{title}**\n"
+                    response += f"   {snippet[:400]}\n"
+                    if url:
+                        response += f"   Source: {url}\n"
+                    response += "\n"
+
+                return {
+                    "response": response,
+                    "tools_used": ["web_search"],
+                    "confidence": 0.8
+                }
+
+            # Final fallback
+            return {
+                "response": f"I processed your query: {query}. However, I couldn't access web search or LLM services. Please check your API configuration.",
+                "tools_used": [],
+                "confidence": 0.3
+            }
+
+        except Exception as e:
+            self.logger.error(f"Research reasoning failed: {e}")
+            return {
+                "response": f"I encountered an error while researching: {str(e)}",
+                "tools_used": [],
+                "confidence": 0.1
+            }
 
     async def _execute_direct_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
-        """Execute direct reasoning strategy."""
-        # Implementation would be extracted from the original file
-        return {
-            "response": "Direct reasoning execution (placeholder)",
-            "confidence": 0.7
-        }
+        """Execute direct reasoning strategy with LLM."""
+        try:
+            # Use LLM provider if available
+            if self.llm_provider:
+                try:
+                    system_prompt = "You are Prince Flowers, an advanced AI assistant. Provide helpful, accurate, and thorough responses to user queries."
+
+                    full_prompt = f"{system_prompt}\n\nUser Query: {query}"
+
+                    # Use the LLM provider's generate_response method
+                    if hasattr(self.llm_provider, 'generate_response'):
+                        response_text = await self.llm_provider.generate_response(
+                            prompt=full_prompt,
+                            max_tokens=4000
+                        )
+
+                        return {
+                            "response": response_text,
+                            "tools_used": ["llm"],
+                            "confidence": 0.9
+                        }
+                except Exception as e:
+                    self.logger.warning(f"LLM generation failed: {e}")
+
+            # Fallback response
+            return {
+                "response": f"I received your query: {query}. However, I cannot generate a response without an LLM provider. Please configure your API keys.",
+                "tools_used": [],
+                "confidence": 0.3
+            }
+
+        except Exception as e:
+            self.logger.error(f"Direct reasoning failed: {e}")
+            return {
+                "response": f"I encountered an error: {str(e)}",
+                "tools_used": [],
+                "confidence": 0.1
+            }
 
     async def health_check(self) -> Dict[str, Any]:
         """Perform health check of the reasoning engine."""

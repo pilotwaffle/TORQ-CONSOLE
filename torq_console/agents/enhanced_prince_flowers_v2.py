@@ -691,6 +691,10 @@ class EnhancedPrinceFlowers:
 
     async def _should_use_planning(self, query: str) -> bool:
         """Determine if query needs hierarchical planning."""
+        # CRITICAL: Check if hierarchical planning is enabled first
+        if not self.use_hierarchical_planning:
+            return False
+
         # Use planning for:
         # - Complex queries (>25 words)
         # - Queries with multiple parts (and, then, also, etc.)
