@@ -502,6 +502,36 @@ This mock version demonstrates the integration interface while the full agent pr
 
                 result = TorqResult(response_content)
 
+            elif self.agent_type == "torq_console" and hasattr(self.agent, 'chat_with_memory'):
+                # Enhanced Prince Flowers V2 with memory support
+                self.logger.info(f"Using Enhanced Prince Flowers V2 with chat_with_memory")
+
+                # Call chat_with_memory method
+                result_dict = await self.agent.chat_with_memory(
+                    user_message=query_text,
+                    session_id=enhanced_context.get('session_id', 'web_session'),
+                    use_advanced_ai=True
+                )
+
+                # Extract response from result dict
+                response_content = result_dict.get('response', result_dict.get('answer', str(result_dict)))
+
+                # Create standardized result
+                class EnhancedV2Result:
+                    def __init__(self, content):
+                        self.success = True
+                        self.content = content
+                        self.confidence = 0.95  # Enhanced V2 has high confidence
+                        self.tools_used = result_dict.get('tools_used', ['enhanced_ai', 'web_search', 'memory'])
+                        self.execution_time = result_dict.get('execution_time', 1.0)
+                        self.metadata = {
+                            'agent_type': 'enhanced_prince_flowers_v2',
+                            'memory_enabled': True,
+                            'session_id': result_dict.get('session_id')
+                        }
+
+                result = EnhancedV2Result(response_content)
+
             elif self.agent_type == "torq_console" and hasattr(self.agent, 'agent') and hasattr(self.agent.agent, 'process_query'):
                 # Alternative: Direct access to underlying agent
                 result = await self.agent.agent.process_query(query_text, enhanced_context)

@@ -102,13 +102,22 @@ class TorqConsole:
         # Initialize Prince Flowers Enhanced Agent v2 with memory
         if ENHANCED_PRINCE_V2_AVAILABLE:
             try:
+                # Read environment configuration for Prince Flowers
+                import os
+                memory_backend = os.getenv("PRINCE_FLOWERS_MEMORY_BACKEND", "supabase")
+                enable_planning = os.getenv("PRINCE_FLOWERS_HIERARCHICAL_PLANNING", "true").lower() == "true"
+                enable_debate = os.getenv("PRINCE_FLOWERS_MULTI_AGENT_DEBATE", "true").lower() == "true"
+                enable_cross_learning = os.getenv("PRINCE_FLOWERS_CROSS_AGENT_LEARNING", "true").lower() == "true"
+
                 self.prince_flowers = EnhancedPrinceFlowersV2(
                     memory_enabled=True,  # ✅ Enable Letta memory
-                    memory_backend="sqlite",
+                    memory_backend=memory_backend,  # Use Supabase for cloud memory
                     enable_advanced_features=True,
-                    use_hierarchical_planning=False,  # Can enable if needed
-                    use_multi_agent_debate=False,  # Can enable if needed
-                    use_self_evaluation=True
+                    use_hierarchical_planning=enable_planning,  # Enable autonomous planning
+                    use_multi_agent_debate=enable_debate,  # Enable multi-agent debate
+                    use_cross_agent_learning=enable_cross_learning,  # Enable cross-agent learning
+                    use_self_evaluation=True,
+                    llm_manager=self.llm_manager  # Pass LLM manager for actual AI responses
                 )
                 self.logger.info("Enhanced Prince Flowers v2 initialized with memory enabled")
             except Exception as e:

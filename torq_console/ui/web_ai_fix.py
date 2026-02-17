@@ -290,6 +290,22 @@ class WebUIAIFixes:
                         self.logger.info("[PRINCE ROUTING] [OK] Method 3c SUCCESS (string result)")
                         return str(result)
 
+                    # Check if prince_flowers has chat_with_memory (Enhanced V2)
+                    elif hasattr(self.console.prince_flowers, 'chat_with_memory'):
+                        self.logger.info("[PRINCE ROUTING] Method 3d: Using prince_flowers.chat_with_memory (Enhanced V2)")
+                        query = command
+                        if command.lower().startswith('prince '):
+                            query = command[7:].strip()
+
+                        result_dict = await self.console.prince_flowers.chat_with_memory(
+                            user_message=query,
+                            session_id='web_session',
+                            use_advanced_ai=True
+                        )
+                        answer = result_dict.get('response', result_dict.get('answer', str(result_dict)))
+                        self.logger.info("[PRINCE ROUTING] [OK] Method 3d SUCCESS")
+                        return answer
+
                     else:
                         self.logger.warning("[PRINCE ROUTING] [X] Method 3 FAILED: prince_flowers object found but no known methods available")
                 except Exception as e:

@@ -870,28 +870,140 @@ class EnhancedPrinceFlowers:
         context: List[Dict[str, Any]]
     ) -> str:
         """
-        Generate basic response with context.
+        Generate response with autonomous planning, web research, and LLM synthesis.
 
-        This is the fallback when advanced AI is disabled.
-        In production, this would call the actual Prince Flowers base agent.
+        This is where Prince Flowers operates as a fully autonomous agent:
+        1. Analyzes the request
+        2. Searches web for current information
+        3. Researches best practices and solutions
+        4. Synthesizes comprehensive response
         """
+        import os
+
         # Build context string
         context_str = ""
         if context:
-            context_str = "\n\nContext from previous conversations:\n"
+            context_str = "\n\nRelevant context from previous conversations:\n"
             for mem in context[:3]:  # Use top 3 most relevant
                 context_str += f"- {mem.get('content', '')}\n"
 
-        # Generate response (placeholder - in production, use actual agent)
-        response = f"[Enhanced Prince Flowers Response]\n\n"
-        response += f"Understanding your request: {user_message}\n"
+        # Check if auto web research is enabled
+        auto_web_research = os.getenv("PRINCE_FLOWERS_AUTO_WEB_RESEARCH", "true").lower() == "true"
 
+        # Step 1: Autonomous Web Research (if enabled)
+        web_research_results = []
+        if auto_web_research and self.llm_manager:
+            try:
+                search_provider = self.llm_manager.web_search_provider
+                if hasattr(search_provider, 'search'):
+                    self.logger.info(f"[AUTONOMOUS RESEARCH] Searching web for: {user_message}")
+
+                    # Primary search
+                    results = await search_provider.search(query=user_message, max_results=5)
+                    if results:
+                        web_research_results.extend(results)
+
+                    # Secondary search for best practices/solutions (if it's a "how to" or technical query)
+                    query_lower = user_message.lower()
+                    if any(term in query_lower for term in ['create', 'build', 'implement', 'develop', 'how to', 'best practice', 'approach', 'solution']):
+                        best_practices_query = f"best practices {user_message}"
+                        self.logger.info(f"[AUTONOMOUS RESEARCH] Searching for best practices: {best_practices_query}")
+                        bp_results = await search_provider.search(query=best_practices_query, max_results=3)
+                        if bp_results:
+                            web_research_results.extend(bp_results)
+
+            except Exception as e:
+                self.logger.warning(f"Web research failed: {e}")
+
+        # Step 2: Build enhanced prompt with research results
+        prompt = f"User Query: {user_message}"
+
+        if web_research_results:
+            prompt += "\n\n=== Web Research Results ===\n"
+            for i, result in enumerate(web_research_results[:5], 1):
+                if isinstance(result, dict):
+                    title = result.get('title', result.get('name', 'Unknown'))
+                    snippet = result.get('snippet', result.get('body', result.get('content', '')))
+                    url = result.get('url', result.get('link', ''))
+                else:
+                    title = getattr(result, 'title', 'Unknown')
+                    snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
+                    url = getattr(result, 'url', getattr(result, 'link', ''))
+
+                prompt += f"\n{i}. {title}\n"
+                prompt += f"   {snippet[:400]}\n"
+                prompt += f"   Source: {url}\n"
+
+            prompt += "\n=== Instructions ===\n"
+            prompt += "Using the web research results above, provide a comprehensive and accurate response to the user's query. "
+            prompt += "Synthesize information from multiple sources and cite the most relevant ones."
+
+        if context_str:
+            prompt += f"\n{context_str}"
+
+        # Step 3: Use LLM to synthesize response
+        if self.llm_manager:
+            try:
+                provider = self.llm_manager.get_provider('claude')
+                if provider and hasattr(provider, 'generate_response'):
+                    # Build enhanced system prompt for autonomous agent
+                    system_prompt = """You are Prince Flowers, an advanced autonomous AI agent with the following capabilities:
+
+1. **Web Research**: You search the web for current information before responding
+2. **Best Practice Research**: You research best practices and solutions from authoritative sources
+3. **Planning**: You break down complex tasks into clear steps
+4. **Synthesis**: You combine information from multiple sources to provide comprehensive answers
+
+Your Approach:
+- Analyze the user's request thoroughly
+- Use web research results to provide accurate, up-to-date information
+- Research best practices from documentation and authoritative sources
+- Provide clear, actionable solutions with step-by-step guidance
+- Cite your sources when relevant
+
+Always strive to provide the most helpful, accurate, and thorough response possible.
+
+"""
+
+                    full_prompt = system_prompt + "\n\n" + prompt
+
+                    response_text = await provider.generate_response(
+                        prompt=full_prompt,
+                        max_tokens=4000
+                    )
+
+                    # Add research metadata
+                    if web_research_results:
+                        response_text += f"\n\n---\n*Researched using {len(web_research_results)} web sources*"
+
+                    return response_text
+            except Exception as e:
+                self.logger.warning(f"LLM generation failed: {e}, falling back to research summary")
+
+        # Step 4: Fallback - Return research summary directly
+        if web_research_results:
+            response = f"I've researched '{user_message}' and found the following information:\n\n"
+            for i, result in enumerate(web_research_results[:5], 1):
+                if isinstance(result, dict):
+                    title = result.get('title', result.get('name', 'Unknown'))
+                    snippet = result.get('snippet', result.get('body', result.get('content', '')))
+                    url = result.get('url', result.get('link', ''))
+                else:
+                    title = getattr(result, 'title', 'Unknown')
+                    snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
+                    url = getattr(result, 'url', getattr(result, 'link', ''))
+
+                response += f"{i}. **{title}**\n"
+                response += f"   {snippet[:400]}\n"
+                response += f"   Source: {url}\n\n"
+
+            return response
+
+        # Final fallback - basic response
+        response = f"Prince Flowers received: {user_message}\n\n"
         if context:
-            response += f"\nBased on our conversation history, I remember:\n"
-            response += context_str
-
-        response += "\n[Response generated with context-aware reasoning.]"
-
+            response += f"I have access to {len(context)} relevant memories from our conversation.\n\n"
+        response += "I'm currently in basic mode. For full capabilities including web search and analysis, please ensure the LLM manager is properly configured."
         return response
 
     async def record_feedback(
