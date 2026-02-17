@@ -317,9 +317,9 @@ class IntentDetector:
         # PRIORITY 1: CRITICAL - Crypto/financial prediction queries must route to WEB_SEARCH
         # This prevents code generation for BTC/crypto outlook/forecast questions
         query_lower = query.lower().strip()
-        crypto_terms = ['btc', 'bitcoin', 'crypto', 'ethereum', 'eth', 'cryptocurrency']
+        crypto_terms = ['btc', 'bitcoin', 'crypto', 'ethereum', 'eth', 'cryptocurrency', 'micro strategy', 'mstr', 'microstrategy']
         prediction_terms = ['outlook', 'forecast', 'predict', 'prediction', 'future', 'through', 'until',
-                           'expect', 'projection', 'trend', 'will be', 'should be', 'price']
+                           'expect', 'projection', 'trend', 'will be', 'should be', 'price', 'strategy', 'analysis']
 
         has_crypto = any(term in query_lower for term in crypto_terms)
         has_prediction = any(term in query_lower for term in prediction_terms)

@@ -159,9 +159,9 @@ class SelfCorrectingIntentDetector:
 
         # PRIORITY 1.5: CRITICAL - Crypto/financial prediction queries must route to RESEARCH
         # This prevents code generation for BTC/crypto outlook/forecast questions
-        crypto_terms = ['btc', 'bitcoin', 'crypto', 'ethereum', 'eth', 'cryptocurrency']
+        crypto_terms = ['btc', 'bitcoin', 'crypto', 'ethereum', 'eth', 'cryptocurrency', 'micro strategy', 'mstr', 'microstrategy']
         prediction_terms = ['outlook', 'forecast', 'predict', 'prediction', 'future', 'through', 'until',
-                           'expect', 'projection', 'trend', 'will be', 'should be']
+                           'expect', 'projection', 'trend', 'will be', 'should be', 'price', 'strategy', 'analysis']
 
         has_crypto = any(term in query_lower for term in crypto_terms)
         has_prediction = any(term in query_lower for term in prediction_terms)
