@@ -47,7 +47,32 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   // Actions
   setAgents: (agents) => set({ agents }),
 
-  setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+  setActiveAgent: (agentId) => {
+    set({ activeAgentId: agentId });
+
+    if (agentId) {
+      const state = get();
+      // Find or create a session for this agent
+      let session = state.sessions.find((s) => s.agentId === agentId);
+      if (!session) {
+        const agent = state.agents.find((a) => a.id === agentId);
+        session = {
+          id: `session_${Date.now()}`,
+          title: agent ? `Chat with ${agent.name}` : 'New Chat',
+          agentId,
+          messages: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        set((prev) => ({
+          sessions: [...prev.sessions, session!],
+          activeSessionId: session!.id,
+        }));
+      } else {
+        set({ activeSessionId: session.id });
+      }
+    }
+  },
 
   updateAgentStatus: (agentId, status) =>
     set((state) => ({
@@ -68,10 +93,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       sessions: state.sessions.map((session) =>
         session.id === sessionId
           ? {
-              ...session,
-              messages: [...session.messages, message],
-              updatedAt: Date.now(),
-            }
+            ...session,
+            messages: [...session.messages, message],
+            updatedAt: Date.now(),
+          }
           : session
       ),
     })),
@@ -81,12 +106,12 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       sessions: state.sessions.map((session) =>
         session.id === sessionId
           ? {
-              ...session,
-              messages: session.messages.map((msg) =>
-                msg.id === messageId ? { ...msg, ...updates } : msg
-              ),
-              updatedAt: Date.now(),
-            }
+            ...session,
+            messages: session.messages.map((msg) =>
+              msg.id === messageId ? { ...msg, ...updates } : msg
+            ),
+            updatedAt: Date.now(),
+          }
           : session
       ),
     })),
@@ -134,10 +159,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         sessions: state.sessions.map((session) =>
           session.id === sessionId
             ? {
-                ...session,
-                messages: [...session.messages, message],
-                updatedAt: Date.now(),
-              }
+              ...session,
+              messages: [...session.messages, message],
+              updatedAt: Date.now(),
+            }
             : session
         ),
       }));
@@ -179,6 +204,31 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
     // Connect to WebSocket
     websocketManager.connect();
+
+    // Immediate health check
+    fetch('/health').then((res) => {
+      if (res.ok) set({ isConnected: true });
+    }).catch(() => { });
+
+    // HTTP health polling fallback — if Socket.IO fails, still show "Connected"
+    const healthPoll = setInterval(async () => {
+      try {
+        const res = await fetch('/health');
+        if (res.ok) {
+          const state = get();
+          if (!state.isConnected) {
+            set({ isConnected: true });
+          }
+        } else {
+          set({ isConnected: false });
+        }
+      } catch {
+        set({ isConnected: false });
+      }
+    }, 5000);
+
+    // Store interval for cleanup
+    (window as any).__torq_health_poll = healthPoll;
   },
 
   // WebSocket disconnection
@@ -193,6 +243,11 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
     websocketManager.disconnect();
     set({ isConnected: false });
+
+    // Clear health poll interval
+    if ((window as any).__torq_health_poll) {
+      clearInterval((window as any).__torq_health_poll);
+    }
   },
 
   // Load agents from API

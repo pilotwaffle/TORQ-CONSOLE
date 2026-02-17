@@ -70,13 +70,22 @@ class AIIntegration:
         # Query classification keywords
         self.search_keywords = [
             'search', 'find', 'latest', 'current', 'news', 'recent',
-            'what is happening', 'developments', 'updates', 'trending'
+            'what is happening', 'developments', 'updates', 'trending',
+            'price', 'cost', 'value', 'worth', 'outlook', 'forecast',
+            'prediction', 'predict', 'expect', 'projection', 'trend',
+            'will', 'going to', 'future', 'through', 'until', 'by'
         ]
 
         self.ai_keywords = [
             'ai', 'artificial intelligence', 'machine learning', 'ml',
             'deep learning', 'neural network', 'llm', 'gpt', 'chatgpt',
             'claude', 'openai', 'anthropic', 'deepseek'
+        ]
+
+        # Financial/crypto specific keywords
+        self.financial_keywords = [
+            'btc', 'bitcoin', 'eth', 'ethereum', 'crypto', 'cryptocurrency',
+            'stock', 'market', 'price', 'outlook', 'forecast', 'prediction'
         ]
 
     def classify_query(self, query: str) -> str:
@@ -90,6 +99,19 @@ class AIIntegration:
             Query classification ('content_creation', 'search', 'ai_news', 'analysis', 'general')
         """
         query_lower = query.lower().strip()
+
+        # HIGHEST PRIORITY: Check for crypto/financial prediction queries BEFORE anything else
+        # This prevents code generation for BTC/crypto outlook/forecast questions
+        is_crypto_prediction = (
+            ('btc' in query_lower or 'bitcoin' in query_lower or 'crypto' in query_lower or 'eth' in query_lower) and
+            ('outlook' in query_lower or 'forecast' in query_lower or 'predict' in query_lower or 'prediction' in query_lower or
+             'through' in query_lower or 'until' in query_lower or
+             bool(re.search(r'\d{4}', query)) and any(kw in query_lower for kw in ['price', 'value', 'market']))
+        )
+
+        if is_crypto_prediction:
+            self.logger.info(f"Crypto prediction query detected, routing to search: {query}")
+            return 'search'
 
         # HIGHEST PRIORITY: Check for content creation/generation intent
         # This must be checked BEFORE search detection to avoid false positives
@@ -109,6 +131,9 @@ class AIIntegration:
 
         # Check for search queries
         if any(keyword in query_lower for keyword in self.search_keywords):
+            # Check if it's a financial/crypto query - route to search
+            if any(financial_kw in query_lower for financial_kw in self.financial_keywords):
+                return 'search'
             # Only classify as ai_news if there's no explicit search intent and it's AI-related
             if any(ai_keyword in query_lower for ai_keyword in self.ai_keywords):
                 # If it contains specific search terms like "search", "find", prioritize search
@@ -373,14 +398,49 @@ For complex queries, I recommend using the full TORQ Console interface or connec
         try:
             self.logger.info(f"Processing general query: {query}")
 
+            # CRITICAL: Check for prediction/outlook queries that should NOT generate code
+            query_lower = query.lower()
+
+            # Check for keywords that indicate a prediction/forecast request
+            is_prediction_query = (
+                'outlook' in query_lower or
+                'forecast' in query_lower or
+                'predict' in query_lower or
+                'prediction' in query_lower or
+                'expect' in query_lower or
+                ('will' in query_lower and ('price' in query_lower or 'btc' in query_lower or 'bitcoin' in query_lower)) or
+                ('through' in query_lower and len(query_lower.split()) < 10) or
+                ('until' in query_lower and len(query_lower.split()) < 10) or
+                (bool(re.search(r'\d{4}', query)) and ('btc' in query_lower or 'bitcoin' in query_lower or 'price' in query_lower))
+            )
+
+            # If this is a prediction query, route to search instead of Claude
+            if is_prediction_query:
+                self.logger.info(f"Detected prediction query, routing to search: {query}")
+                # Use search query handler instead
+                return await self._handle_search_query(query, context)
+
             if self.llm_manager:
                 # Use Claude for general queries (faster response time)
+                # Add system prompt to ensure conversational responses
+                system_prompt = """You are Prince Flowers, an AI assistant. Your role is to:
+
+1. Answer questions conversationally and helpfully
+2. Provide information and explanations when asked
+3. ONLY generate code if the user explicitly asks you to write code, build something, or create an application
+4. If asked about predictions, forecasts, or outlooks, provide a balanced analysis based on available information
+5. Never generate code as a response to questions about information, predictions, or analysis
+6. Be concise but thorough in your responses
+
+Respond to the user's question directly and conversationally."""
+
                 # Adaptive tokens for short vs long queries
                 short_keywords = ['x.com', 'post', 'tweet', 'short', 'brief', 'quick']
-                is_short = any(kw in query.lower() for kw in short_keywords)
+                is_short = any(kw in query_lower for kw in short_keywords)
                 max_tokens = 500 if is_short else 1000
 
                 response = await self.llm_manager.query('claude', query,
+                                                      system_prompt=system_prompt,
                                                       temperature=0.3,  # Reduced for faster generation
                                                       max_tokens=max_tokens)
 

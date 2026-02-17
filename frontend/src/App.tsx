@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TopNav } from '@/components/layout/TopNav';
 import { AgentSidebar } from '@/components/layout/AgentSidebar';
 import { ChatWindow } from '@/components/chat/ChatWindow';
@@ -12,7 +12,7 @@ import type { Agent, ChatSession } from '@/lib/types';
 function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  const { setAgents, addSession, setActiveSession, setWorkspace, setConnectionStatus } =
+  const { setAgents, addSession, setActiveSession, setActiveAgent, setWorkspace, setConnectionStatus } =
     useAgentStore();
 
   const hasActiveWorkflows = useCoordinationStore((state) => state.hasActiveWorkflows());
@@ -45,9 +45,19 @@ function App() {
   ]);
 
   useEffect(() => {
-    // Initialize with mock data for demo purposes
-    // This will be replaced with actual WebSocket/API integration
-    const mockAgents: Agent[] = [
+    // The agentStore already initializes WebSocket on creation (see agentStore.ts line 220-224).
+    // We ensure Prince Flowers and fallback agents are always available.
+
+    const princeFlowers: Agent = {
+      id: 'prince_flowers',
+      name: 'Prince Flowers',
+      status: 'idle',
+      type: 'orchestrator',
+      capabilities: ['AI Search', 'Web Research', 'Agent Orchestration', 'Code Generation'],
+    };
+
+    const fallbackAgents: Agent[] = [
+      princeFlowers,
       {
         id: 'agent_code',
         name: 'Code Generator',
@@ -85,38 +95,61 @@ function App() {
       },
     ];
 
-    setAgents(mockAgents);
+    // After 3 seconds, merge backend agents with fallback agents
+    // This ensures Prince Flowers is always present, even if backend doesn't return him
+    const fallbackTimer = setTimeout(() => {
+      const { agents: backendAgents } = useAgentStore.getState();
 
-    // Create initial session
-    const initialSession: ChatSession = {
-      id: 'session_1',
-      title: 'New Chat',
-      agentId: 'agent_code',
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+      // Create a map of existing agents to avoid duplicates
+      const existingAgentMap = new Map(backendAgents.map((a) => [a.id, a]));
 
-    addSession(initialSession);
-    setActiveSession(initialSession.id);
+      // Add fallback agents for any missing ones (with Prince Flowers taking precedence)
+      fallbackAgents.forEach((fallbackAgent) => {
+        if (!existingAgentMap.has(fallbackAgent.id)) {
+          existingAgentMap.set(fallbackAgent.id, fallbackAgent);
+        }
+      });
+
+      // Convert back to array, ensuring Prince Flowers is first
+      const mergedAgents = Array.from(existingAgentMap.values());
+      const princeFlowersAgent = mergedAgents.find((a) => a.id === 'prince_flowers');
+      const otherAgents = mergedAgents.filter((a) => a.id !== 'prince_flowers');
+
+      if (princeFlowersAgent) {
+        setAgents([princeFlowersAgent, ...otherAgents]);
+      } else {
+        setAgents(mergedAgents);
+      }
+    }, 3000);
+
+    // Create initial session immediately with Prince Flowers if none exists
+    const { sessions } = useAgentStore.getState();
+
+    if (sessions.length === 0) {
+      const initialSession: ChatSession = {
+        id: `session_${Date.now()}`,
+        title: 'Chat with Prince Flowers',
+        agentId: 'prince_flowers',
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      addSession(initialSession);
+      setActiveSession(initialSession.id);
+      // Set active agent to Prince Flowers
+      setActiveAgent('prince_flowers');
+    }
 
     setWorkspace({
       path: '/workspace',
       name: 'TORQ Console',
-      activeSessions: [initialSession],
+      activeSessions: [],
     });
 
-    // Simulate connection (will be replaced with actual WebSocket)
-    setTimeout(() => {
-      setConnectionStatus(true);
-    }, 500);
-
-    // TODO: Replace with actual WebSocket connection
-    // const ws = new WebSocket('ws://localhost:8899/socket.io');
-    // ws.onopen = () => setConnectionStatus(true);
-    // ws.onclose = () => setConnectionStatus(false);
-    // ws.onmessage = (event) => handleWebSocketMessage(event.data);
-  }, [setAgents, addSession, setActiveSession, setWorkspace, setConnectionStatus]);
+    return () => {
+      clearTimeout(fallbackTimer);
+    };
+  }, [setAgents, addSession, setActiveSession, setActiveAgent, setWorkspace, setConnectionStatus]);
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden">

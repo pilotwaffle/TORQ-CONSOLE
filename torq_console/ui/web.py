@@ -755,6 +755,38 @@ class WebUI:
     def _setup_chat_routes(self):
         """Setup chat management routes."""
 
+        @self.app.get("/api/agents")
+        async def list_agents():
+            """List available agents."""
+            # Return the core agents that are available
+            agents = [
+                {
+                    "id": "prince_flowers",
+                    "name": "Prince Flowers",
+                    "description": "AI orchestrator agent with web search, code generation, and multi-agent coordination",
+                    "capabilities": ["web_search", "code_generation", "research", "analysis", "agent_orchestration"],
+                    "status": "active",
+                    "metrics": {"queries_processed": 0}
+                },
+                {
+                    "id": "orchestrator",
+                    "name": "Agent Orchestrator",
+                    "description": "Multi-agent orchestration for complex workflows",
+                    "capabilities": ["agent_coordination", "workflow_management", "task_delegation"],
+                    "status": "active",
+                    "metrics": {"workflows_coordinated": 0}
+                },
+                {
+                    "id": "query_router",
+                    "name": "Query Router",
+                    "description": "Intelligent query routing to specialized agents",
+                    "capabilities": ["query_classification", "routing", "agent_selection"],
+                    "status": "active",
+                    "metrics": {"queries_routed": 0}
+                }
+            ]
+            return agents
+
         @self.app.post("/api/chat")
         async def direct_chat(request: DirectChatRequest):
             """

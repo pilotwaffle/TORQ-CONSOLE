@@ -314,6 +314,28 @@ class IntentDetector:
         start = time.perf_counter()
         threshold = threshold if threshold is not None else self.threshold
 
+        # PRIORITY 1: CRITICAL - Crypto/financial prediction queries must route to WEB_SEARCH
+        # This prevents code generation for BTC/crypto outlook/forecast questions
+        query_lower = query.lower().strip()
+        crypto_terms = ['btc', 'bitcoin', 'crypto', 'ethereum', 'eth', 'cryptocurrency']
+        prediction_terms = ['outlook', 'forecast', 'predict', 'prediction', 'future', 'through', 'until',
+                           'expect', 'projection', 'trend', 'will be', 'should be', 'price']
+
+        has_crypto = any(term in query_lower for term in crypto_terms)
+        has_prediction = any(term in query_lower for term in prediction_terms)
+
+        if has_crypto and has_prediction:
+            logger.info(f"[INTENT] Crypto prediction query detected -> WEB_SEARCH (highest priority): {query[:100]}")
+            latency_ms = (time.perf_counter() - start) * 1000
+            return IntentResult(
+                tool_name="web_search",
+                confidence=1.0,
+                latency_ms=latency_ms,
+                method="crypto_prediction_rule",
+                top_3=[("web_search", 1.0)],
+                cached=False
+            )
+
         # Ensure model is loaded
         await self._ensure_loaded()
 

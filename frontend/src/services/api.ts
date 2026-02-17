@@ -27,7 +27,7 @@ interface UpdateAgentRequest {
 class ApiService {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:8899/api') {
+  constructor(baseURL: string = '/api') {
     this.client = axios.create({
       baseURL,
       timeout: 30000,
@@ -237,8 +237,9 @@ class ApiService {
   // Health check
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await this.client.get<ApiResponse>('/health');
-      return response.data.success;
+      // Use fetch directly to hit /health endpoint (not proxied through /api)
+      const response = await fetch('/health');
+      return response.ok;
     } catch (error) {
       console.error('Health check failed:', error);
       return false;

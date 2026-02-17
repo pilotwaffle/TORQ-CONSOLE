@@ -22,7 +22,7 @@ class WebSocketManager {
   private connectionStatus: ConnectionStatus = 'disconnected';
   private isManualDisconnect = false;
 
-  constructor(private url: string = 'http://localhost:8899') {}
+  constructor(private url: string = '') { }
 
   connect(): void {
     if (this.socket?.connected) {

@@ -51,7 +51,7 @@ class ClaudeProvider(BaseLLMProvider):
 
         Args:
             prompt: The query prompt
-            **kwargs: Additional parameters (temperature, max_tokens, etc.)
+            **kwargs: Additional parameters (temperature, max_tokens, system_prompt, etc.)
 
         Returns:
             The response string
@@ -60,20 +60,27 @@ class ClaudeProvider(BaseLLMProvider):
             return "Error: Claude provider not configured (missing API key)"
 
         try:
-            # Build message
+            # Build message with optional system prompt
+            system_prompt = kwargs.get('system_prompt') or kwargs.get('system', None)
             messages = [{"role": "user", "content": prompt}]
 
             # Extract parameters
             temperature = kwargs.get('temperature', 0.7)
             max_tokens = kwargs.get('max_tokens', 4096)
-            system = kwargs.get('system')
 
             # Call Claude API
+            # Strong system prompt to prevent code generation for non-code requests
+            default_system = """You are Prince Flowers, a helpful AI assistant. CRITICAL RULES:
+1. NEVER generate code unless the user explicitly asks you to "write code", "create an app", "build", "implement", or "generate code"
+2. If asked about predictions, outlooks, forecasts, or future prices: provide a conversational analysis with caveats about uncertainty. DO NOT generate forecasting applications or code.
+3. Answer questions directly and conversationally
+4. Be helpful but concise"""
+
             response = await self.client.messages.create(
                 model=self.model,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                system=system if system else "You are Claude, a helpful AI assistant.",
+                system=system_prompt if system_prompt else default_system,
                 messages=messages
             )
 

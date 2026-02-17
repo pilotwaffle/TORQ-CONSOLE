@@ -82,8 +82,11 @@ class SelfCorrectingIntentDetector:
         """Get default intent detection patterns"""
         return {
             'research_crypto': IntentPattern(
-                keywords=['price', 'news', 'market', 'sentiment', 'analysis', 'data', 'information'],
-                context_markers=['cryptocurrency', 'crypto', 'coin', 'token', 'shib', 'bitcoin', 'ethereum'],
+                keywords=['price', 'news', 'market', 'sentiment', 'analysis', 'data', 'information',
+                         'outlook', 'forecast', 'predict', 'prediction', 'future', 'expect', 'projection',
+                         'through', 'until', 'will', 'should', 'trend'],
+                context_markers=['cryptocurrency', 'crypto', 'coin', 'token', 'shib', 'bitcoin', 'ethereum',
+                                'btc', 'eth', 'xrp', 'sol', 'ada', 'doge', 'dot'],
                 confidence=0.9,
                 success_count=0,
                 failure_count=0,
@@ -152,6 +155,24 @@ class SelfCorrectingIntentDetector:
                 confidence=1.0,
                 reasoning='Explicit web_search tool requested',
                 matched_patterns=['explicit_tool_request']
+            )
+
+        # PRIORITY 1.5: CRITICAL - Crypto/financial prediction queries must route to RESEARCH
+        # This prevents code generation for BTC/crypto outlook/forecast questions
+        crypto_terms = ['btc', 'bitcoin', 'crypto', 'ethereum', 'eth', 'cryptocurrency']
+        prediction_terms = ['outlook', 'forecast', 'predict', 'prediction', 'future', 'through', 'until',
+                           'expect', 'projection', 'trend', 'will be', 'should be']
+
+        has_crypto = any(term in query_lower for term in crypto_terms)
+        has_prediction = any(term in query_lower for term in prediction_terms)
+
+        if has_crypto and has_prediction:
+            self.logger.info(f"[INTENT] Crypto prediction query detected -> RESEARCH mode (highest priority)")
+            return IntentDecision(
+                intent_type='research',
+                confidence=1.0,
+                reasoning='Crypto/financial prediction query detected (outlook, forecast, etc.)',
+                matched_patterns=['crypto_prediction_explicit']
             )
 
         # PRIORITY 2: Explicit Prince Flowers commands

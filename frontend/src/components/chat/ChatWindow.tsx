@@ -18,7 +18,7 @@ export const ChatWindow: React.FC = () => {
     scrollToBottom();
   }, [activeSession?.messages]);
 
-  const handleSend = (message: string) => {
+  const handleSend = async (message: string) => {
     if (!activeSessionId) return;
 
     const newMessage = {
@@ -31,17 +31,41 @@ export const ChatWindow: React.FC = () => {
 
     addMessage(activeSessionId, newMessage);
 
-    // Simulate agent response (will be replaced with actual WebSocket integration)
-    setTimeout(() => {
-      const response = {
+    // Show loading indicator
+    const loadingId = `msg_loading_${Date.now()}`;
+    addMessage(activeSessionId, {
+      id: loadingId,
+      agentId: activeSession?.agentId || '',
+      type: 'text' as const,
+      content: '⏳ Thinking...',
+      timestamp: Date.now(),
+    });
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      });
+
+      const data = await res.json();
+      const responseContent = data.response || data.content || data.error || 'No response from backend.';
+
+      // Replace loading message with actual response
+      const { updateMessage } = useAgentStore.getState();
+      updateMessage(activeSessionId, loadingId, {
         id: `msg_${Date.now()}`,
-        agentId: activeSession?.agentId || '',
-        type: 'text' as const,
-        content: 'This is a simulated response. Backend integration coming soon!',
+        content: responseContent,
         timestamp: Date.now(),
-      };
-      addMessage(activeSessionId, response);
-    }, 1000);
+      });
+    } catch (err: any) {
+      const { updateMessage } = useAgentStore.getState();
+      updateMessage(activeSessionId, loadingId, {
+        id: `msg_err_${Date.now()}`,
+        content: `⚠️ Failed to reach backend: ${err.message}. Make sure the backend is running on port 8899.`,
+        timestamp: Date.now(),
+      });
+    }
   };
 
   if (!activeSession) {

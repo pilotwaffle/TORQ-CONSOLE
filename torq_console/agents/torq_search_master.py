@@ -999,14 +999,35 @@ class TORQSearchMaster:
 
     def _extract_crypto_identifier(self, query: str) -> str:
         """Extract cryptocurrency name/symbol from query"""
-        # Remove common words
+        # Common crypto symbols to check first (higher priority than word extraction)
+        crypto_symbols = {
+            'btc', 'bitcoin', 'xbt', 'eth', 'ethereum', 'ether', 'xrp', 'ripple',
+            'sol', 'solana', 'ada', 'cardano', 'doge', 'dogecoin', 'dot', 'polkadot',
+            'avax', 'avalanche', 'matic', 'polygon', 'link', 'chainlink', 'uni',
+            'uniswap', 'ltc', 'litecoin', 'bch', 'bitcoin', 'cash', 'xlm', 'stellar',
+            'algo', 'algorand', 'vet', 'vechain', 'ftm', 'fantom', 'near', 'amp',
+            'comp', 'compound', 'mkr', 'maker', 'sushi', 'yfi', 'yearn', 'aave',
+            'snx', 'synthetix', 'crv', 'curve', '1inch', 'ens', 'ethereum', 'name',
+            'service', 'usdt', 'tether', 'usdc', 'usd', 'coin', 'busd', 'binance',
+            'usd', 'dai', 'frax', 'ust', 'terrausd', 'luna', 'terra', 'atom',
+            'cosmos', 'zec', 'zcash', 'dash', 'etc', 'ethereum', 'classic', 'zec'
+        }
+
+        query_lower = query.lower()
+
+        # Check for crypto symbols first (most accurate)
+        for symbol in sorted(crypto_symbols, key=len, reverse=True):  # Check longer symbols first
+            if symbol in query_lower:
+                return symbol
+
+        # Remove action verbs and common words
         query_clean = re.sub(
-            r'\b(cryptocurrency|crypto|coin|token|news|price|market|search|for|the|a|an)\b',
+            r'\b(research|search|find|get|look|up|check|what|is|the|current|latest|price|of|for|in|about|cryptocurrency|crypto|coin|token|news|market|value|worth|show|me|tell)\b',
             '',
-            query.lower()
+            query_lower
         ).strip()
 
-        # Take first significant word
+        # Remove extra whitespace and take first word
         words = query_clean.split()
         return words[0] if words else query
 
