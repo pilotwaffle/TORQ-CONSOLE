@@ -62,6 +62,28 @@ def create_railway_app():
         # Get the FastAPI app instance
         app = web_ui.app
 
+        # === Dashboard Phase 1: Include REST API routes ===
+        # Makes GET /api/agents, POST /api/agents/{id}/chat, GET /api/status,
+        # GET/POST /api/sessions available on Vercel/Railway deployments
+        try:
+            from torq_console.api.routes import router as api_router
+            app.include_router(api_router, prefix="/api")
+            logger.info("REST API routes from torq_console.api.routes mounted at /api")
+        except ImportError as e:
+            logger.warning(f"Could not import API routes: {e}")
+        except Exception as e:
+            logger.warning(f"Could not mount API routes (may conflict with WebUI routes): {e}")
+
+        # Add CORS for dashboard frontend
+        from fastapi.middleware.cors import CORSMiddleware
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
         # Add health check endpoint for Railway
         @app.get("/health")
         async def health_check():
