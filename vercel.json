@@ -2,13 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "torq-console",
-  "buildCommand": "pip install fastapi uvicorn python-multipart pydantic jinja2 python-dotenv aiofiles httpx anthropic openai pyyaml click rich",
   "builds": [
     {
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "50mb"
+        "maxLambdaSize": "50mb",
+        "maxDuration": 60
       }
     }
   ],
@@ -26,11 +26,6 @@
       "dest": "api/index.py"
     }
   ],
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60
-    }
-  },
   "env": {
     "TORQ_CONSOLE_PRODUCTION": "true",
     "TORQ_DISABLE_LOCAL_LLM": "true",
