@@ -12,6 +12,30 @@ from anthropic import Anthropic, AsyncAnthropic
 
 from .base import BaseLLMProvider
 
+# Import typed exceptions for proper error classification
+from torq_console.generation_meta import AIResponseError, AITimeoutError, ProviderError
+
+
+def _is_policy_violation(error: Exception) -> bool:
+    """
+    Detect if an Anthropic error represents a content policy/safety violation.
+
+    These should be terminal (no fallback) to prevent circumventing safety filters.
+    """
+    error_str = str(error).lower()
+
+    policy_markers = [
+        "content policy",
+        "safety",
+        "against our policies",
+        "policy violation",
+        "inappropriate content",
+        "safety guidelines",
+        "violates content policy",
+    ]
+
+    return any(marker in error_str for marker in policy_markers)
+
 
 class ClaudeProvider(BaseLLMProvider):
     """Provider for Anthropic Claude models."""
@@ -30,7 +54,7 @@ class ClaudeProvider(BaseLLMProvider):
         if not self.api_key:
             self.api_key = os.getenv('ANTHROPIC_API_KEY')
 
-        self.model = self.config.get('model', 'claude-sonnet-4-20250514') if self.config else 'claude-sonnet-4-20250514'
+        self.model = self.config.get('model', 'claude-sonnet-4-6') if self.config else 'claude-sonnet-4-6'
         self.logger = logging.getLogger(__name__)
 
         # Initialize Anthropic client
@@ -57,7 +81,7 @@ class ClaudeProvider(BaseLLMProvider):
             The response string
         """
         if not self.is_configured():
-            return "Error: Claude provider not configured (missing API key)"
+            raise ProviderError("Claude provider not configured (missing API key)", code="401")
 
         try:
             # Build message with optional system prompt
@@ -87,9 +111,36 @@ class ClaudeProvider(BaseLLMProvider):
             # Extract text from response
             return response.content[0].text
 
+        except asyncio.TimeoutError:
+            self.logger.error("Claude query timed out")
+            raise AITimeoutError("Claude request timed out")
         except Exception as e:
-            self.logger.error(f"Claude query error: {e}")
-            return f"Error querying Claude: {str(e)}"
+            # Check for content policy violations first (terminal, no fallback)
+            if _is_policy_violation(e):
+                self.logger.error(f"Content policy violation: {e}")
+                raise AIResponseError(
+                    f"Content policy violation: {str(e)}",
+                    error_category="ai_error"
+                )
+
+            # Check for Anthropic API errors with status codes
+            if hasattr(e, 'status_code'):
+                status = e.status_code
+                if status == 429:
+                    self.logger.error(f"Claude rate limited: {e}")
+                    raise ProviderError(f"Rate limited: {str(e)}", code="429")
+                elif status >= 500:
+                    self.logger.error(f"Claude server error: {e}")
+                    raise ProviderError(f"Server error: {str(e)}", code=str(status))
+                elif status in [400, 401, 403, 404]:
+                    # 400 with policy message already handled above
+                    # 400 without policy, 401, 403, 404 are provider errors
+                    self.logger.error(f"Claude provider error: {e}")
+                    raise ProviderError(f"Provider error: {str(e)}", code=str(status))
+
+            # Generic adapter exception
+            self.logger.error(f"Claude adapter exception: {e}")
+            raise ProviderError(f"Claude adapter exception: {str(e)}")
 
     async def chat(
         self,
@@ -109,7 +160,7 @@ class ClaudeProvider(BaseLLMProvider):
             The response string
         """
         if not self.is_configured():
-            return "Error: Claude provider not configured (missing API key)"
+            raise ProviderError("Claude provider not configured (missing API key)", code="401")
 
         try:
             # Extract parameters
@@ -146,9 +197,36 @@ class ClaudeProvider(BaseLLMProvider):
             # Extract text from response
             return response.content[0].text
 
+        except asyncio.TimeoutError:
+            self.logger.error("Claude chat timed out")
+            raise AITimeoutError("Claude request timed out")
         except Exception as e:
-            self.logger.error(f"Claude chat error: {e}")
-            return f"Error in Claude chat: {str(e)}"
+            # Check for content policy violations first (terminal, no fallback)
+            if _is_policy_violation(e):
+                self.logger.error(f"Content policy violation: {e}")
+                raise AIResponseError(
+                    f"Content policy violation: {str(e)}",
+                    error_category="ai_error"
+                )
+
+            # Check for Anthropic API errors with status codes
+            if hasattr(e, 'status_code'):
+                status = e.status_code
+                if status == 429:
+                    self.logger.error(f"Claude rate limited: {e}")
+                    raise ProviderError(f"Rate limited: {str(e)}", code="429")
+                elif status >= 500:
+                    self.logger.error(f"Claude server error: {e}")
+                    raise ProviderError(f"Server error: {str(e)}", code=str(status))
+                elif status in [400, 401, 403, 404]:
+                    # 400 with policy message already handled above
+                    # 400 without policy, 401, 403, 404 are provider errors
+                    self.logger.error(f"Claude provider error: {e}")
+                    raise ProviderError(f"Provider error: {str(e)}", code=str(status))
+
+            # Generic adapter exception
+            self.logger.error(f"Claude adapter exception: {e}")
+            raise ProviderError(f"Claude adapter exception: {str(e)}")
 
     async def code_generation(
         self,

@@ -16,6 +16,32 @@ import logging
 import aiohttp
 from datetime import datetime, timedelta
 
+# Import typed exceptions for proper error classification
+from torq_console.generation_meta import AIResponseError, AITimeoutError, ProviderError
+
+
+def _is_policy_violation(error: Exception) -> bool:
+    """
+    Detect if a DeepSeek error represents a content policy/safety violation.
+
+    These should be terminal (no fallback) to prevent circumventing safety filters.
+    """
+    error_str = str(error).lower()
+
+    policy_markers = [
+        "content policy",
+        "safety",
+        "against our policies",
+        "policy violation",
+        "inappropriate content",
+        "safety guidelines",
+        "violates content policy",
+        "content moderation",
+        "safety filter",
+    ]
+
+    return any(marker in error_str for marker in policy_markers)
+
 
 class DeepSeekProvider:
     """DeepSeek API provider with OpenAI-compatible interface."""
@@ -81,18 +107,22 @@ class DeepSeekProvider:
         self,
         endpoint: str,
         data: Dict[str, Any],
-        timeout: int = 30,
-        max_retries: int = 3
+        timeout: int = 30
     ) -> Dict[str, Any]:
-        """Make an HTTP request to DeepSeek API with retries and performance monitoring."""
+        """
+        Make an HTTP request to DeepSeek API.
+
+        Note: Internal retry logic removed - fallback layer handles retries.
+        This method raises typed exceptions for proper error classification.
+        """
         import time
 
         if not self.api_key:
-            raise ValueError("DeepSeek API key not configured")
+            raise ProviderError("DeepSeek API key not configured", code="401")
 
         # Check rate limiting
         if not await self._check_rate_limit():
-            raise Exception("Rate limit exceeded. Please wait before making more requests.")
+            raise ProviderError("Rate limit exceeded", code="429")
 
         url = f"{self.base_url}{endpoint}"
         headers = {
@@ -101,45 +131,67 @@ class DeepSeekProvider:
             "User-Agent": "TORQ-CONSOLE/0.70.0"
         }
 
-        for attempt in range(max_retries):
-            try:
-                # Add timing diagnostics
-                start_time = time.time()
+        try:
+            # Add timing diagnostics
+            start_time = time.time()
 
-                # Use persistent session for connection pooling
-                session = await self._get_session()
-                async with session.post(url, json=data, headers=headers) as response:
-                    response_data = await response.json()
+            # Use persistent session for connection pooling
+            session = await self._get_session()
+            async with session.post(url, json=data, headers=headers) as response:
+                # Read response before checking status
+                response_text = await response.text()
 
-                    end_time = time.time()
-                    response_time = end_time - start_time
+                end_time = time.time()
+                response_time = end_time - start_time
 
-                    if response.status == 200:
-                        self.logger.info(f"DeepSeek API response time: {response_time:.2f}s")
-                        return response_data
-                    elif response.status == 429:
-                        # Rate limited, wait and retry with exponential backoff
-                        wait_time = 2 ** attempt
-                        self.logger.warning(f"Rate limited, waiting {wait_time}s before retry (attempt {attempt + 1}/{max_retries})")
-                        await asyncio.sleep(wait_time)
-                        continue
-                    elif response.status in [500, 502, 503, 504]:
-                        # Server error, retry
-                        wait_time = 2 ** attempt
-                        self.logger.warning(f"Server error {response.status}, retrying in {wait_time}s")
-                        await asyncio.sleep(wait_time)
-                        continue
+                if response.status == 200:
+                    response_data = json.loads(response_text)
+                    self.logger.info(f"DeepSeek API response time: {response_time:.2f}s")
+                    return response_data
+                else:
+                    # Parse error from response
+                    try:
+                        response_data = json.loads(response_text)
+                        error_msg = response_data.get('error', {}).get('message', response_text)
+                    except json.JSONDecodeError:
+                        error_msg = response_text
+
+                    # Check for content policy violations first (terminal, no fallback)
+                    if _is_policy_violation(error_msg):
+                        self.logger.error(f"Content policy violation: {error_msg}")
+                        raise AIResponseError(
+                            f"Content policy violation: {error_msg}",
+                            error_category="ai_error"
+                        )
+
+                    # Map HTTP status codes to appropriate error types
+                    if response.status == 429:
+                        self.logger.error(f"DeepSeek rate limited: {error_msg}")
+                        raise ProviderError(f"Rate limited: {error_msg}", code="429")
+                    elif response.status >= 500:
+                        self.logger.error(f"DeepSeek server error: {error_msg}")
+                        raise ProviderError(f"Server error: {error_msg}", code=str(response.status))
+                    elif response.status in [400, 401, 403, 404]:
+                        # 400 with policy already handled above
+                        # 401, 403, 404 are provider errors
+                        self.logger.error(f"DeepSeek provider error: {error_msg}")
+                        raise ProviderError(f"Provider error: {error_msg}", code=str(response.status))
                     else:
-                        # Client error, don't retry
-                        error_msg = response_data.get('error', {}).get('message', f'HTTP {response.status}')
-                        raise Exception(f"DeepSeek API error: {error_msg}")
+                        self.logger.error(f"DeepSeek API error: {error_msg}")
+                        raise ProviderError(f"API error: {error_msg}", code=str(response.status))
 
-            except aiohttp.ClientError as e:
-                if attempt == max_retries - 1:
-                    raise Exception(f"Network error: {e}")
-                await asyncio.sleep(2 ** attempt)
-
-        raise Exception(f"Failed after {max_retries} retries")
+        except asyncio.TimeoutError:
+            self.logger.error("DeepSeek request timed out")
+            raise AITimeoutError("DeepSeek request timed out")
+        except aiohttp.ClientError as e:
+            self.logger.error(f"DeepSeek network error: {e}")
+            raise ProviderError(f"Network error: {str(e)}", code="network_error")
+        except (AIResponseError, AITimeoutError, ProviderError):
+            # Re-raise our typed exceptions
+            raise
+        except Exception as e:
+            self.logger.error(f"DeepSeek adapter exception: {e}")
+            raise ProviderError(f"DeepSeek adapter exception: {str(e)}", code="adapter_error")
 
     async def complete(
         self,
@@ -200,16 +252,15 @@ class DeepSeekProvider:
                 'raw_response': response
             }
 
+        except asyncio.TimeoutError:
+            self.logger.error("DeepSeek completion timed out")
+            raise AITimeoutError("DeepSeek request timed out")
+        except (AIResponseError, AITimeoutError, ProviderError):
+            # Re-raise our typed exceptions
+            raise
         except Exception as e:
             self.logger.error(f"DeepSeek completion error: {e}")
-            # Return a graceful error response instead of raising
-            return {
-                'content': f"I apologize, but I encountered an error while processing your request: {e}",
-                'model': model,
-                'usage': {},
-                'finish_reason': 'error',
-                'error': str(e)
-            }
+            raise ProviderError(f"DeepSeek completion error: {str(e)}", code="completion_error")
 
     async def query(self, prompt: str, **kwargs) -> str:
         """
