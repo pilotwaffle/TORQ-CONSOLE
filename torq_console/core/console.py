@@ -71,6 +71,21 @@ class TorqConsole:
         ideation_mode: bool = False,
         planning_mode: bool = False
     ):
+        # Structural enforcement: TorqConfig is REQUIRED
+        # This prevents silent provider initialization failures
+        if config is None:
+            raise RuntimeError(
+                "TorqConsole must be initialized with TorqConfig. "
+                "Use: TorqConsole(config=TorqConfig()). "
+                "Passing repo_path as a string is not supported."
+            )
+
+        if not isinstance(config, TorqConfig):
+            raise RuntimeError(
+                f"TorqConsole requires TorqConfig instance, got {type(config).__name__}. "
+                "Use: TorqConsole(config=TorqConfig())."
+            )
+
         self.config = config
         self.repo_path = repo_path or Path.cwd()
         self.model = model

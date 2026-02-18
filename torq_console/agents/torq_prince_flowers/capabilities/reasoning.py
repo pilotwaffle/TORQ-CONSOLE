@@ -309,101 +309,178 @@ class ReasoningEngine:
             return {}
 
     async def _execute_research_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
-        """Execute research reasoning strategy with web search and LLM synthesis."""
-        try:
-            # Step 1: Perform web search
-            search_results = []
-            if hasattr(self.web_search_tool, 'search'):
-                try:
-                    results = await self.web_search_tool.search(query, num_results=5)
-                    search_results = results if results else []
-                except Exception as e:
-                    self.logger.warning(f"Web search failed: {e}")
+        """
+        Execute research reasoning strategy with web search and LLM synthesis.
 
-            # Step 2: Build prompt with search results
-            prompt = f"User Query: {query}\n\n"
+        Includes robust tool failure handling:
+        - Search timeout handling
+        - Empty results handling
+        - Exception handling (429, network errors, etc.)
+        - Low-quality results filtering
+        - Graceful fallback when tools fail
+        """
+        search_failed = False
+        search_failure_reason = None
+        search_results = []
 
-            if search_results:
-                prompt += "Web Search Results:\n"
-                for i, result in enumerate(search_results[:5], 1):
-                    if isinstance(result, dict):
-                        title = result.get('title', 'Unknown')
-                        snippet = result.get('snippet', result.get('body', ''))
-                        url = result.get('url', '')
-                    else:
-                        title = getattr(result, 'title', 'Unknown')
-                        snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
-                        url = getattr(result, 'url', '')
+        # Step 1: Perform web search with comprehensive error handling
+        if hasattr(self.web_search_tool, 'search'):
+            try:
+                # Attempt web search with timeout
+                import asyncio
+                results = await asyncio.wait_for(
+                    self.web_search_tool.search(query, num_results=5),
+                    timeout=15.0  # 15 second timeout
+                )
 
-                    prompt += f"{i}. {title}\n"
-                    prompt += f"   {snippet[:400]}\n"
-                    if url:
-                        prompt += f"   Source: {url}\n"
-                    prompt += "\n"
+                if results:
+                    # Filter out low-quality results (empty snippets)
+                    quality_results = []
+                    for result in results:
+                        if isinstance(result, dict):
+                            snippet = result.get('snippet', result.get('body', ''))
+                            # Only include results with meaningful content
+                            if snippet and len(snippet.strip()) > 20:
+                                quality_results.append(result)
+                        elif hasattr(result, 'snippet') and result.snippet:
+                            if len(result.snippet.strip()) > 20:
+                                quality_results.append(result)
 
-                prompt += "\nUsing the web search results above, provide a comprehensive and accurate response to the user's query.\n"
+                    search_results = quality_results
 
-            # Step 3: Call LLM if available
-            if self.llm_provider:
-                try:
-                    system_prompt = "You are Prince Flowers, an advanced AI research assistant. Provide accurate, well-researched responses based on the web search results."
+                    if not search_results:
+                        search_failed = True
+                        search_failure_reason = "All search results were low quality (empty snippets)"
 
-                    full_prompt = f"{system_prompt}\n\n{prompt}"
+                else:
+                    search_failed = True
+                    search_failure_reason = "Search returned no results"
 
-                    # Use the LLM provider's generate_response method
-                    if hasattr(self.llm_provider, 'generate_response'):
-                        response_text = await self.llm_provider.generate_response(
-                            prompt=full_prompt,
-                            max_tokens=4000
-                        )
+            except asyncio.TimeoutError:
+                search_failed = True
+                search_failure_reason = "Search timed out after 15 seconds"
+                self.logger.warning(f"Web search timeout: {query}")
 
-                        return {
-                            "response": response_text,
-                            "tools_used": ["web_search", "llm"],
-                            "confidence": 0.9
-                        }
-                except Exception as e:
-                    self.logger.warning(f"LLM generation failed: {e}")
+            except Exception as e:
+                # Categorize different error types
+                error_str = str(e).lower()
+                if '429' in error_str or 'rate' in error_str:
+                    search_failed = True
+                    search_failure_reason = "Rate limited (429)"
+                elif 'network' in error_str or 'connection' in error_str:
+                    search_failed = True
+                    search_failure_reason = "Network error"
+                elif 'timeout' in error_str:
+                    search_failed = True
+                    search_failure_reason = "Request timeout"
+                else:
+                    search_failed = True
+                    search_failure_reason = f"Search error: {type(e).__name__}"
 
-            # Fallback: Return search results directly
-            if search_results:
-                response = f"Based on web search for '{query}':\n\n"
-                for i, result in enumerate(search_results[:5], 1):
-                    if isinstance(result, dict):
-                        title = result.get('title', 'Unknown')
-                        snippet = result.get('snippet', result.get('body', ''))
-                        url = result.get('url', '')
-                    else:
-                        title = getattr(result, 'title', 'Unknown')
-                        snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
-                        url = getattr(result, 'url', '')
+                self.logger.warning(f"Web search failed: {search_failure_reason} - {e}")
+        else:
+            search_failed = True
+            search_failure_reason = "Web search tool not available"
 
-                    response += f"{i}. **{title}**\n"
-                    response += f"   {snippet[:400]}\n"
-                    if url:
-                        response += f"   Source: {url}\n"
-                    response += "\n"
+        # Step 2: Build prompt with search results or fallback
+        prompt = f"User Query: {query}\n\n"
 
-                return {
-                    "response": response,
-                    "tools_used": ["web_search"],
-                    "confidence": 0.8
-                }
+        if search_results and not search_failed:
+            # Web search succeeded - inject results
+            prompt += "Web Search Results:\n"
+            for i, result in enumerate(search_results[:5], 1):
+                if isinstance(result, dict):
+                    title = result.get('title', 'Unknown')
+                    snippet = result.get('snippet', result.get('body', ''))
+                    url = result.get('url', '')
+                else:
+                    title = getattr(result, 'title', 'Unknown')
+                    snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
+                    url = getattr(result, 'url', '')
 
-            # Final fallback
+                # Include source title and snippet
+                prompt += f"{i}. {title}\n"
+                # Cap snippet length to avoid prompt bloat
+                prompt += f"   {snippet[:400]}\n"
+                if url:
+                    prompt += f"   Source: {url}\n"
+                prompt += "\n"
+
+            prompt += "\nUsing the web search results above, provide a comprehensive and accurate response to the user's query.\n"
+
+        else:
+            # Web search failed - use fallback prompt
+            prompt += (
+                "Web search was unavailable. "
+                "Please answer using your general knowledge and clearly label any uncertainty where needed. "
+                "If you're not certain about current information (like real-time data), acknowledge that limitation.\n\n"
+                f"User Query: {query}\n\n"
+            )
+
+        # Step 3: Call LLM if available
+        if self.llm_provider:
+            try:
+                system_prompt = "You are Prince Flowers, an advanced AI research assistant. Provide accurate, well-researched responses."
+
+                full_prompt = f"{system_prompt}\n\n{prompt}"
+
+                # Use the LLM provider's generate_response method
+                if hasattr(self.llm_provider, 'generate_response'):
+                    response_text = await self.llm_provider.generate_response(
+                        prompt=full_prompt,
+                        max_tokens=4000
+                    )
+
+                    # Add web search unavailability notice if needed
+                    if search_failed:
+                        response_text += "\n\n---\n"
+                        response_text += "Note: Web search was unavailable, so this answer may be less current or complete."
+
+                    return {
+                        "response": response_text,
+                        "tools_used": ["llm"] if search_failed else ["web_search", "llm"],
+                        "confidence": 0.85 if search_failed else 0.9
+                    }
+            except Exception as e:
+                self.logger.warning(f"LLM generation failed: {e}")
+                search_failed = True
+                search_failure_reason = f"LLM error: {str(e)}"
+
+        # Fallback: Return search results directly if LLM failed
+        if search_results and not search_failed:
+            response = f"Based on web search for '{query}':\n\n"
+            for i, result in enumerate(search_results[:5], 1):
+                if isinstance(result, dict):
+                    title = result.get('title', 'Unknown')
+                    snippet = result.get('snippet', result.get('body', ''))
+                    url = result.get('url', '')
+                else:
+                    title = getattr(result, 'title', 'Unknown')
+                    snippet = getattr(result, 'snippet', getattr(result, 'body', ''))
+                    url = getattr(result, 'url', '')
+
+                response += f"{i}. **{title}**\n"
+                response += f"   {snippet[:400]}\n"
+                if url:
+                    response += f"   Source: {url}\n"
+                response += "\n"
+
             return {
-                "response": f"I processed your query: {query}. However, I couldn't access web search or LLM services. Please check your API configuration.",
-                "tools_used": [],
-                "confidence": 0.3
+                "response": response,
+                "tools_used": ["web_search"],
+                "confidence": 0.8
             }
 
-        except Exception as e:
-            self.logger.error(f"Research reasoning failed: {e}")
-            return {
-                "response": f"I encountered an error while researching: {str(e)}",
-                "tools_used": [],
-                "confidence": 0.1
-            }
+        # Final fallback when both search and LLM fail
+        error_msg = f"I processed your query: '{query}'"
+        if search_failure_reason:
+            error_msg += f"\n\nHowever, I couldn't access web search ({search_failure_reason})."
+
+        return {
+            "response": error_msg + " Please check your API configuration.",
+            "tools_used": [],
+            "confidence": 0.3
+        }
 
     async def _execute_direct_reasoning(self, query: str, analysis: Dict, trajectory: ReasoningTrajectory, context: Dict) -> Dict[str, Any]:
         """Execute direct reasoning strategy with LLM."""

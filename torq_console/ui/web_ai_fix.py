@@ -11,6 +11,29 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pathlib import Path
 
+# Import GenerationMeta for consistent metadata tracking
+from torq_console.generation_meta import GenerationMeta, GenerationResult, ExecutionMode, create_error_meta, estimate_cost
+
+
+# Custom exceptions for error categorization
+class AIResponseError(Exception):
+    """Base exception for AI response errors."""
+    def __init__(self, message: str, error_category: str = "ai_error"):
+        self.error_category = error_category
+        super().__init__(message)
+
+
+class AITimeoutError(AIResponseError):
+    """Exception raised when AI request times out."""
+    def __init__(self, message: str):
+        super().__init__(message, error_category="timeout")
+
+
+class ProviderError(AIResponseError):
+    """Exception raised when provider fails."""
+    def __init__(self, message: str):
+        super().__init__(message, error_category="provider_error")
+
 # Import the self-correcting intent detector
 try:
     from .intent_detector import get_intent_detector
@@ -124,7 +147,8 @@ class WebUIAIFixes:
 
         except Exception as e:
             self.logger.error(f"Error generating AI response: {e}")
-            return f"I apologize, but I encountered an error processing your request: {str(e)}. Please try again."
+            # Raise exception instead of returning string so direct_chat_fixed can create error metadata
+            raise AIResponseError(f"Error processing AI request: {str(e)}")
 
     @staticmethod
     async def _handle_enhanced_ai_query_fixed(self, query: str, context_matches: Optional[List] = None) -> str:
@@ -173,14 +197,16 @@ class WebUIAIFixes:
 
                 except asyncio.TimeoutError:
                     self.logger.error(f"[TIMEOUT] AI integration query exceeded 180s: {query[:100]}")
-                    return "I apologize, but your search query took too long to process (>3 minutes). Please try a more specific query."
+                    # Raise timeout exception so direct_chat_fixed can create proper error metadata
+                    raise AITimeoutError("AI integration query exceeded 180s (>3 minutes)")
 
             else:
                 return await WebUIAIFixes._handle_basic_query_fixed(self, query, context_matches)
 
         except Exception as e:
             self.logger.error(f"Error in enhanced AI query handling: {e}")
-            return f"I encountered an error processing your query: {str(e)}. Please try again."
+            # Raise exception instead of returning string for proper error metadata
+            raise AIResponseError(f"Enhanced AI query failed: {str(e)}")
 
     @staticmethod
     async def _handle_prince_command_fixed(self, command: str, context_matches: Optional[List] = None) -> str:
@@ -351,7 +377,8 @@ class WebUIAIFixes:
             self.logger.error(f"[PRINCE ROUTING] [X][X][X] CRITICAL ERROR in Prince command handling: {e}")
             import traceback
             self.logger.error(f"[PRINCE ROUTING] Traceback: {traceback.format_exc()}")
-            return f"Error processing Prince Flowers command: {str(e)}"
+            # Raise exception instead of returning string for proper error metadata
+            raise ProviderError(f"Prince Flowers command failed: {str(e)}")
 
     @staticmethod
     async def _handle_basic_query_fixed(self, query: str, context_matches: Optional[List] = None) -> str:
@@ -475,7 +502,8 @@ I apologize for the inconvenience!"""
 
         except Exception as e:
             self.logger.error(f"Error in basic query handling: {e}")
-            return f"I encountered an error processing your build request: {str(e)}. Please check the server logs."
+            # Raise exception instead of returning string for proper error metadata
+            raise ProviderError(f"Basic query handler failed: {str(e)}")
 
     @staticmethod
     async def direct_chat_fixed(self, request) -> Dict[str, Any]:
@@ -488,44 +516,166 @@ I apologize for the inconvenience!"""
         try:
             self.logger.info(f"Direct chat request: {request.message}")
 
+            # Track timing and provider for metadata
+            start_time = datetime.now()
+            tools_used = getattr(request, 'tools', None) or []
+
             # Route all queries through the enhanced AI system WITH TIMEOUT
             # Pass the tools parameter to respect user's tool selection
             try:
                 response_content = await asyncio.wait_for(
                     WebUIAIFixes._generate_ai_response_fixed(
-                        self, request.message, None, tools=getattr(request, 'tools', None)
+                        self, request.message, None, tools=tools_used
                     ),
                     timeout=360.0  # 360-second timeout for entire request chain (6 minutes for complex queries)
                 )
             except asyncio.TimeoutError:
                 self.logger.error(f"[TIMEOUT] Request exceeded 360s: {request.message[:100]}")
-                return {
-                    "success": False,
-                    "error": "Request timeout",
-                    "response": "I apologize, but your request took too long to process (>6 minutes). This might be due to:\n\n"
-                               "1. Extremely complex queries requiring extensive processing\n2. LLM API service delays\n3. Network connectivity issues\n\n"
-                               "Please try:\n- Simplifying your query\n- Breaking it into smaller parts\n- Trying again in a moment",
-                    "timestamp": datetime.now().isoformat(),
-                    "timeout": True
-                }
 
-            return {
-                "success": True,
-                "response": response_content,
-                "agent": "TORQ Console Enhanced AI",
-                "timestamp": datetime.now().isoformat(),
-                "enhanced_mode": hasattr(self.console, 'ai_integration') and
-                                getattr(self.console.ai_integration, 'enhanced_mode', False)
-            }
+                # Create timeout metadata
+                end_time = datetime.now()
+                latency_ms = int((end_time - start_time).total_seconds() * 1000)
+
+                meta = create_error_meta(
+                    error="Request timeout (>6 minutes)",
+                    error_category="timeout",
+                    latency_ms=latency_ms,
+                )
+
+                result = GenerationResult(
+                    response="I apologize, but your request took too long to process (>6 minutes). This might be due to:\n\n"
+                           "1. Extremely complex queries requiring extensive processing\n2. LLM API service delays\n3. Network connectivity issues\n\n"
+                           "Please try:\n- Simplifying your query\n- Breaking it into smaller parts\n- Trying again in a moment",
+                    meta=meta,
+                    success=False
+                )
+
+                return result.to_api_response()
+
+            # Calculate request metadata
+            end_time = datetime.now()
+            latency_ms = int((end_time - start_time).total_seconds() * 1000)
+
+            # Determine provider from console
+            provider = "unknown"
+            model = "unknown"
+            if hasattr(self.console, 'llm_manager') and self.console.llm_manager:
+                # Try to determine which provider was used
+                if hasattr(self.console.llm_manager, 'default_provider'):
+                    provider = self.console.llm_manager.default_provider
+                # Get model if available
+                prov = self.console.llm_manager.get_provider(provider) if provider != "unknown" else None
+                if prov and hasattr(prov, 'model'):
+                    model = prov.model
+
+            # Create structured metadata using GenerationMeta dataclass
+            # Determine execution mode based on tools
+            mode = ExecutionMode.RESEARCH if tools_used else ExecutionMode.DIRECT
+
+            meta = GenerationMeta(
+                provider=provider,
+                model=model,
+                mode=mode,
+                latency_ms=latency_ms,
+                timestamp=start_time.isoformat(),
+                tools_used=tools_used,
+                tool_results=len(tools_used),
+            )
+
+            # Return using GenerationResult for consistent API responses
+            result = GenerationResult(
+                response=response_content,
+                meta=meta,
+                success=True
+            )
+
+            # Convert to API response format (includes all expected keys)
+            return result.to_api_response()
+
+        # Custom exception handling with proper error categorization
+        except AITimeoutError as e:
+            self.logger.error(f"AI timeout error: {e}")
+
+            # Create timeout metadata
+            end_time = datetime.now()
+            latency_ms = int((end_time - start_time).total_seconds() * 1000)
+
+            meta = create_error_meta(
+                error=str(e),
+                error_category="timeout",
+                latency_ms=latency_ms,
+            )
+
+            result = GenerationResult(
+                response=f"I apologize, but your request took too long to process: {str(e)}. Please try a simpler query or try again.",
+                meta=meta,
+                success=False
+            )
+
+            return result.to_api_response()
+
+        except ProviderError as e:
+            self.logger.error(f"Provider error: {e}")
+
+            # Create provider error metadata
+            end_time = datetime.now()
+            latency_ms = int((end_time - start_time).total_seconds() * 1000)
+
+            meta = create_error_meta(
+                error=str(e),
+                error_category="provider_error",
+                latency_ms=latency_ms,
+            )
+
+            result = GenerationResult(
+                response=f"I apologize, but the AI provider encountered an error: {str(e)}. Please try again.",
+                meta=meta,
+                success=False
+            )
+
+            return result.to_api_response()
+
+        except AIResponseError as e:
+            self.logger.error(f"AI response error: {e}")
+
+            # Create AI error metadata with custom category
+            end_time = datetime.now()
+            latency_ms = int((end_time - start_time).total_seconds() * 1000)
+
+            meta = create_error_meta(
+                error=str(e),
+                error_category=getattr(e, 'error_category', 'ai_error'),
+                latency_ms=latency_ms,
+            )
+
+            result = GenerationResult(
+                response=f"I apologize, but I encountered an error processing your request: {str(e)}. Please try again.",
+                meta=meta,
+                success=False
+            )
+
+            return result.to_api_response()
 
         except Exception as e:
             self.logger.error(f"Direct chat error: {e}")
-            return {
-                "success": False,
-                "error": f"Error processing your request: {str(e)}",
-                "response": f"I apologize, but I encountered an error processing your request: {str(e)}. Please try again.",
-                "timestamp": datetime.now().isoformat()
-            }
+
+            # Create generic error metadata
+            end_time = datetime.now()
+            latency_ms = int((end_time - start_time).total_seconds() * 1000)
+
+            meta = create_error_meta(
+                error=str(e),
+                error_category="exception",
+                latency_ms=latency_ms,
+            )
+
+            result = GenerationResult(
+                response=f"I apologize, but I encountered an error processing your request: {str(e)}. Please try again.",
+                meta=meta,
+                success=False
+            )
+
+            return result.to_api_response()
 
 
 # Monkey patch method to apply fixes
@@ -541,6 +691,9 @@ def apply_web_ai_fixes(web_ui_instance):
     web_ui_instance._handle_enhanced_ai_query = WebUIAIFixes._handle_enhanced_ai_query_fixed.__get__(web_ui_instance)
     web_ui_instance._handle_prince_command = WebUIAIFixes._handle_prince_command_fixed.__get__(web_ui_instance)
     web_ui_instance._handle_general_query = WebUIAIFixes._handle_basic_query_fixed.__get__(web_ui_instance)
+
+    # Add the fixed endpoint handler with metadata
+    web_ui_instance._direct_chat_with_meta = WebUIAIFixes.direct_chat_fixed.__get__(web_ui_instance)
 
     logging.getLogger(__name__).info("Applied AI integration fixes to WebUI instance")
 
