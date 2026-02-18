@@ -107,9 +107,9 @@ claude_websearch_real.py
 # Landing page (separate deployment)
 landing-page/
 
-# UI files (if not needed for API)
+# UI files (keep frontend/ — needed for Vite build)
 ui/
-frontend/
+# frontend/ — DO NOT ignore, Vercel needs this to build the Vite app
 
 # Policies and configs not needed in production
 policies/
