@@ -19,6 +19,7 @@ Design Principles:
 from __future__ import annotations
 
 import time
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Literal
@@ -194,15 +195,17 @@ class ProviderFallbackExecutor:
         )
     """
 
-    def __init__(self, llm_manager):
+    def __init__(self, llm_manager, chain_config: Optional[ProviderChainConfig] = None):
         """
         Initialize fallback executor.
 
         Args:
             llm_manager: LLMManager instance with get_provider() method
+            chain_config: Optional provider chain configuration
         """
         self.llm_manager = llm_manager
-        self.chain_config = ProviderChainConfig()
+        self.chain_config = chain_config or ProviderChainConfig()
+        self.logger = logging.getLogger(__name__)
 
     def should_retry(self, error_category: Optional[ErrorCategory]) -> bool:
         """
@@ -236,7 +239,7 @@ class ProviderFallbackExecutor:
             ErrorCategory.EXCEPTION,
         ]
 
-    def generate_with_fallback(
+    async def generate_with_fallback(
         self,
         prompt: str,
         mode: ExecutionMode,
@@ -300,8 +303,8 @@ class ProviderFallbackExecutor:
                 # IMPORTANT: Never use the parameter `prompt` here - it must remain immutable
                 current_prompt = base_prompt
 
-                # Generate response
-                response = provider.generate_response(
+                # Generate response (async call)
+                response = await provider.generate_response(
                     prompt=current_prompt,  # Always use fresh copy from base_prompt
                     timeout=timeout,
                 )

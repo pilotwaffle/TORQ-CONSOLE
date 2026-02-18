@@ -7,6 +7,7 @@ to the appropriate provider based on the request type and available models.
 
 import os
 import asyncio
+import time
 from typing import Dict, List, Any, Optional, Union
 import logging
 
@@ -25,6 +26,10 @@ except (ImportError, RuntimeError) as e:
 
 # Session 3: Semantic Search Integration
 from torq_console.indexer.semantic_search import SemanticSearch
+
+# Provider Fallback Integration
+from torq_console.generation_meta import GenerationMeta, ExecutionMode, AIResponseError, AITimeoutError, ProviderError
+from torq_console.llm.provider_fallback import ProviderFallbackExecutor, ProviderChainConfig
 
 
 class LLMManager:
@@ -56,6 +61,27 @@ class LLMManager:
         # Session 3: Initialize codebase indexer (optional)
         self.semantic_search = None
         self._init_codebase_indexer()
+
+        # Provider Fallback System
+        self.fallback_enabled = os.getenv("TORQ_FALLBACK_ENABLED", "false").lower() == "true"
+        if self.fallback_enabled:
+            # Load provider chains from environment or use defaults
+            direct_chain = os.getenv("TORQ_DIRECT_CHAIN", "deepseek,claude,ollama").split(",")
+            research_chain = os.getenv("TORQ_RESEARCH_CHAIN", "claude,deepseek,ollama").split(",")
+            code_chain = os.getenv("TORQ_CODE_CHAIN", "claude,deepseek").split(",")
+
+            chain_config = ProviderChainConfig(
+                direct_chain=direct_chain,
+                research_chain=research_chain,
+                code_generation_chain=code_chain,
+            )
+            self.fallback_executor = ProviderFallbackExecutor(self, chain_config)
+            self.logger.info("Provider fallback enabled with chains: direct={}, research={}, code={}".format(
+                direct_chain, research_chain, code_chain
+            ))
+        else:
+            self.fallback_executor = None
+            self.logger.info("Provider fallback disabled (single-provider mode)")
 
         # Provider aliases for backward compatibility
         self.provider_aliases = {
@@ -660,3 +686,140 @@ Please provide:
             raise ValueError("No LLM providers available")
 
         return await self.chat(provider_name=provider_name, messages=messages, **kwargs)
+
+    async def generate_response(
+        self,
+        prompt: str,
+        provider: Optional[str] = None,
+        mode: ExecutionMode = ExecutionMode.DIRECT,
+        tools: Optional[List[str]] = None,
+        timeout: int = 60,
+        use_fallback: bool = True,
+    ) -> tuple[str, GenerationMeta]:
+        """
+        Generate response using LLM with optional provider fallback.
+
+        This is the main entry point for AI generation with automatic fallback support.
+
+        Args:
+            prompt: The user's prompt
+            provider: Specific provider to use (skips fallback if specified)
+            mode: Execution mode (DIRECT, RESEARCH, CODE_GENERATION)
+            tools: List of tools to use
+            timeout: Request timeout in seconds
+            use_fallback: Whether to use fallback chain (default: True)
+
+        Returns:
+            tuple: (response_text, generation_metadata)
+
+        Raises:
+            ProviderError: All providers failed (if fallback enabled)
+            AIResponseError: Non-retryable error
+        """
+        meta = GenerationMeta(
+            mode=mode,
+            tools_used=tools or [],
+        )
+
+        # If specific provider requested, use it directly (no fallback)
+        if provider is not None or not use_fallback or not self.fallback_enabled:
+            return await self._generate_single_provider(
+                prompt=prompt,
+                provider=provider or self.default_provider,
+                meta=meta,
+                timeout=timeout,
+            )
+
+        # Use fallback chain
+        try:
+            response_text = await self.fallback_executor.generate_with_fallback(
+                prompt=prompt,
+                mode=mode,
+                tools=tools or [],
+                meta=meta,
+                timeout=timeout,
+            )
+
+            # Set fallback_reason from attempt history
+            if meta.fallback_used and len(meta.provider_attempts) > 0:
+                first_attempt = meta.provider_attempts[0]
+                error_cat = first_attempt.get("error_category")
+                error_code = first_attempt.get("error_code")
+                if error_cat and error_code:
+                    meta.fallback_reason = f"{error_cat}:{error_code}"
+                elif error_cat:
+                    meta.fallback_reason = error_cat
+
+            return response_text, meta
+
+        except (AITimeoutError, ProviderError, AIResponseError) as e:
+            # All providers failed - return error response with metadata
+            meta.error = str(e)
+            meta.error_category = getattr(e, 'error_category', 'exception')
+
+            if meta.fallback_used and len(meta.provider_attempts) > 0:
+                first_attempt = meta.provider_attempts[0]
+                error_cat = first_attempt.get("error_category")
+                error_code = first_attempt.get("error_code")
+                if error_cat and error_code:
+                    meta.fallback_reason = f"{error_cat}:{error_code}"
+                elif error_cat:
+                    meta.fallback_reason = error_cat
+
+            error_response = self._create_error_response(e)
+            return error_response, meta
+
+    async def _generate_single_provider(
+        self,
+        prompt: str,
+        provider: str,
+        meta: GenerationMeta,
+        timeout: int = 60,
+    ) -> tuple[str, GenerationMeta]:
+        """
+        Generate response using a single provider (no fallback).
+
+        This is the legacy code path - unchanged.
+
+        Args:
+            prompt: The user's prompt
+            provider: Provider name to use
+            meta: GenerationMeta object to populate
+            timeout: Request timeout in seconds
+
+        Returns:
+            tuple: (response_text, generation_metadata)
+        """
+        provider_instance = self.get_provider(provider)
+        if provider_instance is None:
+            raise ProviderError(f"Provider '{provider}' not found")
+
+        t0 = time.time()
+        response_text = await provider_instance.generate_response(
+            prompt=prompt,
+            timeout=timeout,
+        )
+        latency_ms = int((time.time() - t0) * 1000)
+
+        meta.provider = provider
+        meta.model = getattr(provider_instance, 'model', 'unknown')
+        meta.latency_ms = latency_ms
+
+        return response_text, meta
+
+    def _create_error_response(self, error: Exception) -> str:
+        """
+        Create a user-friendly error response.
+
+        Args:
+            error: The exception that occurred
+
+        Returns:
+            User-friendly error message
+        """
+        if isinstance(error, AITimeoutError):
+            return "I apologize, but your request timed out. Please try a simpler query or try again."
+        elif isinstance(error, ProviderError):
+            return f"I apologize, but the AI service is currently unavailable: {str(error)}. Please try again."
+        else:
+            return f"I apologize, but I encountered an error: {str(error)}. Please try again."
