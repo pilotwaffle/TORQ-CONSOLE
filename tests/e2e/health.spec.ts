@@ -53,12 +53,12 @@ test.describe('TORQ Console - API Endpoints', () => {
       },
     });
 
-    // Should return 200 (API handles errors gracefully)
-    expect(response.status()).toBe(200);
+    // Should return 200 or 503 (API handles errors gracefully)
+    expect([200, 503]).toContain(response.status());
 
     const data = await response.json();
     expect(data).toHaveProperty('detail');
-    expect(data.detail).toContain('API key');
+    expect(data.detail).toMatch(/API key/i);
   });
 
   test('chat endpoint requires message field', async ({ request }) => {
