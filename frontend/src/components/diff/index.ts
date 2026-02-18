@@ -4,11 +4,11 @@
  * Production-ready diff viewing components using Monaco editor with TORQ styling.
  */
 
-export { DiffViewer } from './DiffViewer';
-export type { DiffViewerProps } from './DiffViewer';
+export { DiffViewer } from './DiffViewer.tsx';
+export type { DiffViewerProps } from './DiffViewer.tsx';
 
-export { DiffStats, CompactDiffStats, DiffStatsList } from './DiffStats';
-export type { DiffStatsProps, DiffFileStats } from './DiffStats';
+export { DiffStats, CompactDiffStats, DiffStatsList } from './DiffStats.tsx';
+export type { DiffStatsProps, DiffFileStats } from './DiffStats.tsx';
 
-export { DiffMessage, InlineDiffMessage } from '../chat/DiffMessage';
-export type { DiffMessageProps } from '../chat/DiffMessage';
+export { DiffMessage, InlineDiffMessage } from '../chat/DiffMessage.tsx';
+export type { DiffMessageProps } from '../chat/DiffMessage.tsx';
