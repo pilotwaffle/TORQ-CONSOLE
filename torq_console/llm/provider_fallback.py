@@ -152,16 +152,16 @@ class ProviderChainConfig:
     """
 
     # Direct mode: fast + cheap first (for quick answers)
-    direct_chain: List[str] = field(default_factory=lambda: ["deepseek", "openai", "claude", "ollama"])
+    direct_chain: List[str] = field(default_factory=lambda: ["deepseek", "claude", "ollama"])
 
     # Research mode: quality first (for web search + synthesis)
-    research_chain: List[str] = field(default_factory=lambda: ["claude", "openai", "deepseek", "ollama"])
+    research_chain: List[str] = field(default_factory=lambda: ["claude", "deepseek", "ollama"])
 
     # Code generation: reliability first
-    code_generation_chain: List[str] = field(default_factory=lambda: ["claude", "openai", "deepseek"])
+    code_generation_chain: List[str] = field(default_factory=lambda: ["claude", "deepseek"])
 
     # Default chain (fallback if mode not specified)
-    default_chain: List[str] = field(default_factory=lambda: ["deepseek", "openai", "claude"])
+    default_chain: List[str] = field(default_factory=lambda: ["deepseek", "claude"])
 
     def get_chain_for_mode(self, mode: ExecutionMode) -> List[str]:
         """Get provider chain for a specific execution mode."""
@@ -277,9 +277,35 @@ class ProviderFallbackExecutor:
         # Get provider chain for this mode
         provider_chain = self.chain_config.get_chain_for_mode(mode)
 
-        # Initialize attempt tracking
+        # Initialize attempt tracking (before sanitization so missing providers are recorded)
         meta.provider_attempts = []  # type: ignore
         last_error = None
+
+        # Sanitize provider chain: drop providers that are not registered
+        sanitized_chain = []
+        for name in provider_chain:
+            try:
+                provider = self.llm_manager.get_provider(name)
+                if provider is not None:
+                    sanitized_chain.append(name)
+                else:
+                    # Record attempt as missing provider (observable), then skip
+                    attempt = ProviderAttempt(provider=name)
+                    attempt.status = AttemptStatus.FAILED
+                    attempt.error_category = ErrorCategory.PROVIDER_ERROR
+                    attempt.error_code = "provider_not_found"
+                    meta.provider_attempts.append(attempt.to_dict())  # type: ignore
+                    self.logger.warning(f"Provider '{name}' not found in manager, skipping")
+            except Exception as e:
+                # Record attempt as missing provider (observable), then skip
+                attempt = ProviderAttempt(provider=name)
+                attempt.status = AttemptStatus.FAILED
+                attempt.error_category = ErrorCategory.PROVIDER_ERROR
+                attempt.error_code = "provider_not_found"
+                meta.provider_attempts.append(attempt.to_dict())  # type: ignore
+                self.logger.warning(f"Provider '{name}' not accessible, skipping: {e}")
+
+        provider_chain = sanitized_chain
 
         # Single pass through provider chain
         for provider_name in provider_chain:

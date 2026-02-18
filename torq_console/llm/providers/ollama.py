@@ -17,6 +17,29 @@ import logging
 import aiohttp
 from datetime import datetime
 
+# Import typed exceptions for proper error classification
+from torq_console.generation_meta import AIResponseError, AITimeoutError, ProviderError
+
+
+def _is_policy_violation(msg: str) -> bool:
+    """
+    Detect if an error message represents a content policy/safety violation.
+
+    These should be terminal (no fallback) to prevent circumventing safety filters.
+    This is primarily for Ollama instances running guard models or middleware.
+    """
+    s = (msg or "").lower()
+    markers = [
+        "content policy",
+        "safety",
+        "violates",
+        "policy violation",
+        "against our policies",
+        "safety guidelines",
+        "inappropriate content"
+    ]
+    return any(m in s for m in markers)
+
 
 class OllamaProvider:
     """Ollama local LLM provider with OpenAI-compatible interface."""
@@ -86,12 +109,20 @@ class OllamaProvider:
                     return response_data
                 else:
                     error_msg = response_data.get('error', f'HTTP {response.status}')
-                    raise Exception(f"Ollama API error: {error_msg}")
+                    raise ProviderError(f"Ollama API error: {error_msg}", code=str(response.status))
 
+        except asyncio.TimeoutError as e:
+            self.logger.error(f"Ollama request timed out: {e}")
+            raise AITimeoutError("Ollama request timed out") from e
         except aiohttp.ClientError as e:
-            raise Exception(f"Network error: {e}")
+            self.logger.error(f"Ollama network error: {e}")
+            raise ProviderError(f"Ollama network error: {e}", code="network_error") from e
+        except (AIResponseError, AITimeoutError, ProviderError):
+            # Re-raise our typed exceptions
+            raise
         except Exception as e:
-            raise Exception(f"Ollama request failed: {e}")
+            self.logger.error(f"Ollama adapter exception: {e}")
+            raise ProviderError(f"Ollama adapter exception: {e}", code="adapter_error") from e
 
     async def complete(
         self,
@@ -162,16 +193,26 @@ class OllamaProvider:
                 'raw_response': response
             }
 
+        except asyncio.TimeoutError as e:
+            self.logger.error(f"Ollama completion timeout: {e}")
+            raise AITimeoutError("Ollama completion timed out") from e
         except Exception as e:
-            self.logger.error(f"Ollama completion error: {e}")
-            # Return a graceful error response instead of raising
-            return {
-                'content': f"I apologize, but I encountered an error while processing your request: {e}",
-                'model': model,
-                'usage': {},
-                'finish_reason': 'error',
-                'error': str(e)
-            }
+            message = str(e) or "Unknown Ollama error"
+
+            # If you ever get policy blocks from an upstream guard, make them terminal
+            if _is_policy_violation(message):
+                self.logger.error(f"Ollama policy violation: {message}")
+                raise AIResponseError(
+                    f"Ollama content policy violation: {message}",
+                    error_category="ai_error"
+                ) from e
+
+            # Otherwise treat as provider-side failure
+            self.logger.error(f"Ollama completion error: {message}")
+            raise ProviderError(
+                f"Ollama provider error: {message}",
+                code="ollama_error"
+            ) from e
 
     def _convert_messages_to_prompt(self, messages: List[Dict[str, str]]) -> str:
         """Convert OpenAI-style messages to a single prompt for Ollama."""

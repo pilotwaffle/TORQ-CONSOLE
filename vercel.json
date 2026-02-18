@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "name": "torq-console",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -9,10 +12,12 @@
     {
       "source": "/health",
       "destination": "/api/index.py"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/"
     }
-  ]
+  ],
+  "env": {
+    "TORQ_CONSOLE_PRODUCTION": "true",
+    "TORQ_DISABLE_LOCAL_LLM": "true",
+    "TORQ_DISABLE_GPU": "true",
+    "PYTHON_VERSION": "3.11"
+  }
 }
