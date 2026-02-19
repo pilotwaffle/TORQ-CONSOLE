@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { DiffEditor } from '@monaco-editor/react';
 import { ChevronLeft, ChevronRight, SplitSquareHorizontal, AlignJustify } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button } from '@/components/ui/Button.tsx';
 
 export interface DiffViewerProps {
   original: string;

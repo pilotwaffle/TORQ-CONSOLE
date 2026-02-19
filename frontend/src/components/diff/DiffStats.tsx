@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Minus, FileCode } from 'lucide-react';
-import { Badge } from '@/components/ui';
+import { Badge } from '@/components/ui/Badge.tsx';
 
 export interface DiffStatsProps {
   additions: number;

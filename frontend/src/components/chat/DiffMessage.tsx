@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Code2, FileCode } from 'lucide-react';
-import { DiffViewer, DiffStats } from '@/components/diff';
-import { Button, Badge } from '@/components/ui';
+import { DiffViewer } from '@/components/diff/DiffViewer.tsx';
+import { DiffStats } from '@/components/diff/DiffStats.tsx';
+import { Button } from '@/components/ui/Button.tsx';
+import { Badge } from '@/components/ui/Badge.tsx';
 import type { DiffBlock } from '@/lib/types';
 
 export interface DiffMessageProps {

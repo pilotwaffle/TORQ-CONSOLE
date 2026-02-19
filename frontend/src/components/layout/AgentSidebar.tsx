@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Badge, Card } from '@/components/ui';
+import { Badge } from '@/components/ui/Badge.tsx';
+import { Card } from '@/components/ui/Card.tsx';
 import { useAgentStore } from '@/stores/agentStore';
 import { AddAgentModal } from './AddAgentModal';
 import { SettingsModal } from './SettingsModal';

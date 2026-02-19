@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { DiffViewer, DiffStats, DiffStatsList } from './index';
 import { DiffMessage, InlineDiffMessage } from '../chat/DiffMessage';
 import type { DiffBlock } from '@/lib/types';
-import { Button } from '@/components/ui';
+import { Button } from '@/components/ui/Button.tsx';
 
 export const DiffExample: React.FC = () => {
   const [viewMode, setViewMode] = useState<'split' | 'unified'>('split');
