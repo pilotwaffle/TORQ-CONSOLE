@@ -41,13 +41,13 @@ evaluation_results/
 experiment_results/
 
 # Documentation (keep README)
-docs/
-*.md
+/docs/
+/*.md
 !README.md
 !VERCEL_DEPLOYMENT.md
 
 # Text files (keep requirements)
-*.txt
+/*.txt
 !requirements.txt
 !requirements-vercel.txt
 !runtime.txt
@@ -115,14 +115,14 @@ capabilities.yaml
 # Large evaluation sets
 eval_sets/
 
-# Screenshots and media
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
+# Screenshots and media (Anchored to root to allow frontend assets)
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.svg
 !torq_console_icon.png
-*.ico
+/*.ico
 
 # Root HTML files only (NOT frontend/index.html)
 /torq_landing.html

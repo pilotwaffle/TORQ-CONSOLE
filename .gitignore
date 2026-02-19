@@ -80,3 +80,5 @@ node_modules/
 # Local IDE / test artifacts
 .vs/
 test-results/
+.vercel
+.env*.local
