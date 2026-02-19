@@ -21,9 +21,34 @@ class WebSocketManager {
   private eventHandlers: WebSocketEventHandlers = {};
   private connectionStatus: ConnectionStatus = 'disconnected';
   private isManualDisconnect = false;
-  private useStreaming = false; // Phase 1 Feature Flag
+
+  // Phase 1 Feature Flag + Caching
+  private statusCache?: { ts: number; streaming: boolean };
 
   constructor(private url: string = '') { }
+
+  private async getStreamingEnabled(): Promise<boolean> {
+    const now = Date.now();
+    // Cache valid for 30 seconds
+    if (this.statusCache && now - this.statusCache.ts < 30000) {
+      return this.statusCache.streaming;
+    }
+
+    try {
+      // In Vercel, this hits /api/status.
+      // If network fails (offline), default to false (REST fallback might also fail, but safer).
+      const res = await fetch('/api/status');
+      if (res.ok) {
+        const data = await res.json();
+        const streaming = !!data.streaming_enabled;
+        this.statusCache = { ts: now, streaming };
+        return streaming;
+      }
+    } catch (e) {
+      console.warn('Failed to check streaming status:', e);
+    }
+    return false; // Default off if check fails
+  }
 
   async connect(): Promise<void> {
     if (this.socket?.connected) {
@@ -34,19 +59,10 @@ class WebSocketManager {
     // Check Vercel environment
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 
-    // Phase 1: Check if streaming is enabled on backend
-    try {
-      const statusRes = await fetch('/api/status');
-      if (statusRes.ok) {
-        const status = await statusRes.json();
-        this.useStreaming = !!status.streaming_enabled;
-        if (this.useStreaming) {
-          console.log('Phase 1: Streaming Enabled 🌊');
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to check streaming status:', e);
-    }
+    // Pre-warm cache for generic info, but don't block
+    this.getStreamingEnabled().then(enabled => {
+      if (enabled) console.log('Phase 1: Streaming Enabled 🌊');
+    });
 
     if (isVercel) {
       console.log('Running in Vercel mode: using REST/Stream fallback (WebSockets disabled)');
@@ -168,8 +184,12 @@ class WebSocketManager {
   async sendMessage(sessionId: string, content: string, agentId: string): Promise<void> {
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 
+    // Dynamically check streaming status (cached)
+    // This eliminates the race condition where connect() hasn't finished yet.
+    const streamingEnabled = await this.getStreamingEnabled();
+
     // Use streaming if enabled and on Vercel (or forced)
-    if ((isVercel || !this.socket?.connected) && this.useStreaming) {
+    if ((isVercel || !this.socket?.connected) && streamingEnabled) {
       return this.streamMessage(sessionId, content, agentId);
     }
 
@@ -193,7 +213,7 @@ class WebSocketManager {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: content,
-          mode: 'single_agent',
+          mode: 'single_agent', // Default mode
           model: 'claude-3-5-sonnet-20240620',
         }),
       });
@@ -278,7 +298,6 @@ class WebSocketManager {
             }
             if (event.meta) {
               console.log('Stream Metadata:', event.meta);
-              // Future: this.eventHandlers.onMetadata?.(event.meta);
             }
             if (event.error) {
               console.error('Stream Error:', event.error);
@@ -288,8 +307,6 @@ class WebSocketManager {
           }
         }
       }
-
-      // Final update/check
       emitUpdate(accumulatedText, true);
 
     } catch (error) {

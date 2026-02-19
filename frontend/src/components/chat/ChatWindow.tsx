@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { useAgentStore } from '@/stores/agentStore';
+import websocketManager from '@/services/websocket';
 
 export const ChatWindow: React.FC = () => {
   const { sessions, activeSessionId, agents, addMessage } = useAgentStore();
@@ -15,12 +16,14 @@ export const ChatWindow: React.FC = () => {
   };
 
   useEffect(() => {
+    // Scroll to bottom whenever messages change
     scrollToBottom();
   }, [activeSession?.messages]);
 
   const handleSend = async (message: string) => {
     if (!activeSessionId) return;
 
+    // Optimistically add user message to UI
     const newMessage = {
       id: `msg_${Date.now()}`,
       agentId: activeSession?.agentId || '',
@@ -31,38 +34,25 @@ export const ChatWindow: React.FC = () => {
 
     addMessage(activeSessionId, newMessage);
 
-    // Show loading indicator
-    const loadingId = `msg_loading_${Date.now()}`;
-    addMessage(activeSessionId, {
-      id: loadingId,
-      agentId: activeSession?.agentId || '',
-      type: 'text' as const,
-      content: '⏳ Thinking...',
-      timestamp: Date.now(),
-    });
-
+    // Delegate communication to WebSocketManager
+    // It handles:
+    // 1. Streaming vs REST selection (via feature flag)
+    // 2. Vercel fallback
+    // 3. Emitting 'message:received' events (which updates the store)
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-      });
-
-      const data = await res.json();
-      const responseContent = data.response || data.content || data.error || 'No response from backend.';
-
-      // Replace loading message with actual response
-      const { updateMessage } = useAgentStore.getState();
-      updateMessage(activeSessionId, loadingId, {
-        id: `msg_${Date.now()}`,
-        content: responseContent,
-        timestamp: Date.now(),
-      });
+      await websocketManager.sendMessage(
+        activeSessionId,
+        message,
+        activeSession?.agentId || ''
+      );
     } catch (err: any) {
-      const { updateMessage } = useAgentStore.getState();
-      updateMessage(activeSessionId, loadingId, {
+      console.error('Failed to send message:', err);
+      // Optional: Add error message to UI
+      addMessage(activeSessionId, {
         id: `msg_err_${Date.now()}`,
-        content: `⚠️ Failed to reach backend: ${err.message}. Make sure the backend is running on port 8899.`,
+        agentId: activeSession?.agentId || '',
+        type: 'text' as const,
+        content: `⚠️ Failed to send: ${err.message || 'Unknown error'}`,
         timestamp: Date.now(),
       });
     }
