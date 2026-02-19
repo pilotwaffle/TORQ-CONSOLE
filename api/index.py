@@ -112,64 +112,64 @@ async def _chat_anthropic(message: str, model: str | None = None) -> str:
     """Send a chat message via Anthropic SDK (blocking)."""
     import anthropic
 
-    client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    resp = await client.messages.create(
-        model=model or "claude-3-5-sonnet-20240620",
-        max_tokens=2048,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": message}],
-    )
-    return resp.content[0].text
+    async with anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]) as client:
+        resp = await client.messages.create(
+            model=model or "claude-3-5-sonnet-20240620",
+            max_tokens=2048,
+            system=_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": message}],
+        )
+        return resp.content[0].text
 
 
 async def _stream_anthropic(message: str, model: str | None = None):
     """Stream chat via Anthropic SDK (async generator)."""
     import anthropic
 
-    client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    async with client.messages.stream(
-        model=model or "claude-3-5-sonnet-20240620",
-        max_tokens=2048,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": message}],
-    ) as stream:
-        async for text in stream.text_stream:
-            yield text
+    async with anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]) as client:
+        async with client.messages.stream(
+            model=model or "claude-3-5-sonnet-20240620",
+            max_tokens=2048,
+            system=_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": message}],
+        ) as stream:
+            async for text in stream.text_stream:
+                yield text
 
 
 async def _chat_openai(message: str, model: str | None = None) -> str:
     """Send a chat message via OpenAI SDK (blocking)."""
     import openai
 
-    client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
-    resp = await client.chat.completions.create(
-        model=model or "gpt-4o",
-        max_tokens=2048,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": message},
-        ],
-    )
-    return resp.choices[0].message.content
+    async with openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"]) as client:
+        resp = await client.chat.completions.create(
+            model=model or "gpt-4o",
+            max_tokens=2048,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": message},
+            ],
+        )
+        return resp.choices[0].message.content
 
 
 async def _stream_openai(message: str, model: str | None = None):
     """Stream chat via OpenAI SDK (async generator)."""
     import openai
 
-    client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
-    stream = await client.chat.completions.create(
-        model=model or "gpt-4o",
-        max_tokens=2048,
-        stream=True,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": message},
-        ],
-    )
-    async for chunk in stream:
-        if chunk.choices[0].delta.content:
-            yield chunk.choices[0].delta.content
+    async with openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"]) as client:
+        stream = await client.chat.completions.create(
+            model=model or "gpt-4o",
+            max_tokens=2048,
+            stream=True,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": message},
+            ],
+        )
+        async for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
 
 async def token_stream(message: str, model: str | None = None, provider: str = "none"):
