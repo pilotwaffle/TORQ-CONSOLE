@@ -35,8 +35,6 @@ class WebSocketManager {
     }
 
     try {
-      // In Vercel, this hits /api/status.
-      // If network fails (offline), default to false (REST fallback might also fail, but safer).
       const res = await fetch('/api/status');
       if (res.ok) {
         const data = await res.json();
@@ -51,6 +49,12 @@ class WebSocketManager {
   }
 
   async connect(): Promise<void> {
+
+    // Pre-warm cache for generic info, but don't block
+    this.getStreamingEnabled().then(enabled => {
+      if (enabled) console.log('Phase 1: Streaming Enabled 🌊');
+    });
+
     if (this.socket?.connected) {
       console.warn('WebSocket already connected');
       return;
@@ -58,11 +62,6 @@ class WebSocketManager {
 
     // Check Vercel environment
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
-
-    // Pre-warm cache for generic info, but don't block
-    this.getStreamingEnabled().then(enabled => {
-      if (enabled) console.log('Phase 1: Streaming Enabled 🌊');
-    });
 
     if (isVercel) {
       console.log('Running in Vercel mode: using REST/Stream fallback (WebSockets disabled)');
@@ -184,8 +183,7 @@ class WebSocketManager {
   async sendMessage(sessionId: string, content: string, agentId: string): Promise<void> {
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 
-    // Dynamically check streaming status (cached)
-    // This eliminates the race condition where connect() hasn't finished yet.
+    // Check streaming status dynamically (cached)
     const streamingEnabled = await this.getStreamingEnabled();
 
     // Use streaming if enabled and on Vercel (or forced)
@@ -229,8 +227,9 @@ class WebSocketManager {
         agentId: data.agent_id || 'prince_flowers',
       };
 
-      this.eventHandlers.onMessage?.(responseMessage);
+      // Use onAgentResponse to trigger upsert logic in store
       this.eventHandlers.onAgentResponse?.({ sessionId, message: responseMessage });
+      this.eventHandlers.onMessage?.(responseMessage);
 
     } catch (error) {
       console.error('REST API Error:', error);
@@ -269,10 +268,10 @@ class WebSocketManager {
           timestamp: Date.now(),
           agentId: agentId || 'prince_flowers',
         };
+        // Emit via onAgentResponse for store upsert (with sessionId)
+        // This is called for EVERY token update now!
+        this.eventHandlers.onAgentResponse?.({ sessionId, message: msg });
         this.eventHandlers.onMessage?.(msg);
-        if (isFinal) {
-          this.eventHandlers.onAgentResponse?.({ sessionId, message: msg });
-        }
       };
 
       while (true) {

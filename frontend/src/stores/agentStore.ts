@@ -152,19 +152,24 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     });
 
     websocketManager.on('onAgentResponse', (data) => {
-      console.log('Agent response received:', data);
+      // console.log('Agent response received:', data); // Comment out to reduce noise
       const { sessionId, message } = data;
 
       set((state) => ({
-        sessions: state.sessions.map((session) =>
-          session.id === sessionId
-            ? {
-              ...session,
-              messages: [...session.messages, message],
-              updatedAt: Date.now(),
-            }
-            : session
-        ),
+        sessions: state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+
+          const existingMsgIndex = session.messages.findIndex(m => m.id === message.id);
+          if (existingMsgIndex >= 0) {
+            // Update existing message
+            const newMessages = [...session.messages];
+            newMessages[existingMsgIndex] = { ...newMessages[existingMsgIndex], ...message };
+            return { ...session, messages: newMessages, updatedAt: Date.now() };
+          } else {
+            // Append new message
+            return { ...session, messages: [...session.messages, message], updatedAt: Date.now() };
+          }
+        }),
       }));
     });
 
