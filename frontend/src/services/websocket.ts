@@ -21,21 +21,35 @@ class WebSocketManager {
   private eventHandlers: WebSocketEventHandlers = {};
   private connectionStatus: ConnectionStatus = 'disconnected';
   private isManualDisconnect = false;
+  private useStreaming = false; // Phase 1 Feature Flag
 
   constructor(private url: string = '') { }
 
-  connect(): void {
+  async connect(): Promise<void> {
     if (this.socket?.connected) {
       console.warn('WebSocket already connected');
       return;
     }
 
-    // Check if we are running on Vercel (or configured to use REST fallback)
-    // Vercel serverless functions do not support persistent WebSockets
+    // Check Vercel environment
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 
+    // Phase 1: Check if streaming is enabled on backend
+    try {
+      const statusRes = await fetch('/api/status');
+      if (statusRes.ok) {
+        const status = await statusRes.json();
+        this.useStreaming = !!status.streaming_enabled;
+        if (this.useStreaming) {
+          console.log('Phase 1: Streaming Enabled 🌊');
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to check streaming status:', e);
+    }
+
     if (isVercel) {
-      console.log('Running in Vercel mode: using REST fallback for chat (WebSockets disabled)');
+      console.log('Running in Vercel mode: using REST/Stream fallback (WebSockets disabled)');
       this.connectionStatus = 'connected';
       this.eventHandlers.onConnect?.();
       return;
@@ -152,58 +166,16 @@ class WebSocketManager {
   }
 
   async sendMessage(sessionId: string, content: string, agentId: string): Promise<void> {
-    // If running in Vercel mode (no socket), use REST API
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 
+    // Use streaming if enabled and on Vercel (or forced)
+    if ((isVercel || !this.socket?.connected) && this.useStreaming) {
+      return this.streamMessage(sessionId, content, agentId);
+    }
+
+    // Use REST fallback if streaming disabled
     if (isVercel || !this.socket?.connected) {
-      if (isVercel) {
-        console.log('Sending message via REST API (Vercel mode)');
-      } else {
-        // Only warn if explicitly trying to send while disconnected in non-Vercel mode
-        if (!isVercel) console.warn('WebSocket not connected, falling back to REST API');
-      }
-
-      try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: content,
-            mode: 'single_agent', // Default mode
-            model: 'claude-3-sonnet-20240229', // Default model
-            context: { sessionId, agentId }
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`API Error: ${response.status} ${errorText}`);
-        }
-
-        const data = await response.json();
-
-        const responseMessage: Message = {
-          id: `msg_${Date.now()}`,
-          role: 'assistant',
-          content: data.response,
-          timestamp: Date.now(),
-          agentId: data.agent_id || 'prince_flowers',
-        };
-
-        this.eventHandlers.onMessage?.(responseMessage);
-
-        this.eventHandlers.onAgentResponse?.({
-          sessionId,
-          message: responseMessage
-        });
-
-      } catch (error) {
-        console.error('REST API Error:', error);
-        this.eventHandlers.onError?.(error instanceof Error ? error : new Error(String(error)));
-      }
-      return;
+      return this.sendRestMessage(sessionId, content, agentId);
     }
 
     this.emit('message:send', {
@@ -212,6 +184,118 @@ class WebSocketManager {
       agentId,
       timestamp: Date.now(),
     });
+  }
+
+  private async sendRestMessage(sessionId: string, content: string, agentId: string): Promise<void> {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: content,
+          mode: 'single_agent',
+          model: 'claude-3-5-sonnet-20240620',
+        }),
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+      const data = await response.json();
+
+      const responseMessage: Message = {
+        id: `msg_${Date.now()}`,
+        role: 'assistant',
+        content: data.response,
+        timestamp: Date.now(),
+        agentId: data.agent_id || 'prince_flowers',
+      };
+
+      this.eventHandlers.onMessage?.(responseMessage);
+      this.eventHandlers.onAgentResponse?.({ sessionId, message: responseMessage });
+
+    } catch (error) {
+      console.error('REST API Error:', error);
+      this.eventHandlers.onError?.(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  private async streamMessage(sessionId: string, content: string, agentId: string): Promise<void> {
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: content,
+          mode: 'single_agent',
+          model: 'claude-3-5-sonnet-20240620',
+        }),
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulatedText = '';
+      const msgId = `msg_${Date.now()}`;
+
+      // Helper to emit update
+      const emitUpdate = (text: string, isFinal = false) => {
+        const msg: Message = {
+          id: msgId,
+          role: 'assistant',
+          content: text,
+          timestamp: Date.now(),
+          agentId: agentId || 'prince_flowers',
+        };
+        this.eventHandlers.onMessage?.(msg);
+        if (isFinal) {
+          this.eventHandlers.onAgentResponse?.({ sessionId, message: msg });
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || ''; // Keep incomplete part
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6);
+          if (jsonStr === '[DONE]') break;
+
+          try {
+            const event = JSON.parse(jsonStr);
+            if (event.token) {
+              accumulatedText += event.token;
+              emitUpdate(accumulatedText);
+            }
+            if (event.meta) {
+              console.log('Stream Metadata:', event.meta);
+              // Future: this.eventHandlers.onMetadata?.(event.meta);
+            }
+            if (event.error) {
+              console.error('Stream Error:', event.error);
+            }
+          } catch (e) {
+            console.warn('Failed to parse SSE event:', jsonStr);
+          }
+        }
+      }
+
+      // Final update/check
+      emitUpdate(accumulatedText, true);
+
+    } catch (error) {
+      console.error('Streaming Error:', error);
+      this.eventHandlers.onError?.(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   createSession(agentId: string, title?: string): void {
