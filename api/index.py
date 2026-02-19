@@ -20,8 +20,9 @@ from typing import Optional, Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
+import asyncio
 
 # ---------------------------------------------------------------------------
 # Environment
@@ -94,6 +95,9 @@ For build/implementation requests: Ask 2-3 clarifying questions first.
 
 Be concise, helpful, and accurate."""
 
+import time
+BOOT_TIME = time.time()
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -105,12 +109,12 @@ def _has_key(name: str) -> bool:
 
 
 async def _chat_anthropic(message: str, model: str | None = None) -> str:
-    """Send a chat message via Anthropic SDK."""
+    """Send a chat message via Anthropic SDK (blocking)."""
     import anthropic
 
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    resp = client.messages.create(
-        model=model or "claude-sonnet-4-20250514",
+    client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    resp = await client.messages.create(
+        model=model or "claude-3-5-sonnet-20240620",
         max_tokens=2048,
         system=_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": message}],
@@ -118,12 +122,27 @@ async def _chat_anthropic(message: str, model: str | None = None) -> str:
     return resp.content[0].text
 
 
+async def _stream_anthropic(message: str, model: str | None = None):
+    """Stream chat via Anthropic SDK (async generator)."""
+    import anthropic
+
+    client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    async with client.messages.stream(
+        model=model or "claude-3-5-sonnet-20240620",
+        max_tokens=2048,
+        system=_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": message}],
+    ) as stream:
+        async for text in stream.text_stream:
+            yield text
+
+
 async def _chat_openai(message: str, model: str | None = None) -> str:
-    """Send a chat message via OpenAI SDK."""
+    """Send a chat message via OpenAI SDK (blocking)."""
     import openai
 
-    client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-    resp = client.chat.completions.create(
+    client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    resp = await client.chat.completions.create(
         model=model or "gpt-4o",
         max_tokens=2048,
         messages=[
@@ -134,9 +153,56 @@ async def _chat_openai(message: str, model: str | None = None) -> str:
     return resp.choices[0].message.content
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+async def _stream_openai(message: str, model: str | None = None):
+    """Stream chat via OpenAI SDK (async generator)."""
+    import openai
+
+    client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    stream = await client.chat.completions.create(
+        model=model or "gpt-4o",
+        max_tokens=2048,
+        stream=True,
+        messages=[
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": message},
+        ],
+    )
+    async for chunk in stream:
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+
+
+async def token_stream(message: str, model: str | None = None, provider: str = "none"):
+    """Generator for SSE token stream."""
+    start_time = time.time()
+
+    try:
+        stream_gen = None
+        if provider == "anthropic":
+            stream_gen = _stream_anthropic(message, model)
+        elif provider == "openai":
+            stream_gen = _stream_openai(message, model)
+        
+        if stream_gen:
+            async for token in stream_gen:
+                yield f"data: {json.dumps({'token': token})}\\n\\n"
+
+        latency_ms = (time.time() - start_time) * 1000
+        cold_start_ms = (start_time - BOOT_TIME) * 1000 if (time.time() - BOOT_TIME) < 10.0 else 0
+
+        meta = {
+            "latency_ms": latency_ms,
+            "provider": provider,
+            "cold_start_ms": cold_start_ms,
+            "timestamp": _now_iso()
+        }
+        
+        yield f"data: {json.dumps({'meta': meta})}\\n\\n"
+        yield "data: [DONE]\\n\\n"
+
+    except Exception as e:
+        yield f"data: {json.dumps({'error': str(e)})}\\n\\n"
+        yield "data: [DONE]\\n\\n"
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -307,6 +373,37 @@ async def chat(req: ChatRequest):
     )
 
 
+@app.post("/api/chat/stream", response_class=StreamingResponse)
+async def chat_stream(req: ChatRequest):
+    """
+    Stream chat response (SSE) - Phase 1 Feature.
+    Enabled via TORQ_STREAMING_ENABLED env var.
+    """
+    if os.environ.get("TORQ_STREAMING_ENABLED", "false").lower() != "true":
+        raise HTTPException(status_code=400, detail="Streaming is currently disabled via feature flag.")
+
+    provider = "none"
+    if _has_key("ANTHROPIC_API_KEY"):
+        provider = "anthropic"
+    elif _has_key("OPENAI_API_KEY"):
+        provider = "openai"
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail="No API key configured.",
+        )
+
+    return StreamingResponse(
+        token_stream(req.message, req.model, provider),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Torq-Provider": provider,
+        },
+    )
+
+
 @app.get("/api/agents")
 async def list_agents():
     """List available agents."""
@@ -367,6 +464,7 @@ async def status():
         "agents_active": 1,
         "anthropic_configured": _has_key("ANTHROPIC_API_KEY"),
         "openai_configured": _has_key("OPENAI_API_KEY"),
+        "streaming_enabled": os.environ.get("TORQ_STREAMING_ENABLED", "false").lower() == "true",
         "timestamp": _now_iso(),
     }
 
