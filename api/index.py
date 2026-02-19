@@ -287,6 +287,9 @@ async def chat(req: ChatRequest):
     except HTTPException:
         raise
     except Exception as exc:
+        import traceback
+        print("CHAT_API_ERROR:", repr(exc))
+        print(traceback.format_exc())
         logger.exception("Chat error")
         raise HTTPException(status_code=500, detail=f"Chat error ({provider}): {exc}")
 

@@ -30,6 +30,17 @@ class WebSocketManager {
       return;
     }
 
+    // Check if we are running on Vercel (or configured to use REST fallback)
+    // Vercel serverless functions do not support persistent WebSockets
+    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+
+    if (isVercel) {
+      console.log('Running in Vercel mode: using REST fallback for chat (WebSockets disabled)');
+      this.connectionStatus = 'connected';
+      this.eventHandlers.onConnect?.();
+      return;
+    }
+
     this.isManualDisconnect = false;
     this.connectionStatus = 'connecting';
 
@@ -140,7 +151,61 @@ class WebSocketManager {
     this.socket.emit(event, data);
   }
 
-  sendMessage(sessionId: string, content: string, agentId: string): void {
+  async sendMessage(sessionId: string, content: string, agentId: string): Promise<void> {
+    // If running in Vercel mode (no socket), use REST API
+    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+
+    if (isVercel || !this.socket?.connected) {
+      if (isVercel) {
+        console.log('Sending message via REST API (Vercel mode)');
+      } else {
+        // Only warn if explicitly trying to send while disconnected in non-Vercel mode
+        if (!isVercel) console.warn('WebSocket not connected, falling back to REST API');
+      }
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: content,
+            mode: 'single_agent', // Default mode
+            model: 'claude-3-sonnet-20240229', // Default model
+            context: { sessionId, agentId }
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API Error: ${response.status} ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        const responseMessage: Message = {
+          id: `msg_${Date.now()}`,
+          role: 'assistant',
+          content: data.response,
+          timestamp: Date.now(),
+          agentId: data.agent_id || 'prince_flowers',
+        };
+
+        this.eventHandlers.onMessage?.(responseMessage);
+
+        this.eventHandlers.onAgentResponse?.({
+          sessionId,
+          message: responseMessage
+        });
+
+      } catch (error) {
+        console.error('REST API Error:', error);
+        this.eventHandlers.onError?.(error instanceof Error ? error : new Error(String(error)));
+      }
+      return;
+    }
+
     this.emit('message:send', {
       sessionId,
       content,
