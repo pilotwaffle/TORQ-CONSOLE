@@ -105,7 +105,7 @@ claude_websearch_real.py
 landing-page/
 
 # UI files (NOT frontend — that's needed for Vite build)
-ui/
+/ui/
 
 # Policies and configs not needed in production
 policies/
