@@ -269,9 +269,10 @@ class WebSocketManager {
           agentId: agentId || 'prince_flowers',
         };
         // Emit via onAgentResponse for store upsert (with sessionId)
-        // This is called for EVERY token update now!
         this.eventHandlers.onAgentResponse?.({ sessionId, message: msg });
-        this.eventHandlers.onMessage?.(msg);
+
+        // DO NOT emit onMessage for stream updates to avoid store append duplication!
+        // this.eventHandlers.onMessage?.(msg); 
       };
 
       while (true) {
