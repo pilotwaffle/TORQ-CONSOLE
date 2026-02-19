@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "torq-console",
-  "buildCommand": "cd frontend && npm install && npx vite build",
+  "buildCommand": "cd frontend && test -f src/components/ui/Badge.tsx && npm install && npx vite build",
   "outputDirectory": "frontend/dist",
   "framework": null,
   "installCommand": "echo 'skip root install'",

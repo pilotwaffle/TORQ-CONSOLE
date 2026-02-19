@@ -8,7 +8,7 @@ __pycache__/
 *.so
 .Python
 *.egg-info/
-build/
+/build/
 
 # Virtual environments
 venv/
