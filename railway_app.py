@@ -891,3 +891,4 @@ async def root():
 
 logger.info("Railway standalone app created successfully")
 "# trigger deploy" 
+# trigger deploy for 1.0.8
