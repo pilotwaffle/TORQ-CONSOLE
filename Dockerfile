@@ -28,4 +28,4 @@ COPY . .
 
 # Start command - Railway exposes port 8080
 ENV PORT=8080
-CMD ["python", "-m", "uvicorn", "torq_console.ui.railway_standalone:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "-m", "uvicorn", "railway_app:app", "--host", "0.0.0.0", "--port", "8080"]
