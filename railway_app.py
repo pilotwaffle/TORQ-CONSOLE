@@ -220,18 +220,23 @@ async def chat(request: ChatRequest):
 
         if supabase_url and supabase_key:
             try:
+                # Map to existing learning_events table schema
                 learning_payload = {
-                    "trace_id": trace_id,
-                    "session_id": request.session_id,
-                    "agent_name": "prince_flowers",
-                    "user_query": request.message,
-                    "agent_response": agent_response,
-                    "reward": reward,
-                    "metadata": {
+                    "event_id": trace_id,
+                    "event_type": "chat_interaction",
+                    "category": "learning",
+                    "source_agent": "prince_flowers",
+                    "source_trace_id": trace_id,
+                    "event_data": {
+                        "session_id": request.session_id,
+                        "user_query": request.message,
+                        "agent_response": agent_response,
+                        "reward": reward,
                         "duration_ms": int(duration * 1000),
                         "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
                         "backend": "railway",
-                    }
+                    },
+                    "occurred_at": datetime.utcnow().isoformat()
                 }
 
                 learning_response = await client.post(
@@ -239,7 +244,8 @@ async def chat(request: ChatRequest):
                     headers={
                         "apikey": supabase_key,
                         "Authorization": f"Bearer {supabase_key}",
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "Prefer": "return=representation",
                     },
                     json=learning_payload
                 )
@@ -248,7 +254,7 @@ async def chat(request: ChatRequest):
                     learning_recorded = True
                     logger.info(f"[{trace_id}] Learning event recorded: reward={reward:.3f}")
                 else:
-                    logger.warning(f"[{trace_id}] Learning recording failed: {learning_response.status_code}")
+                    logger.warning(f"[{trace_id}] Learning recording failed: {learning_response.status_code} {learning_response.text[:200]}")
 
             except Exception as e:
                 logger.warning(f"[{trace_id}] Learning recording failed: {e}")
@@ -377,16 +383,23 @@ async def test_learning_write():
         result["error"] = "Supabase not configured"
         return result
 
-    # Test write
+    # Test write with correct schema
     test_trace = f"test-{int(time.time() * 1000)}"
     test_payload = {
-        "trace_id": test_trace,
-        "session_id": "debug-test",
-        "agent_name": "prince_flowers",
-        "user_query": "debug test query",
-        "agent_response": "debug test response",
-        "reward": 0.5,
-        "metadata": {"test": True, "backend": "railway"}
+        "event_id": test_trace,
+        "event_type": "chat_interaction",
+        "category": "learning",
+        "source_agent": "prince_flowers",
+        "source_trace_id": test_trace,
+        "event_data": {
+            "session_id": "debug-test",
+            "user_query": "debug test query",
+            "agent_response": "debug test response",
+            "reward": 0.5,
+            "test": True,
+            "backend": "railway"
+        },
+        "occurred_at": datetime.utcnow().isoformat()
     }
 
     try:
@@ -396,7 +409,8 @@ async def test_learning_write():
                 headers={
                     "apikey": supabase_key,
                     "Authorization": f"Bearer {supabase_key}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Prefer": "return=representation",
                 },
                 json=test_payload
             )
