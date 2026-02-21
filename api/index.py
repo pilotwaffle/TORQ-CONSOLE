@@ -164,7 +164,7 @@ async def _chat_anthropic(message: str, model: str | None = None) -> str:
 
     async with anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]) as client:
         resp = await client.messages.create(
-            model=model or "claude-3-5-sonnet-20240620",
+            model=model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             max_tokens=2048,
             system=_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": message}],
@@ -178,7 +178,7 @@ async def _stream_anthropic(message: str, model: str | None = None):
 
     async with anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]) as client:
         async with client.messages.stream(
-            model=model or "claude-3-5-sonnet-20240620",
+            model=model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             max_tokens=2048,
             system=_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": message}],
