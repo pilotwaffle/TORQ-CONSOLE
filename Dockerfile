@@ -15,8 +15,7 @@ ENV TORQDISABLEGPU=true
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies  
-RUN apt-get update && apt-get install -y gcc g++ && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (none needed - pure Python packages)
 
 # Copy requirements first for better caching
 COPY requirements-railway.txt .
