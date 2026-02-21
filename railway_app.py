@@ -239,16 +239,18 @@ async def chat(request: ChatRequest):
                     "occurred_at": datetime.utcnow().isoformat()
                 }
 
-                learning_response = await client.post(
-                    f"{supabase_url}/rest/v1/learning_events",
-                    headers={
-                        "apikey": supabase_key,
-                        "Authorization": f"Bearer {supabase_key}",
-                        "Content-Type": "application/json",
-                        "Prefer": "return=representation",
-                    },
-                    json=learning_payload
-                )
+                # Create new client for Supabase (previous client is closed)
+                async with httpx.AsyncClient(timeout=10.0) as sb_client:
+                    learning_response = await sb_client.post(
+                        f"{supabase_url}/rest/v1/learning_events",
+                        headers={
+                            "apikey": supabase_key,
+                            "Authorization": f"Bearer {supabase_key}",
+                            "Content-Type": "application/json",
+                            "Prefer": "return=representation",
+                        },
+                        json=learning_payload
+                    )
 
                 if learning_response.status_code < 400:
                     learning_recorded = True
