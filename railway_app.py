@@ -443,7 +443,7 @@ async def deploy_info():
     """Deployment fingerprint - anti-drift detection."""
     return {
         "service": "railway-backend",
-        "version": "1.0.4-standalone",
+        "version": "1.0.5-standalone",
         "env": "production",
         "learning_hook": "mandatory",
         "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
