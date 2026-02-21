@@ -630,6 +630,207 @@ class WebUI:
                 "version": "0.80.0"
             }
 
+        @self.app.get("/api/llm-status")
+        async def llm_status():
+            """
+            LLM provider health check endpoint.
+
+            Returns the current status of the LLM provider including:
+            - Provider availability and configuration
+            - Model information
+            - API key presence
+            - Test generation latency
+            - Last error (if any)
+
+            This endpoint helps prevent silent outages by monitoring LLM health.
+            Returns fast (should not trigger full LLM calls in production).
+            """
+            from datetime import datetime
+
+            status_info = {
+                "status": "unknown",
+                "provider": None,
+                "model": None,
+                "latency_ms": None,
+                "key_present": False,
+                "last_error": None,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            try:
+                # Check if LLM manager exists
+                if not hasattr(self.console, 'llm_manager') or not self.console.llm_manager:
+                    status_info["status"] = "error"
+                    status_info["last_error"] = "LLM manager not initialized"
+                    return status_info
+
+                llm_manager = self.console.llm_manager
+
+                # Check Claude provider
+                claude_provider = llm_manager.get_provider('claude')
+
+                if not claude_provider:
+                    status_info["status"] = "error"
+                    status_info["last_error"] = "Claude provider not available"
+                    return status_info
+
+                # Check if provider is configured
+                if hasattr(claude_provider, 'is_configured'):
+                    is_configured = claude_provider.is_configured()
+                    status_info["key_present"] = is_configured
+
+                if not is_configured:
+                    status_info["status"] = "error"
+                    status_info["provider"] = "claude"
+                    status_info["last_error"] = "API key not configured"
+                    return status_info
+
+                # Get model information
+                if hasattr(claude_provider, 'model'):
+                    status_info["model"] = claude_provider.model
+                else:
+                    status_info["model"] = "unknown"
+
+                status_info["provider"] = "claude"
+                status_info["status"] = "ok"
+
+                # Optionally perform a quick test generation (commented out for production)
+                # Uncomment this to enable actual LLM health testing
+                """
+                try:
+                    import time
+                    start = time.time()
+                    test_response = await claude_provider.generate_response(
+                        prompt="Health check",
+                        max_tokens=10
+                    )
+                    latency_ms = (time.time() - start) * 1000
+                    status_info["latency_ms"] = round(latency_ms, 2)
+
+                    if test_response and len(test_response) > 0:
+                        status_info["status"] = "ok"
+                    else:
+                        status_info["status"] = "degraded"
+                        status_info["last_error"] = "Test generation returned empty response"
+                except Exception as test_error:
+                    status_info["status"] = "degraded"
+                    status_info["last_error"] = f"Test generation failed: {type(test_error).__name__}"
+                """
+
+            except Exception as e:
+                status_info["status"] = "error"
+                status_info["last_error"] = f"Status check failed: {type(e).__name__}"
+                self.logger.error(f"LLM status check failed: {e}")
+
+            return status_info
+
+        @self.app.get("/api/status")
+        async def api_status():
+            """
+            Alias for /health endpoint (fixes 404 spam from frontend polling).
+
+            The frontend polls /api/status but we only have /health.
+            This alias redirects the request to the health check.
+            """
+            # Return same response as /health for compatibility
+            return {
+                "status": "ok",
+                "service": "TORQ Console",
+                "version": "0.80.0"
+            }
+
+        @self.app.get("/api/diag")
+        async def diagnostics():
+            """
+            Operational diagnostics endpoint (dev/staging).
+
+            Returns a single pane of glass for debugging:
+            - Current provider + model
+            - Environment sanity (API keys present, not the actual keys)
+            - Prince Flowers loaded status
+            - Recent errors (redacted)
+            - System health metrics
+
+            This endpoint is safe to call in production - it never exposes secrets.
+            """
+            from datetime import datetime
+
+            diag = {
+                "timestamp": datetime.now().isoformat(),
+                "service": "TORQ Console",
+                "version": "0.80.0"
+            }
+
+            # Provider information
+            diag["provider"] = {
+                "name": "unknown",
+                "model": "unknown",
+                "available": False,
+                "configured": False
+            }
+
+            if hasattr(self.console, 'llm_manager') and self.console.llm_manager:
+                llm_manager = self.console.llm_manager
+
+                # Check default provider
+                if hasattr(llm_manager, 'default_provider'):
+                    provider_name = llm_manager.default_provider
+                    diag["provider"]["name"] = provider_name
+
+                    # Check if provider is available
+                    provider = llm_manager.get_provider(provider_name) if provider_name else None
+                    if provider:
+                        diag["provider"]["available"] = True
+                        diag["provider"]["model"] = getattr(provider, 'model', 'unknown')
+
+                        # Check if configured (has API key)
+                        if hasattr(provider, 'is_configured'):
+                            diag["provider"]["configured"] = provider.is_configured()
+
+            # Environment sanity check (keys present only, no values exposed)
+            diag["env"] = {
+                "ANTHROPIC_API_KEY_present": "ANTHROPIC_API_KEY" in os.environ,
+                "OPENAI_API_KEY_present": "OPENAI_API_KEY" in os.environ,
+                "DEEPSEEK_API_KEY_present": "DEEPSEEK_API_KEY" in os.environ,
+                "GLM_API_KEY_present": "GLM_API_KEY" in os.environ,
+                "ZAI_API_KEY_present": "ZAI_API_KEY" in os.environ,
+            }
+
+            # Prince Flowers status
+            diag["prince_flowers"] = {
+                "loaded": False,
+                "llm_provider_attached": False
+            }
+
+            if hasattr(self.console, 'prince_flowers'):
+                diag["prince_flowers"]["loaded"] = True
+
+                # Check if Prince has LLM provider
+                prince = self.console.prince_flowers
+                if hasattr(prince, 'agent') and prince.agent:
+                    if hasattr(prince.agent, 'llm_provider') and prince.agent.llm_provider:
+                        diag["prince_flowers"]["llm_provider_attached"] = True
+
+            # System health
+            diag["health"] = {
+                "llm_manager_available": hasattr(self.console, 'llm_manager') and self.console.llm_manager is not None,
+                "web_search_available": hasattr(self.console, 'web_search_provider') and self.console.web_search_provider is not None,
+                "mcp_client_available": hasattr(self.console, 'mcp_client') and self.console.mcp_client is not None,
+            }
+
+            # Recent errors (last 5, redacted)
+            diag["recent_errors"] = []
+            if hasattr(self, 'recent_errors'):
+                for error in self.recent_errors[-5:]:
+                    # Redact any potential API keys or sensitive data
+                    redacted = str(error)
+                    for key in ["sk-", "sbp_", "api", "key"]:
+                        if key.lower() in redacted.lower():
+                            redacted = "[REDACTED]"
+                    diag["recent_errors"].append(redacted[:200])  # First 200 chars only
+
+            return diag
+
         @self.app.get("/", response_class=HTMLResponse)
         async def dashboard(request: Request):
             """Main dashboard."""
@@ -796,7 +997,11 @@ class WebUI:
             try:
                 self.logger.info(f"Direct chat request: {request.message}")
 
-                # Use enhanced AI routing if available
+                # Use enhanced AI routing with metadata if available
+                if AI_FIXES_AVAILABLE and hasattr(self, '_direct_chat_with_meta'):
+                    return await self._direct_chat_with_meta(request)
+
+                # Fallback to old static method (will be deprecated)
                 if AI_FIXES_AVAILABLE:
                     return await WebUIAIFixes.direct_chat_fixed(self, request)
 

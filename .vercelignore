@@ -1,4 +1,5 @@
 # Vercel Deployment - Ignore unnecessary files
+# IMPORTANT: Do NOT ignore frontend/ or frontend/index.html
 
 # Python artifacts
 __pycache__/
@@ -7,8 +8,7 @@ __pycache__/
 *.so
 .Python
 *.egg-info/
-dist/
-build/
+/build/
 
 # Virtual environments
 venv/
@@ -40,13 +40,14 @@ htmlcov/
 evaluation_results/
 experiment_results/
 
-# Documentation and reports
-docs/
-*.md
+# Documentation (keep README)
+/docs/
+/*.md
 !README.md
 !VERCEL_DEPLOYMENT.md
-CHANGELOG.md
-*.txt
+
+# Text files (keep requirements)
+/*.txt
 !requirements.txt
 !requirements-vercel.txt
 !runtime.txt
@@ -54,11 +55,8 @@ CHANGELOG.md
 # Configuration (keep only essential)
 .env
 .env.example
-*.toml
-!pyproject.toml
 *.yaml
 *.yml
-!vercel.json
 
 # Git files
 .git/
@@ -70,9 +68,8 @@ archive/
 *.backup
 *.bak
 
-# Node modules (if any)
+# Node modules (let npm install handle this)
 node_modules/
-package-lock.json
 
 # Large model files
 *.gguf
@@ -97,7 +94,7 @@ validation_results.json
 Rakefile
 Gemfile
 
-# Unnecessary API/integration files
+# Unnecessary root-level API/integration files
 api_*.js
 api_*.py
 integration_*.py
@@ -107,9 +104,8 @@ claude_websearch_real.py
 # Landing page (separate deployment)
 landing-page/
 
-# UI files (if not needed for API)
-ui/
-frontend/
+# UI files (NOT frontend — that's needed for Vite build)
+/ui/
 
 # Policies and configs not needed in production
 policies/
@@ -119,23 +115,26 @@ capabilities.yaml
 # Large evaluation sets
 eval_sets/
 
-# Screenshots and media
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
+# Screenshots and media (Anchored to root to allow frontend assets)
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.svg
 !torq_console_icon.png
-*.ico
+/*.ico
 
-# HTML files
-*.html
+# Root HTML files only (NOT frontend/index.html)
+/torq_landing.html
+/create_logo.html
+/torq_consoleuitemplatesdashboard.html
 
 # Duplicate/alternative deployment configs
 railway.json
 railway.toml
 render.yaml
 Dockerfile
+Dockerfile.vercel
 Procfile
 .nixpacks.toml
 .dockerignore

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge.tsx';
 import { CodeBlock } from './CodeBlock';
 import type { Message } from '@/lib/types';
 

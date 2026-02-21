@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { DiffViewer, DiffStats, DiffStatsList } from './index';
 import { DiffMessage, InlineDiffMessage } from '../chat/DiffMessage';
 import type { DiffBlock } from '@/lib/types';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button.tsx';
 
 export const DiffExample: React.FC = () => {
   const [viewMode, setViewMode] = useState<'split' | 'unified'>('split');
@@ -193,7 +193,7 @@ export default Calculator;`;
           <div>
             <h3 className="text-body font-semibold mb-2 text-torq-blue">Basic DiffViewer:</h3>
             <pre className="text-text-secondary overflow-x-auto">
-{`<DiffViewer
+              {`<DiffViewer
   original="const x = 1;"
   modified="const x = 2;"
   language="typescript"
@@ -205,7 +205,7 @@ export default Calculator;`;
           <div>
             <h3 className="text-body font-semibold mb-2 text-torq-blue">With Message:</h3>
             <pre className="text-text-secondary overflow-x-auto">
-{`<DiffMessage
+              {`<DiffMessage
   diff={{
     additions: 42,
     deletions: 15,
@@ -220,7 +220,7 @@ export default Calculator;`;
           <div>
             <h3 className="text-body font-semibold mb-2 text-torq-blue">Import:</h3>
             <pre className="text-text-secondary overflow-x-auto">
-{`import {
+              {`import {
   DiffViewer,
   DiffStats,
   DiffMessage

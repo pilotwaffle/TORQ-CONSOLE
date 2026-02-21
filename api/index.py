@@ -33,8 +33,9 @@ from typing import Optional, Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
+import asyncio
 
 # ---------------------------------------------------------------------------
 # Environment
@@ -49,6 +50,13 @@ PROXY_TIMEOUT = int(os.environ.get("TORQ_PROXY_TIMEOUT_MS", "25000")) / 1000
 
 # Build fingerprint (set during deploy or from git)
 BUILD_SHA = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")[:8]
+
+# Railway proxy configuration
+RAILWAY_URL = os.environ.get("TORQ_BACKEND_URL", "").rstrip("/")
+PROXY_SECRET = os.environ.get("TORQ_PROXY_SHARED_SECRET", "")
+PROXY_TIMEOUT = int(os.environ.get("TORQ_PROXY_TIMEOUT_MS", "25000")) / 1000
+
+logger.info(f"Railway proxy configured: {bool(RAILWAY_URL)}")
 
 # ---------------------------------------------------------------------------
 # Pydantic models
@@ -91,6 +99,18 @@ app.add_middleware(
 # Helpers
 # ---------------------------------------------------------------------------
 
+_SYSTEM_PROMPT = """You are Prince Flowers, the TORQ Console AI assistant.
+You are an action-oriented AI that helps with software engineering tasks.
+
+For research/search requests: Provide information directly.
+For build/implementation requests: Ask 2-3 clarifying questions first.
+
+Be concise, helpful, and accurate."""
+
+import time
+BOOT_TIME = time.time()
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -107,15 +127,13 @@ def _proxy_to_railway(
     extra_headers: dict = None,
     query_string: str = "",
 ) -> dict:
-    """
-    Forward a request to Railway backend using stdlib urllib.
-    
-    Normalizes path joining, forwards trace headers, includes proxy secret.
-    """
+    """Forward request to Railway backend using stdlib urllib."""
     if not RAILWAY_URL:
         raise HTTPException(status_code=503, detail="Backend not configured.")
 
-    # Normalize: strip trailing slash from base, ensure path starts with /
+    import urllib.request
+    import urllib.error
+
     url = f"{RAILWAY_URL}{path}"
     if query_string:
         url = f"{url}?{query_string}"
@@ -145,42 +163,101 @@ def _proxy_to_railway(
         raise HTTPException(status_code=500, detail=f"Proxy error: {str(e)}")
 
 
-async def _chat_anthropic_fallback(message: str, model: str | None = None) -> str:
-    """Fallback: direct Anthropic call when Railway is unavailable. No learning."""
+async def _chat_anthropic(message: str, model: str | None = None) -> str:
+    """Send a chat message via Anthropic SDK (blocking)."""
     import anthropic
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    resp = client.messages.create(
-        model=model or "claude-sonnet-4-20250514",
-        max_tokens=2048,
-        system="You are Prince Flowers, the TORQ Console AI assistant for business consulting.",
-        messages=[{"role": "user", "content": message}],
-    )
-    return resp.content[0].text
+
+    async with anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]) as client:
+        resp = await client.messages.create(
+            model=model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            max_tokens=2048,
+            system=_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": message}],
+        )
+        return resp.content[0].text
 
 
-# ===========================================================================
-# DEPLOYMENT FINGERPRINT (Fix: Add 2)
-# ===========================================================================
+async def _stream_anthropic(message: str, model: str | None = None):
+    """Stream chat via Anthropic SDK (async generator)."""
+    import anthropic
 
-@app.get("/api/debug/deploy")
-async def deploy_fingerprint():
-    """Deployment fingerprint — never guess which code is serving again."""
-    return {
-        "service": "vercel-proxy",
-        "version": "0.91.0",
-        "git_sha": os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown"),
-        "git_ref": os.environ.get("VERCEL_GIT_COMMIT_REF", "unknown"),
-        "env": "production" if os.environ.get("VERCEL") else "development",
-        "backend_configured": bool(RAILWAY_URL),
-        "backend_url_domain": RAILWAY_URL.split("//")[-1].split("/")[0] if RAILWAY_URL else None,
-        "build_time": os.environ.get("VERCEL_GIT_COMMIT_DATE", "unknown"),
-        "timestamp": _now_iso(),
-    }
+    async with anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]) as client:
+        async with client.messages.stream(
+            model=model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            max_tokens=2048,
+            system=_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": message}],
+        ) as stream:
+            async for text in stream.text_stream:
+                yield text
 
 
-# ===========================================================================
-# HEALTH CHECK (local, fast)
-# ===========================================================================
+async def _chat_openai(message: str, model: str | None = None) -> str:
+    """Send a chat message via OpenAI SDK (blocking)."""
+    import openai
+
+    async with openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"]) as client:
+        resp = await client.chat.completions.create(
+            model=model or "gpt-4o",
+            max_tokens=2048,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": message},
+            ],
+        )
+        return resp.choices[0].message.content
+
+
+async def _stream_openai(message: str, model: str | None = None):
+    """Stream chat via OpenAI SDK (async generator)."""
+    import openai
+
+    async with openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"]) as client:
+        stream = await client.chat.completions.create(
+            model=model or "gpt-4o",
+            max_tokens=2048,
+            stream=True,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": message},
+            ],
+        )
+        async for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+
+async def token_stream(message: str, model: str | None = None, provider: str = "none"):
+    """Generator for SSE token stream."""
+    start_time = time.time()
+
+    try:
+        stream_gen = None
+        if provider == "anthropic":
+            stream_gen = _stream_anthropic(message, model)
+        elif provider == "openai":
+            stream_gen = _stream_openai(message, model)
+        
+        if stream_gen:
+            async for token in stream_gen:
+                yield f"data: {json.dumps({'token': token})}\\n\\n"
+
+        latency_ms = (time.time() - start_time) * 1000
+        cold_start_ms = (start_time - BOOT_TIME) * 1000 if (time.time() - BOOT_TIME) < 10.0 else 0
+
+        meta = {
+            "latency_ms": latency_ms,
+            "provider": provider,
+            "cold_start_ms": cold_start_ms,
+            "timestamp": _now_iso()
+        }
+        
+        yield f"data: {json.dumps({'meta': meta})}\\n\\n"
+        yield "data: [DONE]\\n\\n"
+
+    except Exception as e:
+        yield f"data: {json.dumps({'error': str(e)})}\\n\\n"
+        yield "data: [DONE]\\n\\n"
 
 @app.get("/health")
 async def health():
@@ -198,107 +275,150 @@ async def health():
 # PROXIED ROUTES (→ Railway, full agent brain + learning)
 # ===========================================================================
 
+# ===========================================================================
+# DEPLOYMENT FINGERPRINT (anti-drift detection)
+# ===========================================================================
+
+@app.get("/api/debug/deploy")
+async def deploy_fingerprint():
+    """Deployment fingerprint - instantly know what code is live."""
+    return {
+        "service": "vercel-proxy",
+        "version": "0.91.0",
+        "git_sha": os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown"),
+        "git_ref": os.environ.get("VERCEL_GIT_COMMIT_REF", "unknown"),
+        "env": "production" if os.environ.get("VERCEL") else "development",
+        "backend_configured": bool(RAILWAY_URL),
+        "backend_url_domain": RAILWAY_URL.split("//")[-1].split("/")[0] if RAILWAY_URL else None,
+        "proxy_secret_set": bool(PROXY_SECRET),
+        "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        "build_time": os.environ.get("VERCEL_GIT_COMMIT_DATE", "unknown"),
+        "timestamp": _now_iso(),
+    }
+
+
+# ===========================================================================
+# PROXIED ROUTES (→ Railway, full agent brain + learning)
+# ===========================================================================
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     """
     Chat with Prince Flowers.
 
-    PROXY MODE: Forwards to Railway where full agent runtime + learning hook runs.
-    FALLBACK MODE: Direct Anthropic call (no learning, marked as degraded).
+    PROXY MODE: Forwards to Railway where full agent + learning runs.
+    FALLBACK MODE: Direct Anthropic/OpenAI call (no learning, EXPLICITLY marked).
     """
+    import uuid
+    trace_id = f"vercel-{int(time.time() * 1000)}"
+    proxy_start = time.time()
+
+    # Try Railway proxy first
     if RAILWAY_URL:
-        # === PROXY to Railway ===
-        # Generate a session_id for tracking
-        import uuid
         session_id = str(uuid.uuid4())
 
         payload = json.dumps({
             "message": req.message,
             "session_id": session_id,
+            "trace_id": trace_id,
         }).encode("utf-8")
 
-        result = _proxy_to_railway(
-            "/api/chat",  # Railway's chat endpoint
-            method="POST",
-            body=payload,
-        )
+        try:
+            result = _proxy_to_railway(
+                "/api/chat",  # Railway's endpoint
+                method="POST",
+                body=payload,
+            )
 
-        return ChatResponse(
-            response=result.get("response", ""),
-            agent_id=result.get("agent", "prince_flowers"),
-            timestamp=result.get("timestamp", _now_iso()),
-            metadata={
-                "backend": "railway",
-                "proxy": "vercel→railway",
-                "learning_recorded": result.get("learning_recorded", False),
-                "trace_id": result.get("trace_id"),
-                "duration_ms": result.get("duration_ms"),
-            },
-        )
-    else:
-        # === FALLBACK: Direct Anthropic (degraded, no learning) ===
-        if not _has_key("ANTHROPIC_API_KEY"):
-            raise HTTPException(status_code=503, detail="No backend or API key configured.")
+            return ChatResponse(
+                response=result.get("response", ""),
+                agent_id=result.get("agent", "prince_flowers"),
+                timestamp=result.get("timestamp", _now_iso()),
+                metadata={
+                    "backend": "railway",
+                    "proxy": "vercel→railway",
+                    "learning_recorded": result.get("learning_recorded", False),
+                    "trace_id": result.get("trace_id"),
+                    "duration_ms": result.get("duration_ms"),
+                    "degraded": False,
+                },
+            )
+        except HTTPException as e:
+            # === EXPLICIT FALLBACK: Railway failed, log telemetry ===
+            proxy_latency_ms = int((time.time() - proxy_start) * 1000)
+            fallback_reason = f"railway_{e.status_code}" if hasattr(e, 'status_code') else "railway_unreachable"
+            logger.error(f"[{trace_id}] PROXY_FALLBACK: {fallback_reason}, latency_ms={proxy_latency_ms}")
 
-        text = await _chat_anthropic_fallback(req.message, req.model)
-        return ChatResponse(
-            response=text,
-            agent_id="prince_flowers",
-            timestamp=_now_iso(),
-            metadata={
-                "backend": "vercel-direct",
-                "provider": "anthropic",
-                "mode": "fallback_direct",
-                "learning": False,
-                "degraded": True,
-                "warning": "Running without learning loop — Railway backend not configured",
-            },
-        )
+    # Fallback: direct Anthropic/OpenAI call
+    provider = "none"
+    try:
+        if _has_key("ANTHROPIC_API_KEY"):
+            provider = "anthropic"
+            text = await _chat_anthropic(req.message, req.model)
+        elif _has_key("OPENAI_API_KEY"):
+            provider = "openai"
+            text = await _chat_openai(req.message, req.model)
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail="No API key configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY in Vercel Dashboard > Settings > Environment Variables.",
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        import traceback
+        print("CHAT_API_ERROR:", repr(exc))
+        print(traceback.format_exc())
+        logger.exception("Chat error")
+        raise HTTPException(status_code=500, detail=f"Chat error ({provider}): {exc}")
 
-
-@app.post("/api/agents/{agent_id}/chat", response_model=ChatResponse)
-async def agent_chat(agent_id: str, req: ChatRequest):
-    """Agent-specific chat — proxied to Railway."""
-    if agent_id != "prince_flowers":
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
-    return await chat(req)
-
-
-# --- Telemetry proxy ---
-
-@app.api_route("/api/telemetry/{path:path}", methods=["GET", "POST"])
-async def proxy_telemetry(path: str, request: Request):
-    """Proxy telemetry endpoints to Railway."""
-    if not RAILWAY_URL:
-        raise HTTPException(status_code=503, detail="Backend not configured for telemetry.")
-    body = await request.body() if request.method == "POST" else None
-    return _proxy_to_railway(
-        f"/api/telemetry/{path}",
-        method=request.method,
-        body=body,
-        query_string=str(request.query_params),
+    return ChatResponse(
+        response=text,
+        agent_id="prince_flowers",
+        timestamp=_now_iso(),
+        metadata={
+            "backend": "vercel-direct",
+            "provider": provider,
+            "mode": req.mode or "single_agent",
+            "model": req.model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            "platform": "vercel",
+            "success": True,
+            "learning": False,
+            "degraded": True,
+            "fallback_reason": getattr(locals(), 'fallback_reason', 'no_backend_configured'),
+            "trace_id": trace_id,
+        },
     )
 
 
-# --- Learning proxy ---
+@app.post("/api/chat/stream", response_class=StreamingResponse)
+async def chat_stream(req: ChatRequest):
+    """
+    Stream chat response (SSE) - Phase 1 Feature.
+    Enabled via TORQ_STREAMING_ENABLED env var.
+    """
+    if os.environ.get("TORQ_STREAMING_ENABLED", "false").lower() != "true":
+        raise HTTPException(status_code=400, detail="Streaming is currently disabled via feature flag.")
 
-@app.api_route("/api/learning/{path:path}", methods=["GET", "POST"])
-async def proxy_learning(path: str, request: Request):
-    """Proxy learning/policy endpoints to Railway."""
-    if not RAILWAY_URL:
-        raise HTTPException(status_code=503, detail="Backend not configured for learning.")
-    body = await request.body() if request.method == "POST" else None
-    # Forward authorization header for admin endpoints
-    extra_headers = {}
-    auth = request.headers.get("authorization")
-    if auth:
-        extra_headers["authorization"] = auth
-    return _proxy_to_railway(
-        f"/api/learning/{path}",
-        method=request.method,
-        body=body,
-        extra_headers=extra_headers,
-        query_string=str(request.query_params),
+    provider = "none"
+    if _has_key("ANTHROPIC_API_KEY"):
+        provider = "anthropic"
+    elif _has_key("OPENAI_API_KEY"):
+        provider = "openai"
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail="No API key configured.",
+        )
+
+    return StreamingResponse(
+        token_stream(req.message, req.model, provider),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Torq-Provider": provider,
+        },
     )
 
 
@@ -369,8 +489,10 @@ async def status():
         "service": "torq-console",
         "version": "0.91.0",
         "platform": "vercel",
-        "backend": "railway" if RAILWAY_URL else "vercel-direct",
-        "agents_active": 2,
+        "agents_active": 1,
+        "anthropic_configured": _has_key("ANTHROPIC_API_KEY"),
+        "openai_configured": _has_key("OPENAI_API_KEY"),
+        "streaming_enabled": os.environ.get("TORQ_STREAMING_ENABLED", "false").lower() == "true",
         "timestamp": _now_iso(),
     }
     # Optionally probe Railway health

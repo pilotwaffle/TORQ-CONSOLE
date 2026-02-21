@@ -1,7 +1,7 @@
 import React from 'react';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { TorqLogo } from '@/components/ui/TorqLogo';
+import { Badge } from '@/components/ui/Badge.tsx';
+import { Button } from '@/components/ui/Button.tsx';
+import { TorqLogo } from '@/components/ui/TorqLogo.tsx';
 import { useAgentStore } from '@/stores/agentStore';
 
 export const TopNav: React.FC = () => {

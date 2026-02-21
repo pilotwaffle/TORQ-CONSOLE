@@ -44,7 +44,13 @@ class TORQPrinceFlowersInterface:
             if llm_provider:
                 self.logger.info("TORQ Prince Flowers agent initialized with LLM provider")
             else:
-                self.logger.warning("TORQ Prince Flowers agent initialized without LLM provider (research mode only)")
+                # Structural enforcement: LLM provider is REQUIRED
+                # This prevents silent fallback to stub responses
+                raise RuntimeError(
+                    "TORQ Prince Flowers agent cannot be initialized without an LLM provider. "
+                    "Ensure TorqConsole is properly initialized with TorqConfig() and that "
+                    "at least one LLM provider (Claude, OpenAI, DeepSeek, etc.) is configured."
+                )
 
         except Exception as e:
             self.logger.error(f"Failed to initialize TORQ Prince Flowers agent: {e}")

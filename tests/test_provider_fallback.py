@@ -745,6 +745,131 @@ class TestAdapterContractViolation:
         print("[PASS] Strict 'Error:' prefix correctly triggers (even without 'sorry')")
 
 
+class TestMissingProviderSanitization:
+    """
+    GATING TEST: Verify that missing providers are sanitized from chains.
+
+    This prevents regression where non-existent providers (like "openai")
+    cause unnecessary failures or delays in the fallback chain.
+
+    Expected behavior:
+    - Missing provider → recorded as "provider_not_found" in attempts
+    - Missing provider → skipped (doesn't break the loop)
+    - Remaining providers → still attempted
+    - Overall success → fallback_used=True if multiple attempts
+    """
+
+    def test_missing_provider_is_skipped_not_fatal(self):
+        """
+        Verify that a missing provider in the chain is skipped, not fatal.
+
+        Scenario:
+        - Chain: ["openai", "claude"]
+        - Manager only has: "claude" (openai doesn't exist)
+        - Expected: openai recorded as provider_not_found, claude succeeds
+        """
+        # Setup: Mock manager that returns None for "openai"
+        llm_manager = Mock()
+
+        # Create a working provider
+        claude_provider = Mock()
+        claude_provider.generate_response.return_value = "Response from Claude"
+        claude_provider.model = "claude-sonnet-4-20250514"
+
+        # Setup get_provider to return None for "openai", claude_provider for "claude"
+        def mock_get_provider(name):
+            if name == "openai":
+                return None  # Provider doesn't exist
+            elif name == "claude":
+                return claude_provider
+            return None
+
+        llm_manager.get_provider.side_effect = mock_get_provider
+
+        # Setup: Chain includes non-existent "openai"
+        config = ProviderChainConfig(direct_chain=["openai", "claude"])
+        executor = ProviderFallbackExecutor(llm_manager, config)
+        meta = GenerationMeta(mode=ExecutionMode.DIRECT)
+
+        # Execute: Should succeed via claude (openai is skipped)
+        response = executor.generate_with_fallback(
+            prompt="Test prompt",
+            mode=ExecutionMode.DIRECT,
+            tools=[],
+            meta=meta,
+            timeout=60
+        )
+
+        # Verify: Got successful response from claude
+        assert response == "Response from Claude"
+        assert meta.provider == "claude"
+
+        # Verify: Both attempts recorded (openai failure + claude success)
+        assert len(meta.provider_attempts) == 2, \
+            f"Expected 2 attempts (openai skip + claude success), got {len(meta.provider_attempts)}"
+
+        # Verify: First attempt is openai with provider_not_found
+        openai_attempt = meta.provider_attempts[0]
+        assert openai_attempt["provider"] == "openai"
+        assert openai_attempt["status"] == "failed"
+        assert openai_attempt["error_category"] == "provider_error"
+        assert openai_attempt["error_code"] == "provider_not_found"
+
+        # Verify: Second attempt is claude with success
+        claude_attempt = meta.provider_attempts[1]
+        assert claude_attempt["provider"] == "claude"
+        assert claude_attempt["status"] == "success"
+        assert claude_attempt["error_category"] is None
+
+        # Verify: fallback_used is True (we tried multiple providers)
+        assert meta.fallback_used is True, \
+            "fallback_used should be True when skipping to next provider"
+
+        # Verify: Only claude was actually called (openai was skipped)
+        claude_provider.generate_response.assert_called_once()
+
+        print("[PASS] Missing provider skipped and recorded correctly")
+
+    def test_all_providers_missing_fails_gracefully(self):
+        """
+        Verify that when ALL providers are missing, we fail gracefully.
+
+        Scenario:
+        - Chain: ["openai", "missing_provider"]
+        - Manager has: None (neither exists)
+        - Expected: Both recorded as provider_not_found, raise ProviderError
+        """
+        # Setup: Mock manager that returns None for all providers
+        llm_manager = Mock()
+        llm_manager.get_provider.return_value = None
+
+        # Setup: Chain with only non-existent providers
+        config = ProviderChainConfig(direct_chain=["openai", "missing_provider"])
+        executor = ProviderFallbackExecutor(llm_manager, config)
+        meta = GenerationMeta(mode=ExecutionMode.DIRECT)
+
+        # Execute: Should raise ProviderError (all providers missing)
+        with pytest.raises(ProviderError) as exc_info:
+            executor.generate_with_fallback(
+                prompt="Test prompt",
+                mode=ExecutionMode.DIRECT,
+                tools=[],
+                meta=meta,
+                timeout=60
+            )
+
+        # Verify: Error message indicates all providers failed
+        assert "All providers in chain failed" in str(exc_info.value)
+
+        # Verify: Both providers recorded as provider_not_found
+        assert len(meta.provider_attempts) == 2
+        for attempt in meta.provider_attempts:
+            assert attempt["error_code"] == "provider_not_found"
+            assert attempt["error_category"] == "provider_error"
+
+        print("[PASS] All providers missing fails gracefully")
+
+
 if __name__ == "__main__":
     # Run critical test first
     print("=" * 60)
