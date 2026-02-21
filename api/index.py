@@ -379,22 +379,52 @@ async def health():
     )
 
 
+# ===========================================================================
+# DEPLOYMENT FINGERPRINT (anti-drift detection)
+# ===========================================================================
+
+@app.get("/api/debug/deploy")
+async def deploy_fingerprint():
+    """Deployment fingerprint - instantly know what code is live."""
+    return {
+        "service": "vercel-proxy",
+        "version": "0.91.0",
+        "git_sha": os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown"),
+        "git_ref": os.environ.get("VERCEL_GIT_COMMIT_REF", "unknown"),
+        "env": "production" if os.environ.get("VERCEL") else "development",
+        "backend_configured": bool(RAILWAY_URL),
+        "backend_url_domain": RAILWAY_URL.split("//")[-1].split("/")[0] if RAILWAY_URL else None,
+        "proxy_secret_set": bool(PROXY_SECRET),
+        "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        "build_time": os.environ.get("VERCEL_GIT_COMMIT_DATE", "unknown"),
+        "timestamp": _now_iso(),
+    }
+
+
+# ===========================================================================
+# PROXIED ROUTES (→ Railway, full agent brain + learning)
+# ===========================================================================
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     """
     Chat with Prince Flowers AI assistant.
 
     PROXY MODE: Forwards to Railway where full agent + learning runs.
-    FALLBACK MODE: Direct Anthropic/OpenAI call (no learning).
+    FALLBACK MODE: Direct Anthropic/OpenAI call (no learning, EXPLICITLY marked).
     """
+    import uuid
+    trace_id = f"vercel-{int(time.time() * 1000)}"
+    proxy_start = time.time()
+
     # Try Railway proxy first
     if RAILWAY_URL:
-        import uuid
         session_id = str(uuid.uuid4())
 
         payload = json.dumps({
             "message": req.message,
             "session_id": session_id,
+            "trace_id": trace_id,
         }).encode("utf-8")
 
         try:
@@ -414,11 +444,14 @@ async def chat(req: ChatRequest):
                     "learning_recorded": result.get("learning_recorded", False),
                     "trace_id": result.get("trace_id"),
                     "duration_ms": result.get("duration_ms"),
+                    "degraded": False,
                 },
             )
         except HTTPException as e:
-            # If Railway fails, log and fall through to direct call
-            logger.warning(f"Railway proxy failed: {e.detail}, falling back to direct call")
+            # === EXPLICIT FALLBACK: Railway failed, log telemetry ===
+            proxy_latency_ms = int((time.time() - proxy_start) * 1000)
+            fallback_reason = f"railway_{e.status_code}" if hasattr(e, 'status_code') else "railway_unreachable"
+            logger.error(f"[{trace_id}] PROXY_FALLBACK: {fallback_reason}, latency_ms={proxy_latency_ms}")
 
     # Fallback: direct Anthropic/OpenAI call
     provider = "none"
@@ -451,11 +484,13 @@ async def chat(req: ChatRequest):
             "backend": "vercel-direct",
             "provider": provider,
             "mode": req.mode or "single_agent",
-            "model": req.model,
+            "model": req.model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             "platform": "vercel",
             "success": True,
             "learning": False,
             "degraded": True,
+            "fallback_reason": getattr(locals(), 'fallback_reason', 'no_backend_configured'),
+            "trace_id": trace_id,
         },
     )
 
