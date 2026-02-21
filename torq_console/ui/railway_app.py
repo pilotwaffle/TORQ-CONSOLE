@@ -84,10 +84,37 @@ def create_railway_app():
             allow_headers=["*"],
         )
 
+        # Add proxy secret middleware (protects chat/learning/telemetry endpoints)
+        try:
+            from torq_console.api.middleware import ProxySecretMiddleware, AdminTokenMiddleware
+            app.add_middleware(ProxySecretMiddleware)
+            app.add_middleware(AdminTokenMiddleware)
+            logger.info("Security middleware installed: ProxySecretMiddleware + AdminTokenMiddleware")
+        except ImportError as e:
+            logger.warning(f"Could not import security middleware: {e}")
+
         # Add health check endpoint for Railway
         @app.get("/health")
         async def health_check():
-            return {"status": "healthy", "service": "torq-console"}
+            return {"status": "healthy", "service": "torq-console-railway"}
+
+        # Deployment fingerprint (never guess which code is serving)
+        @app.get("/api/debug/deploy")
+        async def deploy_fingerprint():
+            import subprocess
+            try:
+                sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()[:8]
+            except Exception:
+                sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown")
+            return {
+                "service": "railway-agent",
+                "version": "0.91.0",
+                "git_sha": sha,
+                "env": "production" if os.environ.get("RAILWAY_ENVIRONMENT") else "development",
+                "railway_service": os.environ.get("RAILWAY_SERVICE_NAME", "unknown"),
+                "learning_hook": "mandatory",
+                "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
+            }
 
         logger.info("=" * 60)
         logger.info("Ready for Railway deployment")
