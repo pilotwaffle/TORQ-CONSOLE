@@ -176,7 +176,7 @@ async def chat(request: ChatRequest):
     try:
         # Use httpx to call Anthropic API directly
         anthropic_request = {
-            "model": "claude-3-5-sonnet-20241022",
+            "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             "max_tokens": 2000,
             "messages": [{"role": "user", "content": request.message}]
         }
@@ -229,7 +229,7 @@ async def chat(request: ChatRequest):
                     "reward": reward,
                     "metadata": {
                         "duration_ms": int(duration * 1000),
-                        "model": "claude-3-5-sonnet-20241022",
+                        "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
                         "backend": "railway",
                     }
                 }
@@ -363,7 +363,7 @@ async def deploy_info():
     """Deployment fingerprint."""
     return {
         "service": "railway-backend",
-        "version": "1.0.1-standalone",
+        "version": "1.0.2-standalone",
         "env": "production",
         "learning_hook": "mandatory",
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
