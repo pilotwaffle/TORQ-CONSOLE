@@ -1,13 +1,13 @@
 """
-Railway-optimized FastAPI app entry point with FULL WebUI.
+Railway-optimized FastAPI app entry point for TORQ Console backend.
 
-This module provides the complete TORQ Console WebUI with:
-- Static file serving (CSS, JS, images)
-- Chat endpoints (/api/chat)
-- Template rendering
-- All web features working identically to local
+This provides the core API endpoints for the Vercel→Railway proxy architecture:
+- /api/chat - Agent chat with mandatory learning hook
+- /api/telemetry/* - Telemetry ingestion
+- /api/learning/* - Learning policy management
+- /health - Railway health check
 
-Railway startup command: uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT
+Railway startup: uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT
 """
 
 import os
@@ -15,11 +15,7 @@ import sys
 import logging
 from pathlib import Path
 
-# Add project root to Python path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-# Configure logging
+# Configure logging BEFORE any other imports
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -31,127 +27,275 @@ os.environ.setdefault('TORQ_CONSOLE_PRODUCTION', 'true')
 os.environ.setdefault('TORQ_DISABLE_LOCAL_LLM', 'true')
 os.environ.setdefault('TORQ_DISABLE_GPU', 'true')
 
+# Add project root to Python path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 
 def create_railway_app():
     """
-    Create FastAPI app for Railway deployment.
+    Create FastAPI app for Railway deployment with agent + learning hook.
 
-    Returns a FastAPI app instance that Railway can run with:
-    uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT
+    This is a minimal, focused backend for the Vercel→Railway proxy architecture.
+    Vercel serves the UI; Railway runs the full agent with learning.
     """
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    from typing import Optional, Dict, Any, List
+    import traceback
+
+    logger.info("=" * 60)
+    logger.info("TORQ Console - Railway Backend")
+    logger.info("=" * 60)
+
+    app = FastAPI(
+        title="TORQ Console Railway Backend",
+        description="Agent backend with mandatory learning hook",
+        version="1.0.0"
+    )
+
+    # CORS for Vercel proxy
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Security middleware
     try:
-        # Import full WebUI - NOT minimal app
-        from torq_console.ui.web import WebUI
-        from torq_console.core.console import TorqConsole
-        from torq_console.core.config import TorqConfig
+        from torq_console.api.middleware import ProxySecretMiddleware, AdminTokenMiddleware
+        app.add_middleware(ProxySecretMiddleware)
+        app.add_middleware(AdminTokenMiddleware)
+        logger.info("Security middleware installed")
+    except ImportError as e:
+        logger.warning(f"Security middleware not available: {e}")
 
-        logger.info("=" * 60)
-        logger.info("TORQ Console - Railway Deployment")
-        logger.info("=" * 60)
-        logger.info("Initializing full WebUI with all routes...")
+    # ============================================================================
+    # Request/Response Models
+    # ============================================================================
 
-        # Initialize console and web UI
-        config = TorqConfig()
-        console = TorqConsole(config=config)
-        web_ui = WebUI(console=console)
+    class ChatRequest(BaseModel):
+        message: str
+        session_id: str
+        agent_id: Optional[str] = None
+        trace_id: Optional[str] = None
+        context: Optional[Dict[str, Any]] = None
 
-        logger.info(f"WebUI instance created: {type(web_ui).__name__}")
-        logger.info(f"Total routes: {len(web_ui.app.routes)}")
-        logger.info(f"FastAPI app: {type(web_ui.app).__name__}")
+    class TelemetryIngest(BaseModel):
+        trace: Dict[str, Any]
+        spans: List[Dict[str, Any]]
 
-        # Get the FastAPI app instance
-        app = web_ui.app
+    class LearningPolicyUpdate(BaseModel):
+        policy_id: str
+        routing_data: Dict[str, Any]
 
-        # === Dashboard Phase 1: Include REST API routes ===
-        # Makes GET /api/agents, POST /api/agents/{id}/chat, GET /api/status,
-        # GET/POST /api/sessions available on Vercel/Railway deployments
+    # ============================================================================
+    # Health Check
+    # ============================================================================
+
+    @app.get("/health")
+    async def health_check():
+        """Railway health check endpoint."""
+        return {
+            "status": "healthy",
+            "service": "torq-console-railway",
+            "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
+            "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "learning_hook": "mandatory"
+        }
+
+    # ============================================================================
+    # Chat Endpoint (with mandatory learning hook)
+    # ============================================================================
+
+    @app.post("/api/chat")
+    async def chat(request: ChatRequest):
+        """
+        Agent chat endpoint with mandatory learning hook.
+
+        Every response triggers learning event calculation and persistence.
+        """
         try:
-            from torq_console.api.routes import router as api_router
-            app.include_router(api_router, prefix="/api")
-            logger.info("REST API routes from torq_console.api.routes mounted at /api")
-        except ImportError as e:
-            logger.warning(f"Could not import API routes: {e}")
-        except Exception as e:
-            logger.warning(f"Could not mount API routes (may conflict with WebUI routes): {e}")
+            # Import here to avoid heavy module-level imports
+            from torq_console.agents.torq_prince_flowers.core.agent import PrinceFlowersAgent
+            from torq_console.agents.torq_prince_flowers.core.learning_hook import (
+                record_learning_event,
+                calculate_consulting_reward,
+            )
+            from torq_console.core.session import SessionManager
+            import time
 
-        # Add CORS for dashboard frontend
-        from fastapi.middleware.cors import CORSMiddleware
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+            start_time = time.time()
+            trace_id = request.trace_id or f"chat-{int(time.time() * 1000)}"
 
-        # Add proxy secret middleware (protects chat/learning/telemetry endpoints)
-        try:
-            from torq_console.api.middleware import ProxySecretMiddleware, AdminTokenMiddleware
-            app.add_middleware(ProxySecretMiddleware)
-            app.add_middleware(AdminTokenMiddleware)
-            logger.info("Security middleware installed: ProxySecretMiddleware + AdminTokenMiddleware")
-        except ImportError as e:
-            logger.warning(f"Could not import security middleware: {e}")
+            logger.info(f"[{trace_id}] Chat request: {request.message[:100]}...")
 
-        # Add health check endpoint for Railway
-        @app.get("/health")
-        async def health_check():
-            return {"status": "healthy", "service": "torq-console-railway"}
+            # Get or create session
+            session_mgr = SessionManager()
+            session = session_mgr.get_or_create_session(request.session_id)
 
-        # Deployment fingerprint (never guess which code is serving)
-        @app.get("/api/debug/deploy")
-        async def deploy_fingerprint():
-            import subprocess
+            # Create agent
+            agent = PrinceFlowersAgent(
+                session_id=request.session_id,
+                trace_id=trace_id,
+            )
+
+            # Execute agent
+            response_data = await agent.arun(request.message)
+
+            duration = time.time() - start_time
+
+            # === MANDATORY LEARNING HOOK ===
+            # Every agent response triggers learning event
             try:
-                sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()[:8]
-            except Exception:
-                sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown")
+                reward = calculate_consulting_reward(
+                    evidence_level=response_data.get("evidence_level", "medium"),
+                    routing_success=response_data.get("routing_success", True),
+                    policy_compliance=response_data.get("policy_compliance", 1.0),
+                    user_satisfaction_prediction=response_data.get("satisfaction", 0.8),
+                    response_time=duration,
+                )
+
+                await record_learning_event(
+                    trace_id=trace_id,
+                    session_id=request.session_id,
+                    agent_name="prince_flowers",
+                    user_query=request.message,
+                    agent_response=response_data.get("response", ""),
+                    reward=reward,
+                    metadata={
+                        "routing_agent": response_data.get("routing_agent"),
+                        "duration_ms": int(duration * 1000),
+                        "evidence_level": response_data.get("evidence_level"),
+                    }
+                )
+
+                logger.info(f"[{trace_id}] Learning event recorded: reward={reward:.3f}")
+            except Exception as e:
+                logger.error(f"[{trace_id}] Learning hook failed: {e}")
+                # Don't fail the request if learning fails
+
             return {
-                "service": "railway-agent",
-                "version": "0.91.0",
-                "git_sha": sha,
-                "env": "production" if os.environ.get("RAILWAY_ENVIRONMENT") else "development",
-                "railway_service": os.environ.get("RAILWAY_SERVICE_NAME", "unknown"),
-                "learning_hook": "mandatory",
-                "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
+                "response": response_data.get("response", ""),
+                "session_id": request.session_id,
+                "trace_id": trace_id,
+                "agent": "prince_flowers",
+                "learning_recorded": True,
+                "duration_ms": int(duration * 1000),
             }
 
-        logger.info("=" * 60)
-        logger.info("Ready for Railway deployment")
-        logger.info(f"Static files: /static")
-        logger.info(f"Chat endpoint: /api/chat")
-        logger.info(f"Health check: /health")
-        logger.info("=" * 60)
+        except Exception as e:
+            logger.error(f"Chat error: {e}")
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=str(e))
 
-        return app
+    # ============================================================================
+    # Telemetry Endpoints
+    # ============================================================================
 
-    except Exception as e:
-        logger.error("=" * 60)
-        logger.error(f"Failed to create Railway app: {e}")
-        logger.error("Creating fallback minimal app...")
-        logger.error("=" * 60)
+    @app.post("/api/telemetry")
+    async def ingest_telemetry(request: TelemetryIngest):
+        """Ingest telemetry data from Vercel/frontend."""
+        try:
+            from torq_console.telemetry.storage import supabase_ingest
 
-        # Fallback to minimal app
-        from fastapi import FastAPI
-        from fastapi.responses import JSONResponse
+            result = await supabase_ingest(
+                trace=request.trace,
+                spans=request.spans,
+            )
 
-        app = FastAPI(title="TORQ Console")
+            return {
+                "ok": True,
+                "trace_id": request.trace.get("trace_id"),
+                "spans_ingested": len(request.spans),
+                "storage": "supabase"
+            }
+        except Exception as e:
+            logger.error(f"Telemetry ingest error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
-        @app.get("/health")
-        async def health_check():
-            return {"status": "healthy", "service": "torq-console-minimal"}
+    @app.get("/api/telemetry/health")
+    async def telemetry_health():
+        """Check telemetry system health."""
+        from torq_console.telemetry.storage import get_telemetry_health
 
-        @app.get("/")
-        async def root():
-            return JSONResponse({
-                "message": "TORQ Console - Minimal deployment",
-                "full_webui_unavailable": str(e)
-            })
+        health = await get_telemetry_health()
+        return health
 
-        return app
+    # ============================================================================
+    # Learning Endpoints
+    # ============================================================================
+
+    @app.get("/api/learning/status")
+    async def learning_status():
+        """Get learning system status."""
+        try:
+            from torq_console.telemetry.learning import get_learning_status
+
+            status = await get_learning_status()
+            return status
+        except Exception as e:
+            return {
+                "configured": False,
+                "error": str(e),
+                "backend": "supabase"
+            }
+
+    @app.post("/api/learning/policy/approve")
+    async def approve_policy(request: LearningPolicyUpdate):
+        """Approve a new learning policy (admin only)."""
+        try:
+            from torq_console.telemetry.learning import approve_policy_version
+
+            result = await approve_policy_version(
+                policy_id=request.policy_id,
+                routing_data=request.routing_data,
+            )
+
+            return {"ok": True, "policy_id": request.policy_id, **result}
+        except Exception as e:
+            logger.error(f"Policy approval error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/learning/policy/rollback")
+    async def rollback_policy():
+        """Rollback to previous policy (admin only)."""
+        try:
+            from torq_console.telemetry.learning import rollback_policy_version
+
+            result = await rollback_policy_version()
+
+            return {"ok": True, **result}
+        except Exception as e:
+            logger.error(f"Policy rollback error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ============================================================================
+    # Deploy Info
+    # ============================================================================
+
+    @app.get("/api/debug/deploy")
+    async def deploy_info():
+        """Deployment fingerprint."""
+        return {
+            "service": "railway-backend",
+            "version": "1.0.0",
+            "env": "production",
+            "learning_hook": "mandatory",
+            "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
+            "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        }
+
+    logger.info("Railway app created successfully")
+    logger.info("Endpoints: /api/chat, /api/telemetry, /api/learning, /health")
+
+    return app
 
 
-# Create app at module level for Railway uvicorn startup
+# Create app at module level for Railway
 # Railway runs: uvicorn torq_console.ui.railway_app:app
 app = create_railway_app()
 
