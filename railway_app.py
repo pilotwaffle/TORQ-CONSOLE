@@ -44,7 +44,7 @@ logger.info("Creating Railway standalone app...")
 app = FastAPI(
     title="TORQ Console Railway Backend",
     description="Agent backend with mandatory learning hook",
-    version="1.0.0"
+    version="1.0.7-standalone"
 )
 
 # CORS for Vercel proxy
@@ -362,7 +362,7 @@ async def chat(request: ChatRequest):
             session_id=request.session_id,
             service="railway",
             git_sha=rail_git_sha,
-            version="1.0.6-standalone",
+            version="1.0.7-standalone",
             started_at=start_time,
             ended_at=end_time,
             model_used=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
@@ -625,7 +625,7 @@ async def deploy_info():
     """Deployment fingerprint - anti-drift detection."""
     return {
         "service": "railway-backend",
-        "version": "1.0.6-standalone",
+        "version": "1.0.7-standalone",
         "env": "production",
         "learning_hook": "mandatory",
         "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
@@ -637,19 +637,78 @@ async def deploy_info():
     }
 
 
+def _build_stable_envelope(found: bool, query: dict, count: int, events: list, latest: dict = None) -> dict:
+    """Build stable envelope for trace/event lookup responses."""
+    result = {
+        "found": found,
+        "query": query,
+        "count": count,
+        "events": events,
+    }
+    if latest:
+        result["latest"] = latest
+    return result
+
+
+def _validate_auth_header(auth_header: str | None) -> tuple[bool, str | None]:
+    """
+    Validate Authorization header for common issues.
+
+    Returns: (is_valid, error_message)
+    Detects: whitespace, newlines, truncation (PowerShell wrapping issues)
+    """
+    if not auth_header:
+        return True, None  # No auth required for public endpoints
+
+    # Check for whitespace/newlines (PowerShell wrapping guard)
+    if "\n" in auth_header or "\r" in auth_header:
+        return False, "Bearer token appears to contain newlines (PowerShell wrapping issue). Paste token without line breaks."
+
+    # Check for unusual whitespace patterns
+    if "  " in auth_header or "\t" in auth_header:
+        return False, "Bearer token contains unusual whitespace. Check token formatting."
+
+    # Basic Bearer token length sanity check (JWTs are typically 200-2000 chars)
+    token = auth_header.replace("Bearer ", "").strip()
+    if len(token) < 50:
+        return False, f"Bearer token appears truncated (length {len(token)} < 50). Check token copy/paste."
+    if len(token) > 4000:
+        return False, f"Bearer token appears too long (length {len(token)} > 4000). Check for extra characters."
+
+    return True, None
+
+
 @app.get("/api/debug/trace/{trace_id}")
-async def get_trace_info(trace_id: str):
-    """#3: Trace lookup endpoint - returns full telemetry for a trace."""
+async def get_trace_info(trace_id: str, request: Request = None):
+    """
+    Trace lookup endpoint - returns all events for a trace_id.
+
+    Stable envelope response:
+    {
+      "found": true,
+      "query": {"trace_id": "...", "event_id": null},
+      "count": 3,
+      "events": [...],
+      "latest": {...}
+    }
+    """
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
     if not supabase_url or not supabase_key:
         raise HTTPException(status_code=503, detail="Supabase not configured")
 
+    # Auth validation (PowerShell wrapping guard)
+    if request:
+        auth_header = request.headers.get("Authorization")
+        is_valid, error_msg = _validate_auth_header(auth_header)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+
     try:
         import httpx
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Query by source_trace_id (our trace_id)
+            # Query by source_trace_id - returns ALL events (retries, fallbacks)
             response = await client.get(
                 f"{supabase_url}/rest/v1/learning_events",
                 headers={
@@ -660,6 +719,96 @@ async def get_trace_info(trace_id: str):
                     "select": "*",
                     "source_trace_id": f"eq.{trace_id}",
                     "order": "occurred_at.desc",
+                    "limit": 100  # Allow many events for retries
+                }
+            )
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="Supabase query failed")
+
+        events = response.json()
+        if not events:
+            return _build_stable_envelope(
+                found=False,
+                query={"trace_id": trace_id, "event_id": None},
+                count=0,
+                events=[]
+            )
+
+        # Build enriched events list
+        enriched_events = []
+        for event in events:
+            enriched_events.append({
+                "event_id": event.get("event_id"),
+                "event_type": event.get("event_type"),
+                "category": event.get("category"),
+                "source_agent": event.get("source_agent"),
+                "occurred_at": event.get("occurred_at"),
+                "telemetry": event.get("event_data", {}).get("telemetry"),
+                "metadata": {
+                    "model": event.get("event_data", {}).get("model"),
+                    "duration_ms": event.get("event_data", {}).get("duration_ms"),
+                    "backend": event.get("event_data", {}).get("backend"),
+                }
+            })
+
+        latest = enriched_events[0] if enriched_events else None
+
+        return _build_stable_envelope(
+            found=True,
+            query={"trace_id": trace_id, "event_id": None},
+            count=len(enriched_events),
+            events=enriched_events,
+            latest=latest
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Trace lookup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/debug/event/{event_id}")
+async def get_event_info(event_id: str, request: Request = None):
+    """
+    Event lookup endpoint - returns one canonical record by event_id.
+
+    Stable envelope response:
+    {
+      "found": true,
+      "query": {"trace_id": null, "event_id": "..."},
+      "count": 1,
+      "events": [{...}],
+      "latest": {...}
+    }
+    """
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+    if not supabase_url or not supabase_key:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+
+    # Auth validation (PowerShell wrapping guard)
+    if request:
+        auth_header = request.headers.get("Authorization")
+        is_valid, error_msg = _validate_auth_header(auth_header)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Query by event_id (unique, indexed)
+            response = await client.get(
+                f"{supabase_url}/rest/v1/learning_events",
+                headers={
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                },
+                params={
+                    "select": "*",
+                    "event_id": f"eq.{event_id}",
                     "limit": 1
                 }
             )
@@ -669,36 +818,44 @@ async def get_trace_info(trace_id: str):
 
         events = response.json()
         if not events:
-            return {"error": "Trace not found", "trace_id": trace_id}
+            return _build_stable_envelope(
+                found=False,
+                query={"trace_id": None, "event_id": event_id},
+                count=0,
+                events=[]
+            )
 
         event = events[0]
-        return {
-            "trace_id": trace_id,
+        enriched = {
             "event_id": event.get("event_id"),
-            "found": True,
-            "learning_receipt": {
-                "event_id": event.get("event_id"),
-                "inserted": True,  # We found it, so it was inserted
-                "duplicate": False,
-            },
-            "metadata": {
-                "event_type": event.get("event_type"),
-                "category": event.get("category"),
-                "source_agent": event.get("source_agent"),
-                "occurred_at": event.get("occurred_at"),
-            },
+            "event_type": event.get("event_type"),
+            "category": event.get("category"),
+            "source_agent": event.get("source_agent"),
+            "source_trace_id": event.get("source_trace_id"),
+            "occurred_at": event.get("occurred_at"),
             "telemetry": event.get("event_data", {}).get("telemetry"),
-            "deploy_info": {
-                "service": "railway-backend",
-                "version": "1.0.6-standalone",
-                "git_sha": os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown"),
+            "user_query": event.get("event_data", {}).get("user_query"),
+            "agent_response": event.get("event_data", {}).get("agent_response", "")[:500] + "...",
+            "metadata": {
+                "reward": event.get("event_data", {}).get("reward"),
+                "model": event.get("event_data", {}).get("model"),
+                "duration_ms": event.get("event_data", {}).get("duration_ms"),
+                "backend": event.get("event_data", {}).get("backend"),
             }
         }
+
+        return _build_stable_envelope(
+            found=True,
+            query={"trace_id": None, "event_id": event_id},
+            count=1,
+            events=[enriched],
+            latest=enriched
+        )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Trace lookup error: {e}")
+        logger.error(f"Event lookup error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
