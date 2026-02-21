@@ -11,8 +11,11 @@ Railway startup: uvicorn railway_app:app --host 0.0.0.0 --port 8080
 
 import os
 import logging
+import hashlib
+import time
+import json
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(
@@ -110,6 +113,41 @@ class TelemetryIngest(BaseModel):
 class LearningPolicyUpdate(BaseModel):
     policy_id: str
     routing_data: Dict[str, Any]
+
+# ============================================================================
+# Helpers: Idempotency & Telemetry Spine
+# ============================================================================
+
+def _generate_event_id(trace_id: str, event_type: str, source_agent: str,
+                       user_query: str, agent_response: str) -> str:
+    """Generate deterministic event_id for idempotency."""
+    hash_input = f"{trace_id}:{event_type}:{source_agent}:{user_query}:{agent_response}"
+    return hashlib.sha256(hash_input.encode()).hexdigest()[:32]
+
+
+def _build_telemetry_spine(trace_id: str, session_id: str, service: str,
+                           git_sha: str, version: str, started_at: float,
+                           ended_at: float, model_used: str, fallback_reason: str = None,
+                           streaming_attempted: bool = False, streaming_success: bool = False) -> Dict[str, Any]:
+    """Build telemetry spine metadata."""
+    return {
+        "trace_id": trace_id,
+        "session_id": session_id,
+        "request_chain": [{
+            "service": service,
+            "git_sha": git_sha,
+            "version": version,
+            "started_at": started_at,
+            "ended_at": ended_at,
+            "latency_ms": int((ended_at - started_at) * 1000),
+            "model_used": model_used,
+            "streaming_attempted": streaming_attempted,
+            "streaming_success": streaming_success,
+            "fallback_reason": fallback_reason,
+            "timestamp": datetime.utcnow().isoformat()
+        }]
+    }
+
 
 # ============================================================================
 # Health Check
@@ -308,14 +346,42 @@ async def chat(request: ChatRequest):
 
         # Record learning event to Supabase (if configured)
         learning_recorded = False
+        event_inserted = False
+        event_duplicate = False
+        learning_event_id = None
+
         supabase_url = os.environ.get("SUPABASE_URL")
         supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
+        # Telemetry spine: build hop metadata
+        end_time = time.time()
+        rail_git_sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown")
+        telemetry = _build_telemetry_spine(
+            trace_id=trace_id,
+            session_id=request.session_id,
+            service="railway",
+            git_sha=rail_git_sha,
+            version="1.0.6-standalone",
+            started_at=start_time,
+            ended_at=end_time,
+            model_used=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            fallback_reason=None
+        )
+
         if supabase_url and supabase_key:
             try:
-                # Map to existing learning_events table schema
+                # #1: Idempotent learning receipt
+                learning_event_id = _generate_event_id(
+                    trace_id=trace_id,
+                    event_type="chat_interaction",
+                    source_agent="prince_flowers",
+                    user_query=request.message,
+                    agent_response=agent_response[:500]  # Hash first 500 chars for idempotency
+                )
+
+                # #2: Telemetry spine - store in event_data
                 learning_payload = {
-                    "event_id": trace_id,
+                    "event_id": learning_event_id,
                     "event_type": "chat_interaction",
                     "category": "learning",
                     "source_agent": "prince_flowers",
@@ -328,26 +394,45 @@ async def chat(request: ChatRequest):
                         "duration_ms": int(duration * 1000),
                         "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
                         "backend": "railway",
+                        "telemetry": telemetry
                     },
                     "occurred_at": datetime.utcnow().isoformat()
                 }
 
                 # Create new client for Supabase (previous client is closed)
                 async with httpx.AsyncClient(timeout=10.0) as sb_client:
+                    # Use INSERT ... ON CONFLICT DO NOTHING for idempotency
                     learning_response = await sb_client.post(
                         f"{supabase_url}/rest/v1/learning_events",
                         headers={
                             "apikey": supabase_key,
                             "Authorization": f"Bearer {supabase_key}",
                             "Content-Type": "application/json",
-                            "Prefer": "return=representation",
+                            "Prefer": "resolution=ignore-duplicates",
                         },
                         json=learning_payload
                     )
 
-                if learning_response.status_code < 400:
+                # Check if insert succeeded or was duplicate
+                # 201 = created, 409 = conflict (duplicate), but with ignore-duplicates both return 200/201
+                if learning_response.status_code in (200, 201):
                     learning_recorded = True
-                    logger.info(f"[{trace_id}] Learning event recorded: reward={reward:.3f}")
+                    # Check if it was a duplicate by looking at the response
+                    response_data = learning_response.json() if learning_response.content else []
+                    if isinstance(response_data, list) and len(response_data) > 0:
+                        event_inserted = True
+                        event_duplicate = False
+                    else:
+                        # Empty response might mean conflict ignored
+                        event_inserted = False
+                        event_duplicate = True
+                    logger.info(f"[{trace_id}] Learning event: event_id={learning_event_id}, inserted={event_inserted}, duplicate={event_duplicate}")
+                elif learning_response.status_code == 409:
+                    # Conflict - already exists (idempotent)
+                    learning_recorded = True
+                    event_inserted = False
+                    event_duplicate = True
+                    logger.info(f"[{trace_id}] Learning event: duplicate (idempotent), event_id={learning_event_id}")
                 else:
                     logger.warning(f"[{trace_id}] Learning recording failed: {learning_response.status_code} {learning_response.text[:200]}")
 
@@ -361,6 +446,9 @@ async def chat(request: ChatRequest):
             "agent": "prince_flowers",
             "backend": "railway",
             "learning_recorded": learning_recorded,
+            "event_id": learning_event_id,
+            "event_inserted": event_inserted,
+            "event_duplicate": event_duplicate,
             "duration_ms": int(duration * 1000),
         }
 
@@ -546,6 +634,71 @@ async def deploy_info():
         "backend": "railway",
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@app.get("/api/debug/trace/{trace_id}")
+async def get_trace_info(trace_id: str):
+    """#3: Trace lookup endpoint - returns full telemetry for a trace."""
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+    if not supabase_url or not supabase_key:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Query by source_trace_id (our trace_id)
+            response = await client.get(
+                f"{supabase_url}/rest/v1/learning_events",
+                headers={
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                },
+                params={
+                    "select": "*",
+                    "source_trace_id": f"eq.{trace_id}",
+                    "order": "occurred_at.desc",
+                    "limit": 1
+                }
+            )
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="Supabase query failed")
+
+        events = response.json()
+        if not events:
+            return {"error": "Trace not found", "trace_id": trace_id}
+
+        event = events[0]
+        return {
+            "trace_id": trace_id,
+            "event_id": event.get("event_id"),
+            "found": True,
+            "learning_receipt": {
+                "event_id": event.get("event_id"),
+                "inserted": True,  # We found it, so it was inserted
+                "duplicate": False,
+            },
+            "metadata": {
+                "event_type": event.get("event_type"),
+                "category": event.get("category"),
+                "source_agent": event.get("source_agent"),
+                "occurred_at": event.get("occurred_at"),
+            },
+            "telemetry": event.get("event_data", {}).get("telemetry"),
+            "deploy_info": {
+                "service": "railway-backend",
+                "version": "1.0.6-standalone",
+                "git_sha": os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown"),
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Trace lookup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 async def root():
