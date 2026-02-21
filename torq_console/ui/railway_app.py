@@ -7,13 +7,12 @@ This provides the core API endpoints for the Vercel→Railway proxy architecture
 - /api/learning/* - Learning policy management
 - /health - Railway health check
 
-Railway startup: uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT
+Railway startup: uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port 8080
 """
 
 import os
 import sys
 import logging
-from pathlib import Path
 
 # Configure logging BEFORE any other imports
 logging.basicConfig(
@@ -23,13 +22,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Set production environment variables
-os.environ.setdefault('TORQ_CONSOLE_PRODUCTION', 'true')
-os.environ.setdefault('TORQ_DISABLE_LOCAL_LLM', 'true')
-os.environ.setdefault('TORQ_DISABLE_GPU', 'true')
-
-# Add project root to Python path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
+os.environ['TORQ_CONSOLE_PRODUCTION'] = 'true'
+os.environ['TORQ_DISABLE_LOCAL_LLM'] = 'true'
+os.environ['TORQ_DISABLE_GPU'] = 'true'
 
 
 def create_railway_app():
