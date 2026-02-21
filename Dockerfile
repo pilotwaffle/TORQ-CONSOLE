@@ -26,7 +26,6 @@ RUN pip install --upgrade pip && pip install -r requirements-railway.txt
 # Copy application code
 COPY . .
 
-# Use a wrapper script to handle PORT environment variable
-RUN echo '#!/bin/sh\nexec uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port ${PORT:-8080}' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
-
-CMD ["/app/entrypoint.sh"]
+# Start command - Railway exposes port 8080
+ENV PORT=8080
+CMD ["python", "-m", "uvicorn", "torq_console.ui.railway_app:app", "--host", "0.0.0.0", "--port", "8080"]
