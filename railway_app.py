@@ -330,7 +330,8 @@ async def chat(request: ChatRequest):
             "error": f"Max retries exceeded: {last_error}",
         }
 
-    data = response.json()
+    try:
+        data = response.json()
 
         # Extract text from Claude's response
         agent_response = ""
