@@ -360,15 +360,18 @@ async def rollback_policy():
 
 @app.get("/api/debug/deploy")
 async def deploy_info():
-    """Deployment fingerprint."""
+    """Deployment fingerprint - anti-drift detection."""
     return {
         "service": "railway-backend",
-        "version": "1.0.2-standalone",
+        "version": "1.0.3-standalone",
         "env": "production",
         "learning_hook": "mandatory",
+        "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
         "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
-        "backend": "railway"
+        "proxy_secret_required": bool(PROXY_SECRET),
+        "backend": "railway",
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 @app.get("/")
