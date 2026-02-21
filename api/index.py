@@ -202,32 +202,37 @@ async def health():
 async def chat(req: ChatRequest):
     """
     Chat with Prince Flowers.
-    
+
     PROXY MODE: Forwards to Railway where full agent runtime + learning hook runs.
     FALLBACK MODE: Direct Anthropic call (no learning, marked as degraded).
     """
     if RAILWAY_URL:
         # === PROXY to Railway ===
+        # Generate a session_id for tracking
+        import uuid
+        session_id = str(uuid.uuid4())
+
         payload = json.dumps({
             "message": req.message,
-            "context": req.context,
-            "mode": req.mode or "single_agent",
+            "session_id": session_id,
         }).encode("utf-8")
 
         result = _proxy_to_railway(
-            "/api/agents/prince_flowers/chat",
+            "/api/chat",  # Railway's chat endpoint
             method="POST",
             body=payload,
         )
 
         return ChatResponse(
             response=result.get("response", ""),
-            agent_id=result.get("agent_id", "prince_flowers"),
+            agent_id=result.get("agent", "prince_flowers"),
             timestamp=result.get("timestamp", _now_iso()),
             metadata={
-                **result.get("metadata", {}),
                 "backend": "railway",
                 "proxy": "vercel→railway",
+                "learning_recorded": result.get("learning_recorded", False),
+                "trace_id": result.get("trace_id"),
+                "duration_ms": result.get("duration_ms"),
             },
         )
     else:
