@@ -33,6 +33,13 @@ os.environ.setdefault("TORQ_DISABLE_GPU", "true")
 
 logger = logging.getLogger("torq-vercel")
 
+# Railway proxy configuration
+RAILWAY_URL = os.environ.get("TORQ_BACKEND_URL", "").rstrip("/")
+PROXY_SECRET = os.environ.get("TORQ_PROXY_SHARED_SECRET", "")
+PROXY_TIMEOUT = int(os.environ.get("TORQ_PROXY_TIMEOUT_MS", "25000")) / 1000
+
+logger.info(f"Railway proxy configured: {bool(RAILWAY_URL)}")
+
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
@@ -106,6 +113,49 @@ def _now_iso() -> str:
 def _has_key(name: str) -> bool:
     val = os.environ.get(name, "")
     return bool(val and not val.startswith("@") and val != "")
+
+
+def _proxy_to_railway(
+    path: str,
+    method: str = "GET",
+    body: bytes = None,
+    extra_headers: dict = None,
+    query_string: str = "",
+) -> dict:
+    """Forward request to Railway backend using stdlib urllib."""
+    if not RAILWAY_URL:
+        raise HTTPException(status_code=503, detail="Backend not configured.")
+
+    import urllib.request
+    import urllib.error
+
+    url = f"{RAILWAY_URL}{path}"
+    if query_string:
+        url = f"{url}?{query_string}"
+
+    headers = {"Content-Type": "application/json"}
+
+    if PROXY_SECRET:
+        headers["x-torq-proxy-secret"] = PROXY_SECRET
+
+    if extra_headers:
+        headers.update(extra_headers)
+
+    req = urllib.request.Request(url, data=body, headers=headers, method=method)
+
+    try:
+        with urllib.request.urlopen(req, timeout=PROXY_TIMEOUT) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")
+        logger.error(f"Railway {e.code}: {error_body[:500]}")
+        raise HTTPException(status_code=e.code, detail=f"Backend error: {error_body[:200]}")
+    except urllib.error.URLError as e:
+        logger.error(f"Railway unreachable: {e}")
+        raise HTTPException(status_code=502, detail=f"Backend unreachable: {str(e)}")
+    except Exception as e:
+        logger.error(f"Proxy error: {e}")
+        raise HTTPException(status_code=500, detail=f"Proxy error: {str(e)}")
 
 
 async def _chat_anthropic(message: str, model: str | None = None) -> str:
@@ -334,9 +384,43 @@ async def chat(req: ChatRequest):
     """
     Chat with Prince Flowers AI assistant.
 
-    Uses Anthropic Claude by default. Falls back to OpenAI if Anthropic
-    key is not configured.
+    PROXY MODE: Forwards to Railway where full agent + learning runs.
+    FALLBACK MODE: Direct Anthropic/OpenAI call (no learning).
     """
+    # Try Railway proxy first
+    if RAILWAY_URL:
+        import uuid
+        session_id = str(uuid.uuid4())
+
+        payload = json.dumps({
+            "message": req.message,
+            "session_id": session_id,
+        }).encode("utf-8")
+
+        try:
+            result = _proxy_to_railway(
+                "/api/chat",  # Railway's endpoint
+                method="POST",
+                body=payload,
+            )
+
+            return ChatResponse(
+                response=result.get("response", ""),
+                agent_id=result.get("agent", "prince_flowers"),
+                timestamp=result.get("timestamp", _now_iso()),
+                metadata={
+                    "backend": "railway",
+                    "proxy": "vercel→railway",
+                    "learning_recorded": result.get("learning_recorded", False),
+                    "trace_id": result.get("trace_id"),
+                    "duration_ms": result.get("duration_ms"),
+                },
+            )
+        except HTTPException as e:
+            # If Railway fails, log and fall through to direct call
+            logger.warning(f"Railway proxy failed: {e.detail}, falling back to direct call")
+
+    # Fallback: direct Anthropic/OpenAI call
     provider = "none"
     try:
         if _has_key("ANTHROPIC_API_KEY"):
@@ -364,11 +448,14 @@ async def chat(req: ChatRequest):
         agent_id="prince_flowers",
         timestamp=_now_iso(),
         metadata={
+            "backend": "vercel-direct",
             "provider": provider,
             "mode": req.mode or "single_agent",
             "model": req.model,
             "platform": "vercel",
             "success": True,
+            "learning": False,
+            "degraded": True,
         },
     )
 
