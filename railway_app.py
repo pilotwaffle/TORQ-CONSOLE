@@ -381,14 +381,17 @@ async def chat(request: ChatRequest):
                 )
 
                 # #2: Telemetry spine - store in event_data
+                # Include top-level columns for analytics performance
                 learning_payload = {
                     "event_id": learning_event_id,
+                    "trace_id": trace_id,  # Top-level column for fast filtering
+                    "session_id": request.session_id,  # Top-level column for fast filtering
                     "event_type": "chat_interaction",
                     "category": "learning",
                     "source_agent": "prince_flowers",
                     "source_trace_id": trace_id,
                     "event_data": {
-                        "session_id": request.session_id,
+                        "session_id": request.session_id,  # Keep in JSON too for compatibility
                         "user_query": request.message,
                         "agent_response": agent_response,
                         "reward": reward,
@@ -397,37 +400,48 @@ async def chat(request: ChatRequest):
                         "backend": "railway",
                         "telemetry": telemetry
                     },
-                    "occurred_at": datetime.utcnow().isoformat()
+                    "occurred_at": datetime.utcnow().isoformat(),
+                    # For attempt counter (incremented on conflict)
+                    "duplicate_count": 1,  # First attempt
+                    "last_seen_at": datetime.utcnow().isoformat()
                 }
 
                 # Create new client for Supabase (previous client is closed)
                 async with httpx.AsyncClient(timeout=10.0) as sb_client:
-                    # Use INSERT ... ON CONFLICT DO NOTHING for idempotency
+                    # Use INSERT ... ON CONFLICT for idempotency with attempt counter
+                    # resolution=merge-duplicates will UPDATE on conflict, incrementing duplicate_count
                     learning_response = await sb_client.post(
                         f"{supabase_url}/rest/v1/learning_events",
                         headers={
                             "apikey": supabase_key,
                             "Authorization": f"Bearer {supabase_key}",
                             "Content-Type": "application/json",
-                            "Prefer": "resolution=ignore-duplicates",
+                            "Prefer": "resolution=merge-duplicates",
                         },
                         json=learning_payload
                     )
 
                 # Check if insert succeeded or was duplicate
-                # 201 = created, 409 = conflict (duplicate), but with ignore-duplicates both return 200/201
+                # 201 = created, 200 = updated (merge on conflict)
                 if learning_response.status_code in (200, 201):
                     learning_recorded = True
                     # Check if it was a duplicate by looking at the response
                     response_data = learning_response.json() if learning_response.content else []
                     if isinstance(response_data, list) and len(response_data) > 0:
-                        event_inserted = True
-                        event_duplicate = False
+                        # Check duplicate_count to determine if this was a retry
+                        duplicate_count = response_data[0].get("duplicate_count", 1)
+                        if duplicate_count > 1:
+                            event_inserted = False
+                            event_duplicate = True
+                            logger.info(f"[{trace_id}] Learning event: duplicate detected (attempt #{duplicate_count}), event_id={learning_event_id}")
+                        else:
+                            event_inserted = True
+                            event_duplicate = False
+                            logger.info(f"[{trace_id}] Learning event: inserted, event_id={learning_event_id}")
                     else:
                         # Empty response might mean conflict ignored
                         event_inserted = False
                         event_duplicate = True
-                    logger.info(f"[{trace_id}] Learning event: event_id={learning_event_id}, inserted={event_inserted}, duplicate={event_duplicate}")
                 elif learning_response.status_code == 409:
                     # Conflict - already exists (idempotent)
                     learning_recorded = True
@@ -708,7 +722,8 @@ async def get_trace_info(trace_id: str, request: Request = None):
     try:
         import httpx
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Query by source_trace_id - returns ALL events (retries, fallbacks)
+            # Query by trace_id (top-level column, indexed) - returns ALL events (retries, fallbacks)
+            # Fall back to source_trace_id for backward compatibility
             response = await client.get(
                 f"{supabase_url}/rest/v1/learning_events",
                 headers={
@@ -717,7 +732,7 @@ async def get_trace_info(trace_id: str, request: Request = None):
                 },
                 params={
                     "select": "*",
-                    "source_trace_id": f"eq.{trace_id}",
+                    "or": f"(trace_id.eq.{trace_id},source_trace_id.eq.{trace_id})",  # Check both columns
                     "order": "occurred_at.desc",
                     "limit": 100  # Allow many events for retries
                 }
@@ -744,6 +759,8 @@ async def get_trace_info(trace_id: str, request: Request = None):
                 "category": event.get("category"),
                 "source_agent": event.get("source_agent"),
                 "occurred_at": event.get("occurred_at"),
+                "duplicate_count": event.get("duplicate_count", 1),  # Attempt counter
+                "last_seen_at": event.get("last_seen_at"),
                 "telemetry": event.get("event_data", {}).get("telemetry"),
                 "metadata": {
                     "model": event.get("event_data", {}).get("model"),
@@ -832,7 +849,11 @@ async def get_event_info(event_id: str, request: Request = None):
             "category": event.get("category"),
             "source_agent": event.get("source_agent"),
             "source_trace_id": event.get("source_trace_id"),
+            "trace_id": event.get("trace_id"),  # Top-level column
+            "session_id": event.get("session_id"),  # Top-level column
             "occurred_at": event.get("occurred_at"),
+            "duplicate_count": event.get("duplicate_count", 1),  # Attempt counter
+            "last_seen_at": event.get("last_seen_at"),
             "telemetry": event.get("event_data", {}).get("telemetry"),
             "user_query": event.get("event_data", {}).get("user_query"),
             "agent_response": event.get("event_data", {}).get("agent_response", "")[:500] + "...",
