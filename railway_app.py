@@ -355,6 +355,70 @@ async def rollback_policy():
     return {"ok": True, "status": "rolled_back"}
 
 # ============================================================================
+# Learning Debug (test Supabase write)
+# ============================================================================
+
+@app.get("/api/debug/learning/test")
+async def test_learning_write():
+    """Test Supabase learning_events write and return detailed status."""
+    import httpx
+    import time
+
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+    result = {
+        "supabase_url_present": bool(supabase_url),
+        "supabase_key_present": bool(supabase_key),
+        "table_endpoint": f"{supabase_url}/rest/v1/learning_events" if supabase_url else None,
+    }
+
+    if not supabase_url or not supabase_key:
+        result["error"] = "Supabase not configured"
+        return result
+
+    # Test write
+    test_trace = f"test-{int(time.time() * 1000)}"
+    test_payload = {
+        "trace_id": test_trace,
+        "session_id": "debug-test",
+        "agent_name": "prince_flowers",
+        "user_query": "debug test query",
+        "agent_response": "debug test response",
+        "reward": 0.5,
+        "metadata": {"test": True, "backend": "railway"}
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{supabase_url}/rest/v1/learning_events",
+                headers={
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                    "Content-Type": "application/json"
+                },
+                json=test_payload
+            )
+
+        result["status_code"] = response.status_code
+        result["response_body"] = response.text[:500]
+
+        if response.status_code < 400:
+            result["success"] = True
+            result["trace_id"] = test_trace
+        else:
+            result["success"] = False
+            result["error"] = f"HTTP {response.status_code}: {response.text[:200]}"
+
+    except Exception as e:
+        result["success"] = False
+        result["error"] = f"{type(e).__name__}: {str(e)}"
+
+    return result
+
+
+# ============================================================================
 # Deploy Info
 # ============================================================================
 
