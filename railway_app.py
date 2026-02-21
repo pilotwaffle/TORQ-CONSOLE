@@ -3,14 +3,13 @@ Railway Standalone FastAPI app - NO heavy imports.
 
 This is a minimal backend that:
 - Does NOT import torq_console package (avoids __init__.py)
-- Does NOT trigger any LLM provider imports
+- Uses httpx for all HTTP requests (no SDK dependency issues)
 - Provides only the essential endpoints for Vercel→Railway proxy
 
 Railway startup: uvicorn railway_app:app --host 0.0.0.0 --port 8080
 """
 
 import os
-import sys
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -28,8 +27,9 @@ os.environ['TORQ_DISABLE_LOCAL_LLM'] = 'true'
 os.environ['TORQ_DISABLE_GPU'] = 'true'
 
 # Import FastAPI (lightweight, in requirements-railway.txt)
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 logger.info("Creating Railway standalone app...")
@@ -64,7 +64,7 @@ PROTECTED_PATHS = {"/api/chat", "/api/learning", "/api/telemetry"}
 ADMIN_PATHS = {"/api/learning/policy/approve", "/api/learning/policy/rollback"}
 
 @app.middleware("http")
-async def proxy_auth_middleware(request, call_next):
+async def proxy_auth_middleware(request: Request, call_next):
     """Validate proxy secret for protected endpoints."""
     path = request.url.path
 
@@ -73,7 +73,10 @@ async def proxy_auth_middleware(request, call_next):
         if PROXY_SECRET:
             provided = request.headers.get("x-torq-proxy-secret", "")
             if provided != PROXY_SECRET:
-                return HTTPException(status_code=403, detail="Invalid proxy secret")
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Invalid proxy secret"}
+                )
 
     # Check admin paths
     if any(path.startswith(p) for p in ADMIN_PATHS):
@@ -81,7 +84,10 @@ async def proxy_auth_middleware(request, call_next):
             auth_header = request.headers.get("authorization", "")
             token = auth_header[7:] if auth_header.startswith("Bearer ") else auth_header
             if not token or token != ADMIN_TOKEN:
-                return HTTPException(status_code=403, detail="Invalid admin token")
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Invalid admin token"}
+                )
 
     response = await call_next(request)
     return response
@@ -115,11 +121,28 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "torq-console-railway",
-        "version": "1.0.0",
+        "version": "1.0.0-standalone",
         "timestamp": datetime.utcnow().isoformat(),
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
         "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
-        "learning_hook": "mandatory"
+        "learning_hook": "mandatory",
+        "proxy_secret_required": bool(PROXY_SECRET)
+    }
+
+# ============================================================================
+# Environment Debug
+# ============================================================================
+
+@app.get("/api/debug/env")
+async def debug_env():
+    """Debug environment variables."""
+    return {
+        "anthropic_key_present": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "anthropic_key_length": len(os.environ.get("ANTHROPIC_API_KEY", "")),
+        "supabase_url_present": bool(os.environ.get("SUPABASE_URL")),
+        "supabase_key_present": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
+        "proxy_secret_set": bool(PROXY_SECRET),
+        "admin_token_set": bool(ADMIN_TOKEN),
     }
 
 # ============================================================================
@@ -131,11 +154,9 @@ async def chat(request: ChatRequest):
     """
     Agent chat endpoint with mandatory learning hook.
 
-    This is a simplified version that:
-    1. Calls Anthropic API directly (no heavy agent imports)
-    2. Records learning event to Supabase
+    Uses httpx to call Anthropic API directly (no SDK dependencies).
     """
-    import anthropic
+    import httpx
     import time
 
     trace_id = request.trace_id or f"chat-{int(time.time() * 1000)}"
@@ -146,26 +167,51 @@ async def chat(request: ChatRequest):
     # Check Anthropic API key
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
+        logger.error(f"[{trace_id}] ANTHROPIC_API_KEY not configured")
         raise HTTPException(
             status_code=500,
             detail="ANTHROPIC_API_KEY not configured"
         )
 
     try:
-        # Create Anthropic client and call
-        client = anthropic.Anthropic(api_key=api_key)
+        # Use httpx to call Anthropic API directly
+        anthropic_request = {
+            "model": "claude-3-5-sonnet-20241022",
+            "max_tokens": 2000,
+            "messages": [{"role": "user", "content": request.message}]
+        }
 
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2000,
-            messages=[{"role": "user", "content": request.message}]
-        )
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json=anthropic_request,
+            )
 
-        agent_response = response.content[0].text
+        if response.status_code >= 400:
+            logger.error(f"[{trace_id}] Anthropic error {response.status_code}: {response.text[:500]}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Anthropic API error: {response.status_code}"
+            )
+
+        data = response.json()
+
+        # Extract text from Claude's response
+        agent_response = ""
+        for part in data.get("content", []):
+            if part.get("type") == "text":
+                agent_response += part.get("text", "")
+
+        logger.info(f"[{trace_id}] Anthropic response: {len(agent_response)} chars")
 
         # Calculate learning reward
         duration = time.time() - start_time
-        reward = 0.5 + (0.1 if duration < 5 else 0)  # Simple reward function
+        reward = 0.5 + (0.1 if duration < 5 else 0)
 
         # Record learning event to Supabase (if configured)
         learning_recorded = False
@@ -174,8 +220,6 @@ async def chat(request: ChatRequest):
 
         if supabase_url and supabase_key:
             try:
-                import httpx
-
                 learning_payload = {
                     "trace_id": trace_id,
                     "session_id": request.session_id,
@@ -185,25 +229,26 @@ async def chat(request: ChatRequest):
                     "reward": reward,
                     "metadata": {
                         "duration_ms": int(duration * 1000),
-                        "model": "claude-sonnet-4-20250514",
+                        "model": "claude-3-5-sonnet-20241022",
+                        "backend": "railway",
                     }
                 }
 
-                async def record_learning():
-                    async with httpx.AsyncClient() as client:
-                        await client.post(
-                            f"{supabase_url}/rest/v1/learning_events",
-                            headers={
-                                "apikey": supabase_key,
-                                "Authorization": f"Bearer {supabase_key}",
-                                "Content-Type": "application/json"
-                            },
-                            json=learning_payload
-                        )
+                learning_response = await client.post(
+                    f"{supabase_url}/rest/v1/learning_events",
+                    headers={
+                        "apikey": supabase_key,
+                        "Authorization": f"Bearer {supabase_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json=learning_payload
+                )
 
-                await record_learning()
-                learning_recorded = True
-                logger.info(f"[{trace_id}] Learning event recorded: reward={reward:.3f}")
+                if learning_response.status_code < 400:
+                    learning_recorded = True
+                    logger.info(f"[{trace_id}] Learning event recorded: reward={reward:.3f}")
+                else:
+                    logger.warning(f"[{trace_id}] Learning recording failed: {learning_response.status_code}")
 
             except Exception as e:
                 logger.warning(f"[{trace_id}] Learning recording failed: {e}")
@@ -213,13 +258,16 @@ async def chat(request: ChatRequest):
             "session_id": request.session_id,
             "trace_id": trace_id,
             "agent": "prince_flowers",
+            "backend": "railway",
             "learning_recorded": learning_recorded,
             "duration_ms": int(duration * 1000),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Chat error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[{trace_id}] Chat error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)[:200]}")
 
 # ============================================================================
 # Telemetry Endpoints
@@ -240,8 +288,7 @@ async def ingest_telemetry(request: TelemetryIngest):
     try:
         import httpx
 
-        # Ingest traces
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             # Store trace
             await client.post(
                 f"{supabase_url}/rest/v1/telemetry_traces",
@@ -300,7 +347,6 @@ async def learning_status():
 @app.post("/api/learning/policy/approve")
 async def approve_policy(request: LearningPolicyUpdate):
     """Approve a new learning policy (admin only)."""
-    # Simplified - just acknowledge
     return {"ok": True, "policy_id": request.policy_id, "status": "approved"}
 
 @app.post("/api/learning/policy/rollback")
@@ -317,11 +363,12 @@ async def deploy_info():
     """Deployment fingerprint."""
     return {
         "service": "railway-backend",
-        "version": "1.0.0-standalone",
+        "version": "1.0.1-standalone",
         "env": "production",
         "learning_hook": "mandatory",
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
         "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "backend": "railway"
     }
 
 @app.get("/")
@@ -330,6 +377,7 @@ async def root():
     return {
         "service": "TORQ Console Railway Backend",
         "status": "running",
+        "backend": "railway",
         "endpoints": ["/health", "/api/chat", "/api/telemetry", "/api/learning"]
     }
 
