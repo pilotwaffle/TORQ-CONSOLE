@@ -173,33 +173,126 @@ async def chat(request: ChatRequest):
             detail="ANTHROPIC_API_KEY not configured"
         )
 
-    try:
-        # Use httpx to call Anthropic API directly
-        anthropic_request = {
-            "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-            "max_tokens": 2000,
-            "messages": [{"role": "user", "content": request.message}]
+    # Circuit breaker: retry configuration
+    MAX_RETRIES = 2
+    RETRY_STATUS_CODES = {429, 503, 502}  # Rate limit, service unavailable, bad gateway
+    RETRY_DELAY_MS = 1000
+
+    anthropic_request = {
+        "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        "max_tokens": 2000,
+        "messages": [{"role": "user", "content": request.message}]
+    }
+
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json=anthropic_request,
+                )
+
+            # Success - break out of retry loop
+            if response.status_code < 400:
+                break
+
+            # Check if status code is retryable
+            if response.status_code in RETRY_STATUS_CODES and attempt < MAX_RETRIES:
+                retry_after = None
+                # Check for Retry-After header
+                if "Retry-After" in response.headers:
+                    retry_after = float(response.headers["Retry-After"])
+
+                delay = retry_after if retry_after else (RETRY_DELAY_MS / 1000) * (attempt + 1)
+                logger.warning(f"[{trace_id}] Anthropic {response.status_code}, retry {attempt + 1}/{MAX_RETRIES} after {delay}s")
+
+                import asyncio
+                await asyncio.sleep(delay)
+                last_error = f"HTTP {response.status_code}"
+                continue
+
+            # Non-retryable error or max retries exceeded
+            error_detail = f"Anthropic API error: {response.status_code}"
+            if response.status_code == 429:
+                error_detail += " (rate limit exceeded)"
+
+            logger.error(f"[{trace_id}] {error_detail}: {response.text[:500]}")
+
+            # Return structured error response
+            return {
+                "response": "",
+                "session_id": request.session_id,
+                "trace_id": trace_id,
+                "agent": "prince_flowers",
+                "backend": "railway",
+                "learning_recorded": False,
+                "duration_ms": int((time.time() - start_time) * 1000),
+                "provider_status": response.status_code,
+                "retry_after": response.headers.get("Retry-After"),
+                "error": error_detail,
+            }
+
+        except httpx.TimeoutException as e:
+            if attempt < MAX_RETRIES:
+                logger.warning(f"[{trace_id}] Timeout, retry {attempt + 1}/{MAX_RETRIES}")
+                import asyncio
+                await asyncio.sleep((RETRY_DELAY_MS / 1000) * (attempt + 1))
+                last_error = "timeout"
+                continue
+            else:
+                return {
+                    "response": "",
+                    "session_id": request.session_id,
+                    "trace_id": trace_id,
+                    "agent": "prince_flowers",
+                    "backend": "railway",
+                    "learning_recorded": False,
+                    "duration_ms": int((time.time() - start_time) * 1000),
+                    "provider_status": 504,
+                    "error": "Gateway timeout",
+                }
+
+        except httpx.NetworkError as e:
+            last_error = f"Network error: {str(e)}"
+            if attempt < MAX_RETRIES:
+                logger.warning(f"[{trace_id}] {last_error}, retry {attempt + 1}/{MAX_RETRIES}")
+                import asyncio
+                await asyncio.sleep((RETRY_DELAY_MS / 1000) * (attempt + 1))
+                continue
+            else:
+                return {
+                    "response": "",
+                    "session_id": request.session_id,
+                    "trace_id": trace_id,
+                    "agent": "prince_flowers",
+                    "backend": "railway",
+                    "learning_recorded": False,
+                    "duration_ms": int((time.time() - start_time) * 1000),
+                    "provider_status": 503,
+                    "error": last_error,
+                }
+
+    # If we exhausted retries, return error
+    if last_error:
+        return {
+            "response": "",
+            "session_id": request.session_id,
+            "trace_id": trace_id,
+            "agent": "prince_flowers",
+            "backend": "railway",
+            "learning_recorded": False,
+            "duration_ms": int((time.time() - start_time) * 1000),
+            "provider_status": 503,
+            "error": f"Max retries exceeded: {last_error}",
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json=anthropic_request,
-            )
-
-        if response.status_code >= 400:
-            logger.error(f"[{trace_id}] Anthropic error {response.status_code}: {response.text[:500]}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Anthropic API error: {response.status_code}"
-            )
-
-        data = response.json()
+    data = response.json()
 
         # Extract text from Claude's response
         agent_response = ""
