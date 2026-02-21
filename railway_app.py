@@ -44,7 +44,7 @@ logger.info("Creating Railway standalone app...")
 app = FastAPI(
     title="TORQ Console Railway Backend",
     description="Agent backend with mandatory learning hook",
-    version="1.0.7-standalone"
+    version="1.0.8-standalone"
 )
 
 # CORS for Vercel proxy
@@ -362,7 +362,7 @@ async def chat(request: ChatRequest):
             session_id=request.session_id,
             service="railway",
             git_sha=rail_git_sha,
-            version="1.0.7-standalone",
+            version="1.0.8-standalone",
             started_at=start_time,
             ended_at=end_time,
             model_used=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
@@ -639,7 +639,7 @@ async def deploy_info():
     """Deployment fingerprint - anti-drift detection."""
     return {
         "service": "railway-backend",
-        "version": "1.0.7-standalone",
+        "version": "1.0.8-standalone",
         "env": "production",
         "learning_hook": "mandatory",
         "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
