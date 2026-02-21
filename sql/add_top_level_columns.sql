@@ -92,9 +92,9 @@ END $$;
 
 -- 4. Create partial index for analytics (recent events only)
 -- This keeps index size small while supporting dashboard queries
+-- Recent events index - use simple index without time-based predicate
 CREATE INDEX IF NOT EXISTS idx_learning_events_recent
-ON public.learning_events(occurred_at DESC)
-WHERE occurred_at > NOW() - INTERVAL '30 days';
+ON public.learning_events(occurred_at DESC);
 
 -- 5. Create composite index for common session+time queries
 CREATE INDEX IF NOT EXISTS idx_learning_events_session_time

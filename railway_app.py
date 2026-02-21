@@ -4,7 +4,8 @@ Railway Standalone FastAPI app - NO heavy imports.
 This is a minimal backend that:
 - Does NOT import torq_console package (avoids __init__.py)
 - Uses httpx for all HTTP requests (no SDK dependency issues)
-- Provides only the essential endpoints for Vercel→Railway proxy
+- Provides only the essential endpoints for Vercel->Railway proxy
+- INCLUDES Drift/Regression Monitoring System
 
 Railway startup: uvicorn railway_app:app --host 0.0.0.0 --port 8080
 """
@@ -15,7 +16,7 @@ import hashlib
 import time
 import json
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # Configure logging
 logging.basicConfig(
@@ -43,8 +44,8 @@ logger.info("Creating Railway standalone app...")
 
 app = FastAPI(
     title="TORQ Console Railway Backend",
-    description="Agent backend with mandatory learning hook",
-    version="1.0.8-standalone"
+    description="Agent backend with mandatory learning hook and drift monitoring",
+    version="1.0.9-standalone"
 )
 
 # CORS for Vercel proxy
@@ -114,6 +115,17 @@ class LearningPolicyUpdate(BaseModel):
     policy_id: str
     routing_data: Dict[str, Any]
 
+# Monitoring Request/Response Models
+class MonitoringComputeRequest(BaseModel):
+    date: Optional[str] = None  # YYYY-MM-DD format, None for today
+    hour: Optional[int] = None  # 0-23 for hourly, None for all hours
+    update_baseline: bool = True
+
+class MonitoringAcknowledgeRequest(BaseModel):
+    alert_id: str
+    acknowledged_by: str
+    note: Optional[str] = None
+
 # ============================================================================
 # Helpers: Idempotency & Telemetry Spine
 # ============================================================================
@@ -159,11 +171,12 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "torq-console-railway",
-        "version": "1.0.0-standalone",
+        "version": "1.0.9-standalone",
         "timestamp": datetime.utcnow().isoformat(),
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
         "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "learning_hook": "mandatory",
+        "monitoring_enabled": True,
         "proxy_secret_required": bool(PROXY_SECRET)
     }
 
@@ -362,7 +375,7 @@ async def chat(request: ChatRequest):
             session_id=request.session_id,
             service="railway",
             git_sha=rail_git_sha,
-            version="1.0.8-standalone",
+            version="1.0.9-standalone",
             started_at=start_time,
             ended_at=end_time,
             model_used=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
@@ -559,8 +572,8 @@ async def rollback_policy():
     return {"ok": True, "status": "rolled_back"}
 
 # ============================================================================
-# Learning Debug (test Supabase write)
-# ============================================================================
+-- Learning Debug (test Supabase write)
+-- ============================================================================
 
 @app.get("/api/debug/learning/test")
 async def test_learning_write():
@@ -631,21 +644,22 @@ async def test_learning_write():
 
 
 # ============================================================================
-# Deploy Info
-# ============================================================================
+-- Deploy Info
+-- ============================================================================
 
 @app.get("/api/debug/deploy")
 async def deploy_info():
     """Deployment fingerprint - anti-drift detection."""
     return {
         "service": "railway-backend",
-        "version": "1.0.8-standalone",
+        "version": "1.0.9-standalone",
         "env": "production",
         "learning_hook": "mandatory",
         "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
         "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "proxy_secret_required": bool(PROXY_SECRET),
+        "monitoring_enabled": True,
         "backend": "railway",
         "timestamp": datetime.utcnow().isoformat(),
     }
@@ -879,6 +893,579 @@ async def get_event_info(event_id: str, request: Request = None):
         logger.error(f"Event lookup error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============================================================================
+-- MONITORING ENDPOINTS (Drift/Regression Detection)
+-- ============================================================================
+
+def _get_supabase_client():
+    """Get Supabase URL and key for requests."""
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not supabase_url or not supabase_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Supabase not configured"
+        )
+    return supabase_url, supabase_key
+
+
+async def _execute_supabase_function(
+    function_name: str,
+    params: dict = None
+) -> dict:
+    """Execute a PostgreSQL function via Supabase RPC."""
+    supabase_url, supabase_key = _get_supabase_client()
+
+    import httpx
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            f"{supabase_url}/rest/v1/rpc/{function_name}",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json",
+            },
+            json=params or {}
+        )
+
+    if response.status_code not in (200, 201):
+        logger.error(f"Function {function_name} failed: {response.status_code} {response.text}")
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Function execution failed: {response.text[:200]}"
+        )
+
+    return response.json()
+
+
+@app.get("/api/monitor/summary")
+async def get_monitoring_summary(
+    window: str = "7d",
+    include_hourly: bool = False
+):
+    """
+    Get monitoring summary for drift/regression detection.
+
+    Parameters:
+    - window: Time window (1d, 7d, 30d) - default 7d
+    - include_hourly: Include hourly breakdown
+
+    Returns:
+    {
+        "window": {"start_date": "...", "end_date": "...", "days": 7},
+        "metrics": {
+            "total_events": 1234,
+            "avg_fallback_rate": 0.05,
+            "avg_error_rate": 0.01,
+            "avg_health_score": 85.5,
+            "latest": {...}
+        },
+        "baseline": {
+            "fallback_rate": 0.04,
+            "error_rate": 0.01,
+            "latency_p95": 2500,
+            "valid_until": "..."
+        },
+        "trends": {"fallback_rate": "up", "latency_p95": "stable"},
+        "alerts": {"total_open": 2, "by_severity": {...}, "recent": [...]},
+        "generated_at": "..."
+    }
+    """
+    # Parse window
+    window_days = 7
+    if window.endswith("d"):
+        window_days = int(window[:-1])
+    elif window.endswith("h"):
+        window_days = int(window[:-1]) / 24
+
+    supabase_url, supabase_key = _get_supabase_client()
+    start_date = (datetime.now(timezone.utc) - timedelta(days=window_days)).strftime("%Y-%m-%d")
+
+    import httpx
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        # Fetch daily metrics
+        metrics_response = await client.get(
+            f"{supabase_url}/rest/v1/mv_daily_metrics",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            params={
+                "metric_date": f"gte.{start_date}",
+                "order": "metric_date.desc",
+            }
+        )
+
+        # Fetch alerts
+        alerts_response = await client.get(
+            f"{supabase_url}/rest/v1/monitoring_alerts",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            params={
+                "metric_date": f"gte.{start_date}",
+                "order": "created_at.desc",
+            }
+        )
+
+        # Fetch baseline
+        baseline_response = await client.get(
+            f"{supabase_url}/rest/v1/monitoring_baseline",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            params={"baseline_name": "eq.7day_rolling"}
+        )
+
+    metrics = metrics_response.json() if metrics_response.status_code == 200 else []
+    alerts = alerts_response.json() if alerts_response.status_code == 200 else []
+    baseline = baseline_response.json() if baseline_response.status_code == 200 else []
+    baseline_data = baseline[0] if baseline else {}
+
+    # Calculate summary stats
+    total_events = sum(m.get("total_events", 0) for m in metrics)
+    avg_fallback_rate = sum(m.get("fallback_rate", 0) for m in metrics) / max(len(metrics), 1)
+    avg_error_rate = sum(m.get("error_rate", 0) for m in metrics) / max(len(metrics), 1)
+    avg_health_score = sum(m.get("health_score", 0) for m in metrics) / max(len(metrics), 1)
+
+    # Alert summary
+    open_alerts = [a for a in alerts if a.get("status") == "open"]
+    alerts_by_severity = {}
+    for alert in open_alerts:
+        severity = alert.get("severity", "unknown")
+        alerts_by_severity[severity] = alerts_by_severity.get(severity, 0) + 1
+
+    # Trend calculation (compare last 3 days to previous 3)
+    if len(metrics) >= 6:
+        recent = metrics[:3]
+        previous = metrics[3:6]
+
+        recent_fallback = sum(m.get("fallback_rate", 0) for m in recent) / 3
+        previous_fallback = sum(m.get("fallback_rate", 0) for m in previous) / 3
+        fallback_trend = "up" if recent_fallback > previous_fallback * 1.1 else "down" if recent_fallback < previous_fallback * 0.9 else "stable"
+
+        recent_latency = sum(m.get("latency_p95", 0) or 0 for m in recent) / 3
+        previous_latency = sum(m.get("latency_p95", 0) or 0 for m in previous) / 3
+        latency_trend = "up" if recent_latency > previous_latency * 1.1 else "down" if recent_latency < previous_latency * 0.9 else "stable"
+    else:
+        fallback_trend = "unknown"
+        latency_trend = "unknown"
+
+    return {
+        "window": {
+            "start_date": start_date,
+            "end_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "days": len(metrics),
+        },
+        "metrics": {
+            "total_events": total_events,
+            "avg_fallback_rate": round(avg_fallback_rate, 4),
+            "avg_error_rate": round(avg_error_rate, 4),
+            "avg_health_score": round(avg_health_score, 2),
+            "latest": metrics[0] if metrics else None,
+        },
+        "baseline": {
+            "fallback_rate": baseline_data.get("baseline_fallback_rate"),
+            "error_rate": baseline_data.get("baseline_error_rate"),
+            "latency_p95": baseline_data.get("baseline_latency_p95"),
+            "valid_until": baseline_data.get("valid_until"),
+        },
+        "trends": {
+            "fallback_rate": fallback_trend,
+            "latency_p95": latency_trend,
+        },
+        "alerts": {
+            "total_open": len(open_alerts),
+            "by_severity": alerts_by_severity,
+            "recent": alerts[:5] if alerts else [],
+        },
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/api/monitor/alerts")
+async def get_monitoring_alerts(
+    threshold: str = "medium",
+    status: str = "open",
+    limit: int = 50
+):
+    """
+    Get monitoring alerts filtered by threshold.
+
+    Parameters:
+    - threshold: Minimum severity level (low, medium, high, critical)
+    - status: Alert status filter (open, acknowledged, resolved, ignored)
+    - limit: Maximum number of alerts to return
+
+    Returns:
+    {
+        "alerts": [...],
+        "total_count": 10,
+        "filtered_by": {"threshold": "medium", "status": "open"}
+    }
+    """
+    severity_order = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+    min_severity_level = severity_order.get(threshold, 1)
+
+    supabase_url, supabase_key = _get_supabase_client()
+
+    import httpx
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(
+            f"{supabase_url}/rest/v1/monitoring_alerts",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            params={
+                "status": f"eq.{status}",
+                "order": "created_at.desc",
+                "limit": limit * 2,  # Fetch extra for filtering
+            }
+        )
+
+    if response.status_code != 200:
+        logger.error(f"Failed to fetch alerts: {response.status_code}")
+        return {
+            "alerts": [],
+            "total_count": 0,
+            "filtered_by": {"threshold": threshold, "status": status},
+            "error": f"HTTP {response.status_code}"
+        }
+
+    all_alerts = response.json()
+
+    # Filter by severity threshold
+    filtered = []
+    for alert in all_alerts:
+        alert_severity = alert.get("severity", "low")
+        if severity_order.get(alert_severity, 0) >= min_severity_level:
+            filtered.append(alert)
+            if len(filtered) >= limit:
+                break
+
+    return {
+        "alerts": filtered,
+        "total_count": len(filtered),
+        "filtered_by": {"threshold": threshold, "status": status},
+    }
+
+
+@app.post("/api/monitor/compute")
+async def compute_monitoring_metrics(request: MonitoringComputeRequest):
+    """
+    Trigger manual metric computation and drift detection.
+
+    Parameters:
+    - date: Target date (YYYY-MM-DD), None for today
+    - hour: Specific hour (0-23), None for all hours/full day
+    - update_baseline: Whether to update baseline after computation
+
+    Returns:
+    {
+        "metrics_computed": true,
+        "rows_computed": 24,
+        "metrics_inserted": 24,
+        "baseline_updated": true,
+        "drift_check": {...},
+        "computation_time_ms": 1234
+    }
+    """
+    start_time = time.time()
+
+    target_date = request.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Execute metric computation function
+    try:
+        if request.hour is not None:
+            # Compute specific hour
+            result = await _execute_supabase_function(
+                "compute_hourly_metrics",
+                {"p_target_date": target_date, "p_target_hour": request.hour}
+            )
+        else:
+            # Compute full day (all hours)
+            result = await _execute_supabase_function(
+                "compute_daily_metrics",
+                {"p_target_date": target_date}
+            )
+
+        # Handle different result formats (single row vs table result)
+        if isinstance(result, list) and len(result) > 0:
+            result = result[0]
+
+        rows_computed = result.get("rows_computed", 0) if isinstance(result, dict) else 1
+        metrics_inserted = result.get("metrics_inserted", 0) if isinstance(result, dict) else 1
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Metric computation failed: {e}")
+        return {
+            "metrics_computed": False,
+            "error": str(e),
+            "computation_time_ms": int((time.time() - start_time) * 1000)
+        }
+
+    # Update baseline if requested
+    baseline_updated = False
+    baseline_data = None
+    if request.update_baseline:
+        try:
+            baseline_data = await _execute_supabase_function("update_baseline", {})
+            baseline_updated = True
+        except Exception as e:
+            logger.warning(f"Baseline update failed: {e}")
+
+    # Run drift detection
+    drift_check = {}
+    try:
+        drift_result = await _execute_supabase_function(
+            "check_drift_and_alert",
+            {
+                "p_baseline_name": "7day_rolling",
+                "p_threshold_low": 1.5,
+                "p_threshold_medium": 2.0,
+                "p_threshold_high": 3.0
+            }
+        )
+
+        if isinstance(drift_result, list) and len(drift_result) > 0:
+            drift_result = drift_result[0]
+
+        drift_check = {
+            "alerts_created": drift_result.get("alerts_created", 0) if isinstance(drift_result, dict) else 0,
+            "alert_ids": drift_result.get("alert_ids", []) if isinstance(drift_result, dict) else []
+        }
+    except Exception as e:
+        logger.warning(f"Drift check failed: {e}")
+        drift_check = {"error": str(e)}
+
+    # Refresh materialized view if we computed today's metrics
+    view_refreshed = False
+    if target_date >= datetime.now(timezone.utc).strftime("%Y-%m-%d"):
+        try:
+            await _execute_supabase_function("refresh_daily_metrics_mv", {})
+            view_refreshed = True
+        except Exception as e:
+            logger.warning(f"Materialized view refresh failed: {e}")
+
+    return {
+        "metrics_computed": True,
+        "target_date": target_date,
+        "target_hour": request.hour,
+        "rows_computed": rows_computed,
+        "metrics_inserted": metrics_inserted,
+        "baseline_updated": baseline_updated,
+        "baseline_data": baseline_data,
+        "view_refreshed": view_refreshed,
+        "drift_check": drift_check,
+        "computation_time_ms": int((time.time() - start_time) * 1000),
+    }
+
+
+@app.post("/api/monitor/alerts/{alert_id}/acknowledge")
+async def acknowledge_alert(alert_id: str, request: MonitoringAcknowledgeRequest):
+    """
+    Acknowledge an alert.
+
+    Parameters:
+    - alert_id: UUID of the alert to acknowledge
+    - acknowledged_by: Name/user acknowledging
+    - note: Optional note for the acknowledgment
+
+    Returns:
+    {
+        "alert_id": "...",
+        "status": "acknowledged",
+        "acknowledged_at": "...",
+        "acknowledged_by": "..."
+    }
+    """
+    supabase_url, supabase_key = _get_supabase_client()
+
+    import httpx
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.patch(
+            f"{supabase_url}/rest/v1/monitoring_alerts?id=eq.{alert_id}",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+            },
+            json={
+                "status": "acknowledged",
+                "acknowledged_at": datetime.now(timezone.utc).isoformat(),
+                "acknowledged_by": request.acknowledged_by,
+                "resolution_note": request.note,
+            }
+        )
+
+    if response.status_code not in (200, 201):
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Failed to acknowledge alert: {response.text[:200]}"
+        )
+
+    data = response.json()
+    if data and len(data) > 0:
+        return data[0]
+    return {"alert_id": alert_id, "status": "acknowledged"}
+
+
+@app.post("/api/monitor/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: str, request: MonitoringAcknowledgeRequest):
+    """
+    Resolve an alert.
+
+    Returns:
+    {
+        "alert_id": "...",
+        "status": "resolved",
+        "resolved_at": "..."
+    }
+    """
+    supabase_url, supabase_key = _get_supabase_client()
+
+    import httpx
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.patch(
+            f"{supabase_url}/rest/v1/monitoring_alerts?id=eq.{alert_id}",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+            },
+            json={
+                "status": "resolved",
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolution_note": request.note,
+            }
+        )
+
+    if response.status_code not in (200, 201):
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Failed to resolve alert: {response.text[:200]}"
+        )
+
+    data = response.json()
+    if data and len(data) > 0:
+        return data[0]
+    return {"alert_id": alert_id, "status": "resolved"}
+
+
+@app.get("/api/monitor/baseline")
+async def get_monitoring_baseline():
+    """
+    Get current monitoring baseline values.
+
+    Returns:
+    {
+        "baseline_name": "7day_rolling",
+        "window_days": 7,
+        "fallback_rate": 0.05,
+        "error_rate": 0.01,
+        "latency_p95": 2500,
+        "valid_until": "...",
+        "last_computed": "..."
+    }
+    """
+    supabase_url, supabase_key = _get_supabase_client()
+
+    import httpx
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(
+            f"{supabase_url}/rest/v1/monitoring_baseline",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            params={"baseline_name": "eq.7day_rolling", "limit": 1}
+        )
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch baseline")
+
+    data = response.json()
+    if not data:
+        return {"error": "No baseline found"}
+
+    baseline = data[0]
+    return {
+        "baseline_name": baseline.get("baseline_name"),
+        "window_days": baseline.get("baseline_window_days"),
+        "fallback_rate": baseline.get("baseline_fallback_rate"),
+        "error_rate": baseline.get("baseline_error_rate"),
+        "duplicate_rate": baseline.get("baseline_duplicate_rate"),
+        "latency_p50": baseline.get("baseline_latency_p50"),
+        "latency_p95": baseline.get("baseline_latency_p95"),
+        "latency_p99": baseline.get("baseline_latency_p99"),
+        "baseline_start_date": baseline.get("baseline_start_date"),
+        "baseline_end_date": baseline.get("baseline_end_date"),
+        "valid_until": baseline.get("valid_until"),
+        "last_computed": baseline.get("computed_at"),
+    }
+
+
+@app.get("/api/monitor/metrics/daily")
+async def get_daily_metrics(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 30
+):
+    """
+    Get daily metrics for a date range.
+
+    Parameters:
+    - start_date: Start date (YYYY-MM-DD), defaults to 30 days ago
+    - end_date: End date (YYYY-MM-DD), defaults to today
+    - limit: Maximum records to return
+
+    Returns:
+    {
+        "metrics": [...],
+        "count": 30
+    }
+    """
+    if not start_date:
+        start_date = (datetime.now(timezone.utc) - timedelta(days=limit)).strftime("%Y-%m-%d")
+    if not end_date:
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    supabase_url, supabase_key = _get_supabase_client()
+
+    import httpx
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(
+            f"{supabase_url}/rest/v1/mv_daily_metrics",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            params={
+                "metric_date": f"gte.{start_date}",
+                "metric_date": f"lte.{end_date}",
+                "order": "metric_date.desc",
+                "limit": limit,
+            }
+        )
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch metrics")
+
+    return {
+        "metrics": response.json(),
+        "count": len(response.json()),
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+
 @app.get("/")
 async def root():
     """Root endpoint."""
@@ -886,9 +1473,18 @@ async def root():
         "service": "TORQ Console Railway Backend",
         "status": "running",
         "backend": "railway",
-        "endpoints": ["/health", "/api/chat", "/api/telemetry", "/api/learning"]
+        "version": "1.0.9-standalone",
+        "endpoints": [
+            "/health",
+            "/api/chat",
+            "/api/telemetry",
+            "/api/learning",
+            "/api/monitor/summary",
+            "/api/monitor/alerts",
+            "/api/monitor/compute",
+            "/api/monitor/baseline",
+            "/api/monitor/metrics/daily",
+        ]
     }
 
 logger.info("Railway standalone app created successfully")
-"# trigger deploy" 
-# trigger deploy for 1.0.8
