@@ -1,8 +1,8 @@
 {
-  "git_sha": "f0f803756eddb7cb84562674d6082a6af0bcbcf6",
-  "git_short_sha": "f0f803756edd",
+  "git_sha": "fff23626c9d5b1a3481d2148b12ae1df4f8fffc7",
+  "git_short_sha": "fff23626c9d5",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T14:09:24.185448+00:00",
+  "built_at": "2026-02-22T14:09:53.166392+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix: prioritize build_meta branch over env vars, skip unknown"
+  "commit_message": "feat: detect git branch during build using git rev-parse"
 }
