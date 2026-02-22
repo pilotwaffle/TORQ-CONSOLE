@@ -5,6 +5,10 @@ FROM python:3.11-slim
 ARG GIT_SHA=unknown
 ARG GIT_BRANCH=unknown
 
+# Cache buster for deterministic fresh builds
+ARG CACHE_BUST=20260222-v1
+RUN echo "cache_bust=$CACHE_BUST"
+
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -43,15 +47,15 @@ import torq_console
 
 meta = {
     "git_sha": os.getenv("GIT_SHA", "unknown"),
-        "built_at": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
-            "branch": os.getenv("GIT_BRANCH", "unknown"),
-            }
-            path = os.path.join(os.path.dirname(torq_console.__file__), "build_meta.json")
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(meta, f)
-                print("[build] wrote", path, "->", meta)
-                PY
+    "built_at": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+    "branch": os.getenv("GIT_BRANCH", "unknown"),
+}
+path = os.path.join(os.path.dirname(torq_console.__file__), "build_meta.json")
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(meta, f)
+    print("[build] wrote", path, "->", meta)
+PY
 
-                # Start command - Railway exposes port 8080
-                ENV PORT=8080
-                CMD ["python", "-m", "uvicorn", "torq_console.ui.railway_app:app", "--host", "0.0.0.0", "--port", "8080"]
+# Start command - Railway exposes port 8080
+ENV PORT=8080
+CMD ["python", "-m", "uvicorn", "torq_console.ui.railway_app:app", "--host", "0.0.0.0", "--port", "8080"]

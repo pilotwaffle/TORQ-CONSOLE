@@ -53,8 +53,7 @@ os.environ['TORQ_CONSOLE_PRODUCTION'] = 'true'
 os.environ['TORQ_DISABLE_LOCAL_LLM'] = 'true'
 os.environ['TORQ_DISABLE_GPU'] = 'true'
 
-# Version -- must be defined before FastAPI() call at module level
-
+# Import FastAPI (lightweight, in requirements-railway.txt)
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -741,7 +740,7 @@ def _get_deployment_id() -> Optional[str]:
 
 
 # Single source of truth for version
-APP_VERSION = "1.0.10-standalone"
+APP_VERSION = "1.0.9-standalone"
 APP_BUILD_TIME = os.environ.get("APP_BUILD_TIME", datetime.utcnow().isoformat())
 
 # Build metadata from build_meta.json (committed with repo)
@@ -781,14 +780,6 @@ async def deploy_info():
     deployment_id = _get_deployment_id()
 
     return {
-        # Contract schema identification
-        "_schema": "torq-deploy-v1",
-
-        # Module path identification (zero guesswork)
-        "running_file": "railway_app.py",
-        "running_module": __name__,
-        "version_source": "package",  # or "env" if APP_VERSION env var is set
-
         # Human-readable version
         "app_version": APP_VERSION,
 
@@ -805,7 +796,6 @@ async def deploy_info():
         # Service identification
         "service": "railway-backend",
         "env": "production",
-        "platform": "railway",
 
         # Feature flags
         "learning_hook": "mandatory",
