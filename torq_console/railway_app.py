@@ -458,7 +458,10 @@ async def chat(request: ChatRequest):
                     "occurred_at": datetime.utcnow().isoformat(),
                     # For attempt counter (incremented on conflict)
                     "duplicate_count": 1,  # First attempt
-                    "last_seen_at": datetime.utcnow().isoformat()
+                    "last_seen_at": datetime.utcnow().isoformat(),
+                    # Deploy identity + tenant (stamped once at startup)
+                    **DEPLOY_STAMP,
+                    "tenant_id": "default",
                 }
 
                 # Create new client for Supabase (previous client is closed)
@@ -548,6 +551,9 @@ async def ingest_telemetry(request: TelemetryIngest):
         import httpx
 
         async with httpx.AsyncClient(timeout=30.0) as client:
+            # Stamp trace with deploy identity + tenant before writing
+            stamped_trace = {**request.trace, **DEPLOY_STAMP, "tenant_id": request.trace.get("tenant_id", "default")}
+
             # Store trace
             await client.post(
                 f"{supabase_url}/rest/v1/telemetry_traces",
@@ -556,11 +562,12 @@ async def ingest_telemetry(request: TelemetryIngest):
                     "Authorization": f"Bearer {supabase_key}",
                     "Content-Type": "application/json"
                 },
-                json=request.trace
+                json=stamped_trace
             )
 
-            # Store spans
+            # Store spans (stamp each span with tenant_id)
             if request.spans:
+                stamped_spans = [{**span, "tenant_id": span.get("tenant_id", "default")} for span in request.spans]
                 await client.post(
                     f"{supabase_url}/rest/v1/telemetry_spans",
                     headers={
@@ -569,7 +576,7 @@ async def ingest_telemetry(request: TelemetryIngest):
                         "Content-Type": "application/json",
                         "Prefer": "return=minimal"
                     },
-                    json=request.spans
+                    json=stamped_spans
                 )
 
         return {
@@ -741,6 +748,33 @@ def _get_deployment_id() -> Optional[str]:
 
 # Single source of truth for version
 APP_VERSION = "1.0.9-standalone"
+
+# ============================================================================
+# Deploy Identity Stamp (populated once at container startup)
+# ============================================================================
+DEPLOY_STAMP: dict = {
+    "deploy_platform": "unknown",
+    "deploy_git_sha": "unknown",
+    "deploy_app_version": "dev",
+    "deploy_version_source": "default",
+}
+
+
+@app.on_event("startup")
+async def _init_deploy_stamp():
+    """Populate DEPLOY_STAMP once from build_info at container startup."""
+    try:
+        from torq_console.build_info import get_platform, get_git_sha, get_app_version_with_source
+        v, src = get_app_version_with_source()
+        DEPLOY_STAMP.update({
+            "deploy_platform": get_platform(),
+            "deploy_git_sha": get_git_sha(),
+            "deploy_app_version": v,
+            "deploy_version_source": src,
+        })
+        logger.info(f"[startup] Deploy stamp initialized: {DEPLOY_STAMP}")
+    except Exception as e:
+        logger.warning(f"[startup] Could not load build_info for deploy stamp: {e}")
 APP_BUILD_TIME = os.environ.get("APP_BUILD_TIME", datetime.utcnow().isoformat())
 
 # Build metadata from build_meta.json (committed with repo)
