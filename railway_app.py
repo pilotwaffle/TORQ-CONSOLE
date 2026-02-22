@@ -53,7 +53,8 @@ os.environ['TORQ_CONSOLE_PRODUCTION'] = 'true'
 os.environ['TORQ_DISABLE_LOCAL_LLM'] = 'true'
 os.environ['TORQ_DISABLE_GPU'] = 'true'
 
-# Version -- must be defined before FastAPI() call at module levelAPP_VERSION = os.getenv("APP_VERSION", "1.0.9-standalone")
+# Version -- must be defined before FastAPI() call at module level
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
