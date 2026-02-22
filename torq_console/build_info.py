@@ -72,15 +72,14 @@ def get_build_time() -> str:
 
 
 def get_build_branch() -> str:
+    # Priority: build_meta.json (from Docker build) > runtime env vars > unknown
     meta_branch = _load_build_meta().get("branch")
-    if meta_branch:
+    if meta_branch and meta_branch != "unknown":
         return str(meta_branch)
-    # Railway provides branch via RAILWAY_GIT_BRANCH or can be set manually
-    # Also check common Git CI env vars
+    # Runtime env vars (Railway may provide these)
     return (
         os.getenv("RAILWAY_GIT_BRANCH") or
         os.getenv("GIT_BRANCH") or
-        os.getenv("BRANCH_NAME") or
         os.getenv("BRANCH") or
         "unknown"
     )
