@@ -38,22 +38,22 @@ RUN date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/build_timestamp
 
 COPY . .
 
-# Install package so importlib.metadata.version("torq-console") works at runtime
-RUN pip install -e .
+# Add /app to Python path so imports work without package install
+ENV PYTHONPATH=/app:$PYTHONPATH
 
-# Write build_meta.json into the installed package directory.
+# Write build_meta.json directly (without importing torq_console)
 # This is the file fallback for get_git_sha() / get_build_time() / get_build_branch()
-# when Railway env vars are not available.
 RUN python - << 'PY'
-import json, os, datetime
-import torq_console
+import json, os, datetime, pathlib
 
 meta = {
     "git_sha": os.getenv("GIT_SHA", "unknown"),
     "built_at": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
     "branch": os.getenv("GIT_BRANCH", "unknown"),
 }
-path = os.path.join(os.path.dirname(torq_console.__file__), "build_meta.json")
+# Write directly to torq_console directory
+path = pathlib.Path("/app/torq_console/build_meta.json")
+path.parent.mkdir(parents=True, exist_ok=True)
 with open(path, "w", encoding="utf-8") as f:
     json.dump(meta, f)
     print("[build] wrote", path, "->", meta)
