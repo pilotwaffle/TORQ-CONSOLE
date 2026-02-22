@@ -1,8 +1,8 @@
 {
-  "git_sha": "421190ce4f76dd447521695bfb765e04eda7dd22",
-  "git_short_sha": "421190ce4f76",
+  "git_sha": "c642976386566a3b3766bb91073c4da8a626f815",
+  "git_short_sha": "c64297638656",
   "version": "1.0.9-standalone",
-  "built_at": "2026-02-22T01:01:21.037610+00:00",
+  "built_at": "2026-02-22T01:01:22.391145+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "feat: fix logging routing + add fingerprint endpoint"
 }
