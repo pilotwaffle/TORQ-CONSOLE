@@ -75,8 +75,15 @@ def get_build_branch() -> str:
     meta_branch = _load_build_meta().get("branch")
     if meta_branch:
         return str(meta_branch)
-    # Check multiple possible env var names for Railway branch
-    return os.getenv("RAILWAY_GIT_BRANCH", os.getenv("GIT_BRANCH", os.getenv("BRANCH", "unknown")))
+    # Railway provides branch via RAILWAY_GIT_BRANCH or can be set manually
+    # Also check common Git CI env vars
+    return (
+        os.getenv("RAILWAY_GIT_BRANCH") or
+        os.getenv("GIT_BRANCH") or
+        os.getenv("BRANCH_NAME") or
+        os.getenv("BRANCH") or
+        "unknown"
+    )
 
 
 def get_container_start_time() -> str:
