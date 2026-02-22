@@ -1,8 +1,8 @@
 {
-  "git_sha": "c2729a70fb18851f4cc7ce8eac3d8c438651109d",
-  "git_short_sha": "c2729a70fb18",
-  "version": "1.0.9-standalone",
-  "built_at": "2026-02-22T01:57:33.278877+00:00",
+  "git_sha": "4dc12ded3543542977f3b3593b6b0760e0c1d027",
+  "git_short_sha": "4dc12ded3543",
+  "version": "1.0.10-standalone",
+  "built_at": "2026-02-22T12:24:58.026911+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "chore: trigger deploy"
+  "commit_message": "feat: add torq-deploy-v1 contract schema to deploy endpoint"
 }
