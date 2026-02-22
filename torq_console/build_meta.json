@@ -1,8 +1,8 @@
 {
-  "git_sha": "56a86cb442c62a164213af9563461e2327bd4f1b",
-  "git_short_sha": "56a86cb442c6",
+  "git_sha": "26872c0256be8fd92e3d884ac5a3747741b6b2aa",
+  "git_short_sha": "26872c0256be",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T13:30:26.450637+00:00",
+  "built_at": "2026-02-22T13:30:35.464442+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix: resolve NameError in setup.py breaking Railway builds"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
