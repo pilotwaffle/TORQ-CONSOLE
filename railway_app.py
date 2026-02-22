@@ -187,14 +187,32 @@ async def health_check():
 
 @app.get("/api/debug/env")
 async def debug_env():
-    """Debug environment variables."""
+    """
+    Debug environment variables - helps discover what env vars are actually available.
+    Returns all env vars that might contain git/deployment info.
+    """
+    # All known git-related env vars
+    git_env_vars = [
+        "RAILWAY_GIT_COMMIT_SHA", "RAILWAY_GIT_COMMIT_HASH", "RAILWAY_COMMIT_SHA", "RAILWAY_COMMIT",
+        "VERCEL_GIT_COMMIT_SHA", "GIT_COMMIT_SHA", "GIT_SHA", "COMMIT_SHA", "SOURCE_COMMIT",
+        "HEROKU_SLUG_COMMIT", "BUILD_VCS_NUMBER", "CIRCLE_SHA1", "CI_COMMIT_SHA",
+        "BUILD_SHA", "REVISION", "GITHUB_SHA"
+    ]
+
+    git_info = {}
+    for var in git_env_vars:
+        value = os.environ.get(var, "")
+        if value:
+            # Show first 12 chars if it's a long SHA
+            display_value = value[:12] if len(value) > 12 else value
+            git_info[var] = display_value
+
     return {
+        "git_env_vars_found": git_info,
+        "all_env_keys_count": len(os.environ),
         "anthropic_key_present": bool(os.environ.get("ANTHROPIC_API_KEY")),
-        "anthropic_key_length": len(os.environ.get("ANTHROPIC_API_KEY", "")),
         "supabase_url_present": bool(os.environ.get("SUPABASE_URL")),
-        "supabase_key_present": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
         "proxy_secret_set": bool(PROXY_SECRET),
-        "admin_token_set": bool(ADMIN_TOKEN),
     }
 
 # ============================================================================
@@ -655,21 +673,29 @@ def _get_git_sha() -> Optional[str]:
     Checks in order of preference:
     1. RAILWAY_GIT_COMMIT_SHA (Railway-specific)
     2. RAILWAY_GIT_COMMIT_HASH (Railway alternative)
-    3. VERCEL_GIT_COMMIT_SHA (Vercel/Railway proxy)
-    4. GIT_COMMIT_SHA / GIT_SHA (generic CI)
-    5. SOURCE_COMMIT (some CI systems)
-    6. HEROKU_SLUG_COMMIT (Heroku-style)
+    3. RAILWAY_COMMIT_SHA / RAILWAY_COMMIT (other Railway variants)
+    4. VERCEL_GIT_COMMIT_SHA (Vercel/Railway proxy)
+    5. GIT_COMMIT_SHA / GIT_SHA (generic CI)
+    6. SOURCE_COMMIT / COMMIT_SHA (some CI systems)
+    7. HEROKU_SLUG_COMMIT (Heroku-style)
+    8. BUILD_VCS_NUMBER (TeamCity-style)
+    9. CIRCLE_SHA1 (CircleCI)
 
     Returns None gracefully if none found (doesn't block startup).
     """
     env_vars_to_check = [
         "RAILWAY_GIT_COMMIT_SHA",
         "RAILWAY_GIT_COMMIT_HASH",
+        "RAILWAY_COMMIT_SHA",
+        "RAILWAY_COMMIT",
         "VERCEL_GIT_COMMIT_SHA",
         "GIT_COMMIT_SHA",
         "GIT_SHA",
+        "COMMIT_SHA",
         "SOURCE_COMMIT",
         "HEROKU_SLUG_COMMIT",
+        "BUILD_VCS_NUMBER",
+        "CIRCLE_SHA1",
     ]
 
     for env_var in env_vars_to_check:
