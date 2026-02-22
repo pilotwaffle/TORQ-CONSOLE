@@ -33,6 +33,9 @@ COPY requirements-railway.txt .
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements-railway.txt
 
 # Copy application code
+# Deterministic cache buster - forces new layer every build
+RUN date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/build_timestamp
+
 COPY . .
 
 # Install package so importlib.metadata.version("torq-console") works at runtime

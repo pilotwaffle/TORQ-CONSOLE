@@ -126,10 +126,14 @@ def create_railway_app():
     # ============================================================================
     @app.get("/health")
     async def health_check():
-        """Railway health check endpoint."""
+        """Railway health check endpoint with smoking gun git_sha."""
         return {
             "status": "healthy",
             "service": "torq-console-railway",
+            "_schema": "torq-deploy-v1",
+            "running_file": "torq_console/ui/railway_app.py",
+            "git_sha": get_git_sha(),
+            "app_version": get_app_version_with_source()[0],
             "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
             "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
             "learning_hook": "mandatory"
