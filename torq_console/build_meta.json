@@ -1,8 +1,8 @@
 {
-  "git_sha": "48df35569767eadd512ac46520f322d1a5c4dfe9",
-  "git_short_sha": "48df35569767",
+  "git_sha": "96c155c1d190c9ad687a3194dee1f2eb17b99039",
+  "git_short_sha": "96c155c1d190",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T13:35:23.129356+00:00",
+  "built_at": "2026-02-22T13:43:47.872733+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix: remove pip install -e . from Dockerfile to break recursive loop"
+  "commit_message": "fix: correct imports for AIResponseError and related exception classes"
 }
