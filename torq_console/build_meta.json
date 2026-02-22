@@ -1,8 +1,8 @@
 {
-  "git_sha": "d96d0a8349990fdd4ce4f1369f99014375a363f1",
-  "git_short_sha": "d96d0a834999",
+  "git_sha": "ca777ca0d0b5f63729392654a89f86a663caf9f3",
+  "git_short_sha": "ca777ca0d0b5",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T13:46:31.085525+00:00",
+  "built_at": "2026-02-22T13:51:33.019029+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix: add numpy to requirements-railway.txt"
+  "commit_message": "fix: repair build_info.py indentation (syntax error)"
 }
