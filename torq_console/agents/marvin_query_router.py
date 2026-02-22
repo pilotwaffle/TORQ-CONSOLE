@@ -14,6 +14,7 @@ Version: 1.1.0 - Bug Fix Release
 """
 
 import logging
+import os
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
@@ -25,6 +26,13 @@ from torq_console.marvin_integration import (
     Priority,
     SentimentClassification,
 )
+
+# Q-value aware routing: import the learning hook
+try:
+    from torq_console.agents.torq_prince_flowers.core.learning_hook import MandatoryLearningHook
+    _LEARNING_HOOK_AVAILABLE = True
+except ImportError:
+    _LEARNING_HOOK_AVAILABLE = False
 
 
 class AgentCapability(str, Enum):
@@ -120,6 +128,15 @@ class MarvinQueryRouter:
 
         self.routing_history = []
 
+        # Q-VALUE AWARE ROUTING: Connect to learning hook
+        self._learning_hook = None
+        if _LEARNING_HOOK_AVAILABLE:
+            try:
+                self._learning_hook = MandatoryLearningHook()
+                self.logger.info("Q-value aware routing enabled")
+            except Exception as e:
+                self.logger.warning(f"Learning hook unavailable, routing will use static policy: {e}")
+
         self.logger.info("Initialized FIXED Marvin Query Router")
 
     async def analyze_query(self, query: str) -> QueryAnalysis:
@@ -169,11 +186,12 @@ class MarvinQueryRouter:
             # Determine required capabilities with enhanced error handling
             required_capabilities = self._infer_capabilities_safe(query, intent)
 
-            # Find best agent
+            # Find best agent (now Q-value aware)
             suggested_agent, confidence, reasoning = self._select_agent(
                 intent,
                 complexity,
-                required_capabilities
+                required_capabilities,
+                query=query
             )
 
             analysis = QueryAnalysis(
@@ -351,16 +369,20 @@ class MarvinQueryRouter:
         self,
         intent: IntentClassification,
         complexity: ComplexityLevel,
-        required_capabilities: List[AgentCapability]
+        required_capabilities: List[AgentCapability],
+        query: str = ""
     ) -> Tuple[str, float, str]:
         """
         Select the best agent for the query.
+        
+        NOW Q-VALUE AWARE: If learning data exists, Q(route, context) 
+        influences the routing decision. Static policy is the fallback.
 
         Returns:
             Tuple of (agent_name, confidence, reasoning)
         """
         try:
-            # Score each agent based on capability match
+            # Score each agent based on capability match (static policy)
             agent_scores = {}
 
             for agent_name, agent_caps in self.agent_registry.items():
@@ -375,16 +397,51 @@ class MarvinQueryRouter:
 
                 agent_scores[agent_name] = match_score
 
-            # Select agent with highest score
+            # ============================================================
+            # Q-VALUE AWARE ROUTING: Blend static policy with learned Q-values
+            # If "direct_response" has highest reward in that query class → prefer it
+            # If "research_route" underperforms in low-complexity queries → penalize it
+            # ============================================================
+            q_value_boost = {}  # agent -> Q-value adjustment
+            q_reasoning = ""
+            
+            if self._learning_hook and query:
+                try:
+                    available_routes = list(agent_scores.keys())
+                    best_learned_route = self._learning_hook.get_best_route(query, available_routes)
+                    
+                    if best_learned_route:
+                        # Get Q-values for all routes to create a blended score
+                        for route in available_routes:
+                            qv = self._learning_hook.get_routing_q_value(query, route)
+                            if qv != 0.0:  # Only adjust if we have actual learning data
+                                q_value_boost[route] = qv * 0.3  # 30% weight to learned values
+                        
+                        if q_value_boost:
+                            q_reasoning = f" [RL boost: {best_learned_route}={q_value_boost.get(best_learned_route, 0):.2f}]"
+                            self.logger.info(
+                                f"Q-value routing active: best_learned={best_learned_route}, "
+                                f"boosts={q_value_boost}"
+                            )
+                except Exception as e:
+                    self.logger.debug(f"Q-value lookup failed (non-fatal): {e}")
+
+            # Blend static scores with Q-value boosts
+            for agent_name in agent_scores:
+                if agent_name in q_value_boost:
+                    agent_scores[agent_name] += q_value_boost[agent_name]
+
+            # Select agent with highest blended score
             if agent_scores:
                 best_agent = max(agent_scores.items(), key=lambda x: x[1])
                 agent_name, confidence = best_agent
+                confidence = min(max(confidence, 0.0), 1.0)  # Clamp to [0, 1]
 
                 reasoning = self._build_reasoning(
                     agent_name,
                     required_capabilities,
                     complexity
-                )
+                ) + q_reasoning
 
                 return agent_name, confidence, reasoning
             else:

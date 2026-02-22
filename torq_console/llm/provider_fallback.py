@@ -25,7 +25,8 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any, Literal
 from enum import Enum
 
-from torq_console.generation_meta import GenerationMeta, ExecutionMode, AIResponseError, AITimeoutError, ProviderError
+from torq_console.generation_meta import GenerationMeta, ExecutionMode
+from torq_console.ui.web_ai_fix import AIResponseError, AITimeoutError, ProviderError
 
 # Constants for fallback behavior
 RATE_LIMIT_DELAY_MS = 250  # Small bounded delay for 429 to prevent cascade

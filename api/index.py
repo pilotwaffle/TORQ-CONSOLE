@@ -1,21 +1,34 @@
 """
-Vercel serverless function entry point for TORQ Console.
+Vercel serverless function — PROXY MODE (v2.1).
 
-IMPORTANT: This file must be completely self-contained. It must NOT import
-from torq_console.core, torq_console.ui, torq_console.llm, or any module
-that transitively imports numpy, scikit-learn, sentence-transformers, or
-torch. Vercel serverless functions have a 250MB size limit.
+Selectively proxies chat/learning/telemetry to Railway backend.
+Everything else (agents list, status, sessions) stays local on Vercel for speed.
 
-This provides a lightweight API that proxies chat requests directly to
-Anthropic Claude or OpenAI, with health/status endpoints.
+Architecture:
+    Browser → Vercel (UI + selective proxy) → Railway (agent brain) → Supabase
+
+Proxied routes (Railway):
+    POST /api/chat              — full agent processing + learning
+    POST /api/agents/*/chat     — agent-specific chat
+    /api/telemetry/*            — telemetry endpoints
+    /api/learning/*             — learning/policy endpoints
+
+Local routes (Vercel, fast):
+    GET  /api/agents            — static agent list
+    GET  /api/agents/{id}       — agent info
+    GET  /api/status            — system status
+    GET  /api/sessions          — session list
+    POST /api/sessions          — create session (stateless stub)
+    GET  /health                — health check
+    GET  /api/debug/deploy      — deployment fingerprint
 """
 
 import os
-import sys
 import json
 import logging
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional, Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -28,10 +41,15 @@ import asyncio
 # Environment
 # ---------------------------------------------------------------------------
 os.environ.setdefault("TORQ_CONSOLE_PRODUCTION", "true")
-os.environ.setdefault("TORQ_DISABLE_LOCAL_LLM", "true")
-os.environ.setdefault("TORQ_DISABLE_GPU", "true")
 
-logger = logging.getLogger("torq-vercel")
+logger = logging.getLogger("torq-vercel-proxy")
+
+RAILWAY_URL = os.environ.get("TORQ_BACKEND_URL", "").rstrip("/")
+PROXY_SECRET = os.environ.get("TORQ_PROXY_SHARED_SECRET", "")
+PROXY_TIMEOUT = int(os.environ.get("TORQ_PROXY_TIMEOUT_MS", "25000")) / 1000
+
+# Build fingerprint (set during deploy or from git)
+BUILD_SHA = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")[:8]
 
 # Railway proxy configuration
 RAILWAY_URL = os.environ.get("TORQ_BACKEND_URL", "").rstrip("/")
@@ -45,29 +63,17 @@ logger.info(f"Railway proxy configured: {bool(RAILWAY_URL)}")
 # ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
-    """Incoming chat message."""
-    message: str = Field(..., min_length=1, description="User message text")
-    context: Optional[dict[str, Any]] = Field(None, description="Optional context")
-    mode: Optional[str] = Field("single_agent", description="Orchestration mode")
-    model: Optional[str] = Field(None, description="Override model (e.g. claude-sonnet-4-20250514)")
+    message: str = Field(..., min_length=1)
+    context: Optional[dict[str, Any]] = None
+    mode: Optional[str] = "single_agent"
+    model: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
-    """Chat reply."""
     response: str
     agent_id: str = "prince_flowers"
     timestamp: str
     metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class HealthResponse(BaseModel):
-    """Health check."""
-    status: str
-    service: str = "torq-console"
-    platform: str = "vercel"
-    anthropic_configured: bool
-    openai_configured: bool
-    timestamp: str
 
 
 # ---------------------------------------------------------------------------
@@ -76,8 +82,7 @@ class HealthResponse(BaseModel):
 
 app = FastAPI(
     title="TORQ Console API",
-    description="TORQ Console — Vercel Serverless Deployment",
-    version="0.80.0",
+    version="0.91.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -254,130 +259,21 @@ async def token_stream(message: str, model: str | None = None, provider: str = "
         yield f"data: {json.dumps({'error': str(e)})}\\n\\n"
         yield "data: [DONE]\\n\\n"
 
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    """Landing page."""
-    return HTMLResponse(content=f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TORQ Console</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #e0e0e0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }}
-        .container {{
-            max-width: 720px;
-            text-align: center;
-        }}
-        h1 {{
-            font-size: 2.5rem;
-            background: linear-gradient(90deg, #00d2ff, #7b2ff7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }}
-        .version {{ color: #888; margin-bottom: 2rem; }}
-        .status {{
-            display: inline-block;
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            background: #1a3a1a;
-            color: #4caf50;
-            font-weight: 600;
-            margin-bottom: 2rem;
-        }}
-        .card {{
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            text-align: left;
-        }}
-        .card h3 {{ color: #00d2ff; margin-bottom: 0.5rem; }}
-        code {{
-            background: rgba(0,0,0,0.3);
-            padding: 0.15rem 0.4rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }}
-        pre {{
-            background: rgba(0,0,0,0.4);
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }}
-        a {{ color: #00d2ff; text-decoration: none; }}
-        a:hover {{ text-decoration: underline; }}
-        .links {{ margin-top: 1rem; }}
-        .links a {{
-            display: inline-block;
-            margin: 0 0.5rem;
-            padding: 0.5rem 1rem;
-            border: 1px solid #00d2ff;
-            border-radius: 8px;
-            transition: background 0.2s;
-        }}
-        .links a:hover {{ background: rgba(0,210,255,0.15); }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>TORQ Console</h1>
-        <p class="version">v0.80.0 &mdash; Vercel Serverless</p>
-        <div class="status">Running</div>
-
-        <div class="card">
-            <h3>Chat API</h3>
-            <p>Send messages to Prince Flowers AI assistant:</p>
-            <pre>curl -X POST {os.environ.get('VERCEL_URL', 'https://your-app.vercel.app')}/api/chat \\
-  -H "Content-Type: application/json" \\
-  -d '{{"message": "Hello, Prince Flowers!"}}'</pre>
-        </div>
-
-        <div class="card">
-            <h3>Endpoints</h3>
-            <p><code>GET /health</code> &mdash; Health check</p>
-            <p><code>POST /api/chat</code> &mdash; Chat with AI</p>
-            <p><code>GET /api/status</code> &mdash; System status</p>
-            <p><code>GET /api/agents</code> &mdash; List agents</p>
-            <p><code>GET /docs</code> &mdash; OpenAPI docs</p>
-        </div>
-
-        <div class="links">
-            <a href="/docs">API Docs</a>
-            <a href="/health">Health</a>
-            <a href="https://github.com/pilotwaffle/TORQ-CONSOLE">GitHub</a>
-        </div>
-    </div>
-</body>
-</html>""")
-
-
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health():
-    """Health check endpoint."""
-    return HealthResponse(
-        status="healthy",
-        anthropic_configured=_has_key("ANTHROPIC_API_KEY"),
-        openai_configured=_has_key("OPENAI_API_KEY"),
-        timestamp=_now_iso(),
-    )
+    return {
+        "status": "healthy",
+        "service": "torq-console",
+        "platform": "vercel",
+        "backend_configured": bool(RAILWAY_URL),
+        "anthropic_configured": _has_key("ANTHROPIC_API_KEY"),
+        "timestamp": _now_iso(),
+    }
 
+
+# ===========================================================================
+# PROXIED ROUTES (→ Railway, full agent brain + learning)
+# ===========================================================================
 
 # ===========================================================================
 # DEPLOYMENT FINGERPRINT (anti-drift detection)
@@ -408,7 +304,7 @@ async def deploy_fingerprint():
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     """
-    Chat with Prince Flowers AI assistant.
+    Chat with Prince Flowers.
 
     PROXY MODE: Forwards to Railway where full agent + learning runs.
     FALLBACK MODE: Direct Anthropic/OpenAI call (no learning, EXPLICITLY marked).
@@ -526,62 +422,72 @@ async def chat_stream(req: ChatRequest):
     )
 
 
+# ===========================================================================
+# LOCAL ROUTES (Vercel-served, fast, no Railway dependency)
+# ===========================================================================
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    mode = "PROXY → Railway" if RAILWAY_URL else "DIRECT (fallback, degraded)"
+    return HTMLResponse(content=f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>TORQ Console</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:system-ui;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}}
+.c{{max-width:640px;text-align:center}}
+h1{{font-size:2.5rem;background:linear-gradient(90deg,#00d2ff,#7b2ff7);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}}
+.v{{color:#888;margin-bottom:1.5rem}}.s{{display:inline-block;padding:.3rem .8rem;border-radius:16px;
+background:#1a3a1a;color:#4caf50;font-weight:600;margin-bottom:.5rem}}
+.m{{color:#00d2ff;font-size:.85rem;margin-bottom:1.5rem}}
+.links a{{display:inline-block;margin:.3rem;padding:.4rem .8rem;border:1px solid #00d2ff;
+border-radius:6px;color:#00d2ff;text-decoration:none;font-size:.85rem}}
+.links a:hover{{background:rgba(0,210,255,.15)}}
+</style></head><body><div class="c">
+<h1>TORQ Console</h1><p class="v">v0.91.0</p>
+<div class="s">Running</div><p class="m">Mode: {mode}</p>
+<div class="links">
+<a href="/docs">API Docs</a><a href="/health">Health</a>
+<a href="/api/debug/deploy">Deploy Info</a></div></div></body></html>""")
+
+
 @app.get("/api/agents")
 async def list_agents():
-    """List available agents."""
+    """List agents — served locally from Vercel (fast)."""
     return [
         {
             "id": "prince_flowers",
             "name": "Prince Flowers",
-            "description": "Enhanced conversational AI assistant with action-oriented behavior",
-            "capabilities": [
-                "general_chat",
-                "code_generation",
-                "task_planning",
-                "documentation",
-                "web_search",
-            ],
+            "description": "TORQ Business Consulting AI — market research, tax strategy, business valuation",
+            "capabilities": ["general_chat", "market_research", "tax_strategy", "business_valuation", "portfolio_analysis"],
             "status": "active",
-        }
+        },
+        {
+            "id": "query_router",
+            "name": "Marvin Query Router",
+            "description": "Intelligently routes queries to appropriate processing paths",
+            "capabilities": ["intent_classification", "query_analysis", "agent_selection"],
+            "status": "active",
+        },
     ]
 
 
 @app.get("/api/agents/{agent_id}")
 async def get_agent(agent_id: str):
-    """Get agent details."""
-    if agent_id != "prince_flowers":
+    agents = {a["id"]: a for a in (await list_agents())}
+    if agent_id not in agents:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
-    return {
-        "id": "prince_flowers",
-        "name": "Prince Flowers",
-        "description": "Enhanced conversational AI assistant with action-oriented behavior",
-        "capabilities": [
-            "general_chat",
-            "code_generation",
-            "task_planning",
-            "documentation",
-            "web_search",
-        ],
-        "status": "active",
-        "provider": "anthropic" if _has_key("ANTHROPIC_API_KEY") else "openai" if _has_key("OPENAI_API_KEY") else "none",
-    }
-
-
-@app.post("/api/agents/{agent_id}/chat", response_model=ChatResponse)
-async def agent_chat(agent_id: str, req: ChatRequest):
-    """Chat with a specific agent (routes to /api/chat)."""
-    if agent_id != "prince_flowers":
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
-    return await chat(req)
+    return agents[agent_id]
 
 
 @app.get("/api/status")
 async def status():
-    """System status."""
-    return {
+    """System status — local with optional Railway health probe."""
+    result = {
         "status": "healthy",
         "service": "torq-console",
-        "version": "0.80.0",
+        "version": "0.91.0",
         "platform": "vercel",
         "agents_active": 1,
         "anthropic_configured": _has_key("ANTHROPIC_API_KEY"),
@@ -589,24 +495,32 @@ async def status():
         "streaming_enabled": os.environ.get("TORQ_STREAMING_ENABLED", "false").lower() == "true",
         "timestamp": _now_iso(),
     }
+    # Optionally probe Railway health
+    if RAILWAY_URL:
+        try:
+            backend = _proxy_to_railway("/health")
+            result["backend_status"] = backend.get("status", "unknown")
+        except Exception:
+            result["backend_status"] = "unreachable"
+    return result
 
 
 @app.get("/api/sessions")
 async def list_sessions():
-    """List sessions (stateless on Vercel — returns empty)."""
     return []
 
 
 @app.post("/api/sessions")
 async def create_session(request: Request):
-    """Create session (stateless stub for API compatibility)."""
-    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    session_id = f"vercel-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
     return {
-        "session_id": session_id,
+        "session_id": f"vercel-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
         "created_at": _now_iso(),
         "agent_id": body.get("agent_id", "prince_flowers"),
         "message_count": 0,
         "status": "active",
-        "note": "Sessions are stateless on Vercel serverless. Use Railway deployment for persistent sessions.",
     }

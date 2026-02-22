@@ -28,7 +28,8 @@ except (ImportError, RuntimeError) as e:
 from torq_console.indexer.semantic_search import SemanticSearch
 
 # Provider Fallback Integration
-from torq_console.generation_meta import GenerationMeta, ExecutionMode, AIResponseError, AITimeoutError, ProviderError
+from torq_console.generation_meta import GenerationMeta, ExecutionMode
+from torq_console.ui.web_ai_fix import AIResponseError, AITimeoutError, ProviderError
 from torq_console.llm.provider_fallback import ProviderFallbackExecutor, ProviderChainConfig
 
 

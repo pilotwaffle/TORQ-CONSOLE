@@ -17,7 +17,7 @@ import aiohttp
 from datetime import datetime, timedelta
 
 # Import typed exceptions for proper error classification
-from torq_console.generation_meta import AIResponseError, AITimeoutError, ProviderError
+from torq_console.ui.web_ai_fix import AIResponseError, AITimeoutError, ProviderError
 
 
 def _is_policy_violation(error: Exception) -> bool:
