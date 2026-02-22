@@ -1,8 +1,8 @@
 {
-  "git_sha": "ca777ca0d0b5f63729392654a89f86a663caf9f3",
-  "git_short_sha": "ca777ca0d0b5",
+  "git_sha": "48d23c449afab9983015f0d83465f1475ff6e790",
+  "git_short_sha": "48d23c449afa",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T13:51:33.019029+00:00",
+  "built_at": "2026-02-22T14:05:46.180824+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix: repair build_info.py indentation (syntax error)"
+  "commit_message": "chore: add BRANCH env var fallback for build_branch detection"
 }
