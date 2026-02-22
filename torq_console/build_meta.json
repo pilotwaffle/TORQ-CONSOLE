@@ -1,8 +1,8 @@
 {
-  "git_sha": "e57da7d6ae706a011e3a1f0e42d9a9fcd9ac275c",
-  "git_short_sha": "e57da7d6ae70",
+  "git_sha": "56a86cb442c62a164213af9563461e2327bd4f1b",
+  "git_short_sha": "56a86cb442c6",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T13:25:31.025564+00:00",
+  "built_at": "2026-02-22T13:30:26.450637+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix: resolve APP_VERSION to literal value in build metadata"
+  "commit_message": "fix: resolve NameError in setup.py breaking Railway builds"
 }
