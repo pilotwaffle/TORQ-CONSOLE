@@ -1,8 +1,8 @@
 {
-  "git_sha": "747ef8008701a7a4fd1d7b7f725480a52fb1218e",
-  "git_short_sha": "747ef8008701",
-  "version": "os.getenv('APP_VERSION', '1.0.10-standalone')",
-  "built_at": "2026-02-22T13:22:52.846706+00:00",
+  "git_sha": "8ba478b3778b6631230b2f32c96073102cdb3cca",
+  "git_short_sha": "8ba478b3778b",
+  "version": "1.0.10-standalone",
+  "built_at": "2026-02-22T13:25:20.508128+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "Merge branch 'api-railway-proxy' of https://github.com/pilotwaffle/TORQ-CONSOLE into api-railway-proxy"
+  "commit_message": "chore: update build metadata [skip ci]"
 }

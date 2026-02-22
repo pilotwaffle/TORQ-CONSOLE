@@ -1,4 +1,4 @@
-"""
+﻿"""
 Railway Standalone FastAPI app - NO heavy imports.
 
 This is a minimal backend that:
@@ -55,7 +55,12 @@ os.environ['TORQ_DISABLE_GPU'] = 'true'
 
 # Version -- must be defined before FastAPI() call at module level
 
-APP_VERSION = os.getenv(from fastapi.middleware.cors import CORSMiddleware
+APP_VERSION = os.getenv('APP_VERSION', '1.0.10-standalone')
+
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -1671,6 +1676,7 @@ async def root():
 
 logger.info("Railway standalone app created successfully")
 # trigger deploy for 1.0.9
+
 
 
 

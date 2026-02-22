@@ -24,14 +24,16 @@ git_sha = result.stdout.strip()
 short_sha = git_sha[:12]
 
 # Get current version (read from railway_app.py)
+# Prefer literal string values over os.getenv() calls
 railway_app = Path(__file__).parent.parent / "railway_app.py"
 version = "unknown"
 with open(railway_app) as f:
     for line in f:
-        if "APP_VERSION = " in line:
-            # Extract version string
+        if "APP_VERSION = " in line and "os.getenv" not in line:
+            # Extract version string from literal assignment
             version = line.split("APP_VERSION = ")[1].strip().strip('"')
-            break
+            if version and version != "unknown":
+                break
 
 # Build metadata
 meta = {
