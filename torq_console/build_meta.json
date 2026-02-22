@@ -1,8 +1,8 @@
 {
-  "git_sha": "13c898a38812965f938182684677cc2d657acc3e",
-  "git_short_sha": "13c898a38812",
+  "git_sha": "c2729a70fb18851f4cc7ce8eac3d8c438651109d",
+  "git_short_sha": "c2729a70fb18",
   "version": "1.0.9-standalone",
-  "built_at": "2026-02-22T01:46:46.025608+00:00",
+  "built_at": "2026-02-22T01:57:33.278877+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "chore: trigger railway deploy"
+  "commit_message": "chore: trigger deploy"
 }
