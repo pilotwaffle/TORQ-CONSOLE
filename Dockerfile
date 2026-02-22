@@ -44,12 +44,18 @@ ENV PYTHONPATH=/app:$PYTHONPATH
 # Write build_meta.json directly (without importing torq_console)
 # This is the file fallback for get_git_sha() / get_build_time() / get_build_branch()
 RUN python - << 'PY'
-import json, os, datetime, pathlib
+import json, os, datetime, pathlib, subprocess
+
+# Try to get branch from git during build
+try:
+    branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+except:
+    branch = os.getenv("GIT_BRANCH", "api-railway-proxy")
 
 meta = {
     "git_sha": os.getenv("GIT_SHA", "unknown"),
     "built_at": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
-    "branch": os.getenv("GIT_BRANCH", "unknown"),
+    "branch": branch,
 }
 # Write directly to torq_console directory
 path = pathlib.Path("/app/torq_console/build_meta.json")
