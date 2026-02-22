@@ -45,7 +45,7 @@ logger.info("Creating Railway standalone app...")
 app = FastAPI(
     title="TORQ Console Railway Backend",
     description="Agent backend with mandatory learning hook and drift monitoring",
-    version="1.0.9-standalone"
+    version=APP_VERSION
 )
 
 # CORS for Vercel proxy
@@ -171,7 +171,8 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "torq-console-railway",
-        "version": "1.0.9-standalone",
+        "version": APP_VERSION,
+        "git_sha": _get_git_sha(),
         "timestamp": datetime.utcnow().isoformat(),
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
         "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
@@ -369,13 +370,13 @@ async def chat(request: ChatRequest):
 
         # Telemetry spine: build hop metadata
         end_time = time.time()
-        rail_git_sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown")
+        rail_git_sha = _get_git_sha() or "unknown"
         telemetry = _build_telemetry_spine(
             trace_id=trace_id,
             session_id=request.session_id,
             service="railway",
             git_sha=rail_git_sha,
-            version="1.0.9-standalone",
+            version=APP_VERSION,
             started_at=start_time,
             ended_at=end_time,
             model_used=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
@@ -644,24 +645,101 @@ async def test_learning_write():
 
 
 # ============================================================================
--- Deploy Info
+-- Deploy Info (Un-fakeable fingerprint)
 -- ============================================================================
+
+def _get_git_sha() -> Optional[str]:
+    """
+    Get git SHA from multiple possible env vars (Railway, Vercel, generic).
+
+    Checks in order of preference:
+    1. RAILWAY_GIT_COMMIT_SHA (Railway-specific)
+    2. RAILWAY_GIT_COMMIT_HASH (Railway alternative)
+    3. VERCEL_GIT_COMMIT_SHA (Vercel/Railway proxy)
+    4. GIT_COMMIT_SHA / GIT_SHA (generic CI)
+    5. SOURCE_COMMIT (some CI systems)
+    6. HEROKU_SLUG_COMMIT (Heroku-style)
+
+    Returns None gracefully if none found (doesn't block startup).
+    """
+    env_vars_to_check = [
+        "RAILWAY_GIT_COMMIT_SHA",
+        "RAILWAY_GIT_COMMIT_HASH",
+        "VERCEL_GIT_COMMIT_SHA",
+        "GIT_COMMIT_SHA",
+        "GIT_SHA",
+        "SOURCE_COMMIT",
+        "HEROKU_SLUG_COMMIT",
+    ]
+
+    for env_var in env_vars_to_check:
+        sha = os.environ.get(env_var, "").strip()
+        if sha and sha != "" and sha != "unknown":
+            # Return first 8-12 chars (short SHA) for readability
+            return sha[:12]
+
+    return None
+
+
+def _get_deployment_id() -> Optional[str]:
+    """Get deployment ID from env vars."""
+    for env_var in ["RAILWAY_DEPLOYMENT_ID", "VERCEL_DEPLOYMENT_ID", "DEPLOYMENT_ID"]:
+        deployment_id = os.environ.get(env_var, "").strip()
+        if deployment_id and deployment_id != "":
+            return deployment_id
+    return None
+
+
+# Single source of truth for version
+APP_VERSION = "1.0.9-standalone"
+APP_BUILD_TIME = os.environ.get("APP_BUILD_TIME", datetime.utcnow().isoformat())
+
 
 @app.get("/api/debug/deploy")
 async def deploy_info():
-    """Deployment fingerprint - anti-drift detection."""
+    """
+    Deployment fingerprint - anti-drift detection.
+
+    Returns un-fakeable proof of what code is running:
+    - app_version: Semantic version for humans
+    - git_sha: Immutable commit identifier (machines)
+    - deployment_id: Deployment run identifier
+    - build_time: When this build was created
+    """
+    git_sha = _get_git_sha()
+    deployment_id = _get_deployment_id()
+
     return {
+        # Human-readable version
+        "app_version": APP_VERSION,
+
+        # Machine-readable immutable proof
+        "git_sha": git_sha,
+
+        # Deployment tracking
+        "deployment_id": deployment_id,
+        "build_time": APP_BUILD_TIME,
+
+        # Service identification
         "service": "railway-backend",
-        "version": "1.0.9-standalone",
         "env": "production",
+
+        # Feature flags
         "learning_hook": "mandatory",
+        "monitoring_enabled": True,
+        "proxy_secret_required": bool(PROXY_SECRET),
+
+        # Integration status
         "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
         "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
         "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
-        "proxy_secret_required": bool(PROXY_SECRET),
-        "monitoring_enabled": True,
+
+        # Current runtime
         "backend": "railway",
         "timestamp": datetime.utcnow().isoformat(),
+
+        # Fingerprint hash (for quick comparison)
+        "fingerprint": f"{APP_VERSION}-{git_sha or 'unknown'}-{deployment_id or 'unknown'}",
     }
 
 
@@ -1473,7 +1551,8 @@ async def root():
         "service": "TORQ Console Railway Backend",
         "status": "running",
         "backend": "railway",
-        "version": "1.0.9-standalone",
+        "version": APP_VERSION,
+        "git_sha": _get_git_sha(),
         "endpoints": [
             "/health",
             "/api/chat",
