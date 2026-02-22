@@ -720,6 +720,17 @@ def _get_deployment_id() -> Optional[str]:
 APP_VERSION = "1.0.9-standalone"
 APP_BUILD_TIME = os.environ.get("APP_BUILD_TIME", datetime.utcnow().isoformat())
 
+# Build metadata from build_meta.json (committed with repo)
+_BUILD_METADATA = None
+try:
+    import pathlib
+    build_meta_path = pathlib.Path(__file__).parent.parent / "torq_console" / "build_meta.json"
+    if build_meta_path.exists():
+        with open(build_meta_path) as f:
+            _BUILD_METADATA = json.load(f)
+except Exception:
+    pass  # Graceful fallback if file missing
+
 
 @app.get("/api/debug/deploy")
 async def deploy_info():
@@ -728,23 +739,36 @@ async def deploy_info():
 
     Returns un-fakeable proof of what code is running:
     - app_version: Semantic version for humans
-    - git_sha: Immutable commit identifier (machines)
-    - deployment_id: Deployment run identifier
+    - git_sha: Immutable commit identifier from build_meta.json (most reliable)
+    - deployment_id: Deployment run identifier (if available)
     - build_time: When this build was created
+    - container_start_time: When this container started (proves new deployment)
     """
-    git_sha = _get_git_sha()
+    # Get git SHA from build_meta.json (most reliable source)
+    git_sha = _get_git_sha()  # From env vars
+    build_meta_git_sha = None
+
+    if _BUILD_METADATA:
+        build_meta_git_sha = _BUILD_METADATA.get("git_short_sha") or _BUILD_METADATA.get("git_sha", "")[:12]
+
+    # Prefer build_meta.json over env vars (it's committed with the code)
+    git_sha = build_meta_git_sha or git_sha
+
     deployment_id = _get_deployment_id()
 
     return {
         # Human-readable version
         "app_version": APP_VERSION,
 
-        # Machine-readable immutable proof
+        # Machine-readable immutable proof (from build_meta.json)
         "git_sha": git_sha,
+        "git_commit_message": _BUILD_METADATA.get("commit_message") if _BUILD_METADATA else None,
+        "build_branch": _BUILD_METADATA.get("branch") if _BUILD_METADATA else None,
 
         # Deployment tracking
         "deployment_id": deployment_id,
-        "build_time": APP_BUILD_TIME,
+        "build_time": _BUILD_METADATA.get("built_at") if _BUILD_METADATA else APP_BUILD_TIME,
+        "container_start_time": APP_BUILD_TIME,  # When this container image was built
 
         # Service identification
         "service": "railway-backend",
