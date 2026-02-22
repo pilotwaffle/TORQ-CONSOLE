@@ -1,8 +1,8 @@
 {
-  "git_sha": "a27ce15ddf50184436aae83dcf0d51ccad807e1a",
-  "git_short_sha": "a27ce15ddf50",
+  "git_sha": "12de39874061575f255c1b2f517136861c5e802e",
+  "git_short_sha": "12de39874061",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T12:25:29.916835+00:00",
+  "built_at": "2026-02-22T12:26:06.816578+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "feat: add running_file and running_module to torq-deploy-v1 contract"
 }
