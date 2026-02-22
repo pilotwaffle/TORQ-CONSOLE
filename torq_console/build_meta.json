@@ -1,8 +1,8 @@
 {
-  "git_sha": "8ba478b3778b6631230b2f32c96073102cdb3cca",
-  "git_short_sha": "8ba478b3778b",
+  "git_sha": "e57da7d6ae706a011e3a1f0e42d9a9fcd9ac275c",
+  "git_short_sha": "e57da7d6ae70",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T13:25:20.508128+00:00",
+  "built_at": "2026-02-22T13:25:31.025564+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "fix: resolve APP_VERSION to literal value in build metadata"
 }
