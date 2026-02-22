@@ -1,8 +1,8 @@
 {
-  "git_sha": "eb8def5e78f5462071e0edd8843386d30c53fbc2",
-  "git_short_sha": "eb8def5e78f5",
+  "git_sha": "03aebe029e50f30597861f19b138f8415bd31529",
+  "git_short_sha": "03aebe029e50",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T12:27:29.840909+00:00",
+  "built_at": "2026-02-22T13:02:26.542414+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix: correct indentation issues in railway_app.py"
+  "commit_message": "feat: add smoking gun fields to health endpoint"
 }
