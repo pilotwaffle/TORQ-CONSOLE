@@ -614,8 +614,8 @@ async def rollback_policy():
     return {"ok": True, "status": "rolled_back"}
 
 # ============================================================================
--- Learning Debug (test Supabase write)
--- ============================================================================
+# Learning Debug (test Supabase write)
+# ============================================================================
 
 @app.get("/api/debug/learning/test")
 async def test_learning_write():
@@ -686,8 +686,8 @@ async def test_learning_write():
 
 
 # ============================================================================
--- Deploy Info (Un-fakeable fingerprint)
--- ============================================================================
+# Deploy Info (Un-fakeable fingerprint)
+# ============================================================================
 
 def _get_git_sha() -> Optional[str]:
     """
@@ -1066,8 +1066,8 @@ async def get_event_info(event_id: str, request: Request = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
--- MONITORING ENDPOINTS (Drift/Regression Detection)
--- ============================================================================
+# MONITORING ENDPOINTS (Drift/Regression Detection)
+# ============================================================================
 
 def _get_supabase_client():
     """Get Supabase URL and key for requests."""
