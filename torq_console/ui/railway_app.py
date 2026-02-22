@@ -301,6 +301,10 @@ except Exception as e:
                         "_schema_version": 1,
                         "_schema_updated": get_schema_updated(),
                         "request_id": str(uuid.uuid4()),
+                        # Module path identification (zero guesswork)
+                        "running_file": "torq_console/ui/railway_app.py",
+                        "running_module": __name__,
+                        # Platform and service
                         "platform": platform,
                         "service": get_service_name(),
                         "env": os.getenv("TORQ_ENV", "production"),
