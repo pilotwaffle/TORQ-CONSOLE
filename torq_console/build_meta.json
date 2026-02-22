@@ -1,8 +1,8 @@
 {
-  "git_sha": "4dc12ded3543542977f3b3593b6b0760e0c1d027",
-  "git_short_sha": "4dc12ded3543",
+  "git_sha": "a27ce15ddf50184436aae83dcf0d51ccad807e1a",
+  "git_short_sha": "a27ce15ddf50",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T12:24:58.026911+00:00",
+  "built_at": "2026-02-22T12:25:29.916835+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "feat: add torq-deploy-v1 contract schema to deploy endpoint"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
