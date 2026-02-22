@@ -1,8 +1,8 @@
 {
-  "git_sha": "e4bd7260c42e80655c5545f19dcc12d08eb56410",
-  "git_short_sha": "e4bd7260c42e",
+  "git_sha": "40fc6cd10f1146cd36d3d29ea9c20435f89ad28e",
+  "git_short_sha": "40fc6cd10f11",
   "version": "1.0.9-standalone",
-  "built_at": "2026-02-22T00:46:12.421799+00:00",
+  "built_at": "2026-02-22T00:53:03.131566+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "feat: add env debug endpoint + expand git SHA detection"
+  "commit_message": "feat: add build_meta.json for un-fakeable deploy fingerprint"
 }
