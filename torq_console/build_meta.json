@@ -1,8 +1,8 @@
 {
-  "git_sha": "2664c1580e53ed354c4f32e1ef77913d75406a41",
-  "git_short_sha": "2664c1580e53",
+  "git_sha": "13c898a38812965f938182684677cc2d657acc3e",
+  "git_short_sha": "13c898a38812",
   "version": "1.0.9-standalone",
-  "built_at": "2026-02-22T01:28:33.736926+00:00",
+  "built_at": "2026-02-22T01:46:46.025608+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "fix(railway): replace SQL comments with Python comments, syntax fix"
+  "commit_message": "chore: trigger railway deploy"
 }
