@@ -55,8 +55,7 @@ os.environ['TORQ_DISABLE_GPU'] = 'true'
 
 # Version -- must be defined before FastAPI() call at module level
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
+APP_VERSION = os.getenv(from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
