@@ -1,8 +1,8 @@
 {
-  "git_sha": "26872c0256be8fd92e3d884ac5a3747741b6b2aa",
-  "git_short_sha": "26872c0256be",
+  "git_sha": "4412610d7f1f9e50638c1d05560d20dd8a5c8622",
+  "git_short_sha": "4412610d7f1f",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T13:30:35.464442+00:00",
+  "built_at": "2026-02-22T13:33:55.639813+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "fix: remove NIXPACKS builder from railway.json"
 }
