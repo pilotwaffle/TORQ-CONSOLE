@@ -17,11 +17,34 @@ import time
 import json
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
+import sys
 
-# Configure logging
+# Configure logging - INFO to stdout, ERROR to stderr
+# This prevents Railway from misclassifying INFO logs as errors
+class StdoutFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno <= logging.INFO
+
+class StderrFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno >= logging.WARNING
+
+# stdout handler for INFO and below
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setLevel(logging.INFO)
+stdout_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+stdout_handler.addFilter(StdoutFilter())
+
+# stderr handler for WARNING and above
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setLevel(logging.WARNING)
+stderr_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+# Configure root logger
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    handlers=[stdout_handler, stderr_handler],
+    force=True  # Override any existing config
 )
 logger = logging.getLogger(__name__)
 
@@ -790,6 +813,27 @@ async def deploy_info():
 
         # Fingerprint hash (for quick comparison)
         "fingerprint": f"{APP_VERSION}-{git_sha or 'unknown'}-{deployment_id or 'unknown'}",
+    }
+
+
+@app.get("/api/debug/fingerprint")
+async def fingerprint():
+    """
+    Simple flat fingerprint endpoint for quick deployment verification.
+    Returns flat key-value pairs (easier for PowerShell/select).
+    """
+    git_sha = _get_git_sha()
+    if _BUILD_METADATA:
+        git_sha = _BUILD_METADATA.get("git_short_sha") or git_sha
+
+    return {
+        "app_version": APP_VERSION,
+        "git_sha": git_sha or "unknown",
+        "build_branch": _BUILD_METADATA.get("branch") if _BUILD_METADATA else "unknown",
+        "build_time": _BUILD_METADATA.get("built_at") if _BUILD_METADATA else "unknown",
+        "container_start_time": APP_BUILD_TIME,
+        "service": "railway-backend",
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 

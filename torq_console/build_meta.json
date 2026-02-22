@@ -1,8 +1,8 @@
 {
-  "git_sha": "40fc6cd10f1146cd36d3d29ea9c20435f89ad28e",
-  "git_short_sha": "40fc6cd10f11",
+  "git_sha": "421190ce4f76dd447521695bfb765e04eda7dd22",
+  "git_short_sha": "421190ce4f76",
   "version": "1.0.9-standalone",
-  "built_at": "2026-02-22T00:53:03.131566+00:00",
+  "built_at": "2026-02-22T01:01:21.037610+00:00",
   "branch": "api-railway-proxy",
-  "commit_message": "feat: add build_meta.json for un-fakeable deploy fingerprint"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
