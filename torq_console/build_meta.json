@@ -1,8 +1,8 @@
 {
-  "git_sha": "ceecbc2026faef2b761660e09dc2a6f0fb90efff",
-  "git_short_sha": "ceecbc2026fa",
+  "git_sha": "184c737c39cd2662c496e49c591624698dcfcd14",
+  "git_short_sha": "184c737c39cd",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-23T22:45:55.533400+00:00",
+  "built_at": "2026-02-23T23:01:38.174595+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "feat(control-plane): activate governance, telemetry, deploy identity, learning system"
+  "commit_message": "chore: trigger deploy"
 }
