@@ -223,7 +223,7 @@ def create_railway_app():
     async def ingest_telemetry(request: TelemetryIngest):
         """Ingest telemetry data from Vercel/frontend."""
         try:
-            from torq_console.telemetry.storage import supabase_ingest
+            from torq_console.telemetry import supabase_ingest
             result = await supabase_ingest(
                 trace=request.trace,
                 spans=request.spans,
@@ -241,7 +241,7 @@ def create_railway_app():
     @app.get("/api/telemetry/health")
     async def telemetry_health():
         """Check telemetry system health."""
-        from torq_console.telemetry.storage import get_telemetry_health
+        from torq_console.telemetry import get_telemetry_health
         health = await get_telemetry_health()
         return health
 
@@ -306,7 +306,7 @@ def create_railway_app():
         for correlation with the code that generated them.
         """
         try:
-            from torq_console.telemetry.storage import list_traces as db_list_traces
+            from torq_console.telemetry import list_traces as db_list_traces
 
             # Build filters from query params
             filters = {}
@@ -345,7 +345,7 @@ def create_railway_app():
         (deploy_git_sha, deploy_platform, deploy_app_version) for correlation.
         """
         try:
-            from torq_console.telemetry.storage import get_trace as db_get_trace
+            from torq_console.telemetry import get_trace as db_get_trace
 
             trace = await db_get_trace(trace_id)
 
@@ -372,7 +372,7 @@ def create_railway_app():
         Returns a tree structure that can be visualized in a timeline UI.
         """
         try:
-            from torq_console.telemetry.storage import get_trace_spans as db_get_spans
+            from torq_console.telemetry import get_trace_spans as db_get_spans
 
             spans = await db_get_spans(
                 trace_id=trace_id,
