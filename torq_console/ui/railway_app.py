@@ -263,29 +263,101 @@ def create_railway_app():
             }
 
     @app.post("/api/learning/policy/approve")
-    async def approve_policy(request: LearningPolicyUpdate):
+    async def approve_policy(request: Request, policy_data: LearningPolicyUpdate):
         """Approve a new learning policy (admin only)."""
+        from torq_console.telemetry.admin import admin_required, log_admin_action
+
+        # Admin check
+        token = request.headers.get("X-Torq-Admin-Token", "")
+        if not verify_admin_token(token):
+            await log_admin_action(
+                action="policy_approve_denied",
+                details={"policy_id": policy_data.policy_id},
+                actor="unauthorized",
+                success=False,
+            )
+            raise HTTPException(status_code=401, detail="Valid admin token required")
+
+        actor = f"token_{hash(token) % 10000:04d}" if token else "dev"
+
         try:
             from torq_console.telemetry.learning import approve_policy_version
             result = await approve_policy_version(
-                policy_id=request.policy_id,
-                routing_data=request.routing_data,
+                policy_id=policy_data.policy_id,
+                routing_data=policy_data.routing_data,
             )
-            return {"ok": True, "policy_id": request.policy_id, **result}
+
+            await log_admin_action(
+                action="policy_approve",
+                details={"policy_id": policy_data.policy_id, "result": result},
+                actor=actor,
+                success=True,
+            )
+
+            return {"ok": True, "policy_id": policy_data.policy_id, **result}
         except Exception as e:
             logger.error(f"Policy approval error: {e}")
+            await log_admin_action(
+                action="policy_approve",
+                details={"policy_id": policy_data.policy_id, "error": str(e)},
+                actor=actor,
+                success=False,
+            )
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.post("/api/learning/policy/rollback")
-    async def rollback_policy():
+    async def rollback_policy(request: Request):
         """Rollback to previous policy (admin only)."""
+        from torq_console.telemetry.admin import log_admin_action
+
+        # Admin check
+        token = request.headers.get("X-Torq-Admin-Token", "")
+        if not verify_admin_token(token):
+            await log_admin_action(
+                action="policy_rollback_denied",
+                details={},
+                actor="unauthorized",
+                success=False,
+            )
+            raise HTTPException(status_code=401, detail="Valid admin token required")
+
+        actor = f"token_{hash(token) % 10000:04d}" if token else "dev"
+
         try:
             from torq_console.telemetry.learning import rollback_policy_version
             result = await rollback_policy_version()
+
+            await log_admin_action(
+                action="policy_rollback",
+                details={"result": result},
+                actor=actor,
+                success=True,
+            )
+
             return {"ok": True, **result}
         except Exception as e:
             logger.error(f"Policy rollback error: {e}")
+            await log_admin_action(
+                action="policy_rollback",
+                details={"error": str(e)},
+                actor=actor,
+                success=False,
+            )
             raise HTTPException(status_code=500, detail=str(e))
+
+
+def verify_admin_token(token: str) -> bool:
+    """Verify admin token is valid."""
+    import os
+    import hmac
+
+    admin_token = os.getenv("TORQ_ADMIN_TOKEN", "")
+    if not admin_token:
+        # Dev mode: no admin token required
+        return True
+    if not token:
+        return False
+    return hmac.compare_digest(token, admin_token)
 
     # ============================================================================
     # Trace Explorer API - Query telemetry traces with deploy identity filtering
