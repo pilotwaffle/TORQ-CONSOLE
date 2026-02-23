@@ -1,8 +1,8 @@
 {
-  "git_sha": "fa28969c26bfe6cc4e70b1b18eb1534d9764cd1c",
-  "git_short_sha": "fa28969c26bf",
+  "git_sha": "5b9a06aee6ebe9e280da2f15f934974156d21699",
+  "git_short_sha": "5b9a06aee6eb",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-23T23:36:55.692802+00:00",
+  "built_at": "2026-02-23T23:50:57.769418+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "fix: correct telemetry imports and remove await from sync proxy"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
