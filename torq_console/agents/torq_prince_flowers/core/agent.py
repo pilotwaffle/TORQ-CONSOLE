@@ -11,6 +11,7 @@ import logging
 import os
 import sys
 import time
+import uuid
 from typing import Dict, List, Any, Optional, Tuple, Union
 from datetime import datetime
 
@@ -19,6 +20,7 @@ sys.path.insert(0, str(__file__).replace('\\', '/').split('/torq_console/')[0])
 
 from torq_console.llm.providers.base import BaseLLMProvider
 from .state import ReasoningMode, AgenticAction, ReasoningTrajectory, TORQAgentResult
+from .learning_hook import MandatoryLearningHook
 from ..capabilities.reasoning import ReasoningEngine
 from ..capabilities.planning import PlanningEngine
 from ..capabilities.learning import LearningEngine
@@ -67,6 +69,9 @@ class TORQPrinceFlowers:
         # Initialize utilities
         self.context_manager = ContextManager()
         self.performance_tracker = PerformanceTracker()
+
+        # MANDATORY: Learning hook — every response produces a learning event
+        self.learning_hook = MandatoryLearningHook()
 
         # Performance tracking
         self.active_since = time.time()
@@ -242,7 +247,7 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             # Mark trajectory as successful
             trajectory.mark_complete(True, result.get('response', ''))
 
-            # Update learning systems
+            # Update legacy learning systems
             await self.learning_engine.update_learning_systems(
                 trajectory, analysis, True
             )
@@ -262,6 +267,26 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             self.successful_responses += 1
             self.trajectory_history.append(trajectory)
 
+            # ============================================================
+            # MANDATORY: Post-response learning event — NOT OPTIONAL
+            # No response is complete without this. This is the closed loop.
+            # ============================================================
+            trace_id = trajectory.context.get('trace_id', str(uuid.uuid4()))
+            await self.learning_hook.record_learning_event(
+                trace_id=trace_id,
+                query=query,
+                route_selected=trajectory.mode.value,
+                tools_used=result.get('tools_used', []),
+                evidence_sources=result.get('metadata', {}).get('sources', []),
+                latency=execution_time,
+                confidence=result.get('confidence', 0.0),
+                response_text=result.get('response', ''),
+                success=True,
+                policy_compliant=True,
+                numeric_values_valid=True,
+                hallucination_flags=0,
+            )
+
             return agent_result
 
         except Exception as e:
@@ -276,14 +301,36 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             # Analyze failure for learning
             await self._analyze_failure(trajectory, e)
 
-            # Return error result
-            return TORQAgentResult(
+            error_result = TORQAgentResult(
                 success=False,
                 response=f"An error occurred while processing your request: {str(e)}",
                 trajectory=trajectory,
                 error=str(e),
                 execution_time=execution_time
             )
+
+            # ============================================================
+            # MANDATORY: Learning event for failures too — ESPECIALLY failures
+            # Failures are the most valuable learning data.
+            # ============================================================
+            trace_id = trajectory.context.get('trace_id', str(uuid.uuid4()))
+            await self.learning_hook.record_learning_event(
+                trace_id=trace_id,
+                query=query,
+                route_selected=trajectory.mode.value if hasattr(trajectory, 'mode') else 'unknown',
+                tools_used=[],
+                evidence_sources=[],
+                latency=execution_time,
+                confidence=0.0,
+                response_text=str(e),
+                success=False,
+                error=str(e),
+                policy_compliant=True,
+                numeric_values_valid=True,
+                hallucination_flags=0,
+            )
+
+            return error_result
 
     async def health_check(self) -> Dict[str, Any]:
         """Perform a comprehensive health check of the agent."""

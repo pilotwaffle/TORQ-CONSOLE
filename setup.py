@@ -15,8 +15,8 @@ if project_root not in sys.path:
 
 def run_command(cmd, description=""):
     """Run a command and display output."""
-    print(f"\n{description}: {description}")
-    print(f"  {command}: {cmd}")
+    print(f"\n{description}")
+    print(f"  Running: {cmd}")
     try:
         result = subprocess.run(
             cmd,
@@ -27,15 +27,15 @@ def run_command(cmd, description=""):
             shell=True
         )
         if result.returncode == 0:
-            print(f" {success}: True")
+            print(f"  Success: True")
             if result.stdout:
                 print(result.stdout.strip())
             if result.stderr:
                 print(result.stderr.strip())
         else:
-            print(f" {error_code}: {result.returncode}")
+            print(f"  Error code: {result.returncode}")
     except Exception as e:
-        print(f" {error}: {str(e)}")
+        print(f"  Error: {str(e)}")
 
 def main():
     """Main setup process."""
@@ -43,15 +43,15 @@ def main():
     print("=" * 50)
 
     # 1. Install dependencies
-    cmd = ["pip", "install", "-e", ".", "torq_console"]
+    cmd = "pip install -e ."
     run_command(cmd, "Install TORQ Console in editable mode")
 
     # 2. Verify installation
-    cmd = ["python", "-c", "from torq_console import TorqConsole; print('OK')"]
+    cmd = "python -c 'from torq_console import TorqConsole; print(\"OK\")'"
     run_command(cmd, "Verify TORQ Console imports")
 
     # 3. Check environment variables
-    cmd = ["python", "-c", "print('API Key:', os.getenv('ANTHROPIC_API_KEY', 'Not set')"]
+    cmd = "python -c 'import os; print(\"API Key:\", os.getenv(\"ANTHROPIC_API_KEY\", \"Not set\"))'"
     run_command(cmd, "Check for API keys")
 
     # 4. Create .env file if needed

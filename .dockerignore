@@ -31,8 +31,8 @@ ENV
 *.md
 docs/
 *.rst
-*.txt
-!requirements.txt
+# Allow requirements files
+!requirements*.txt
 
 # Tests
 tests/

@@ -1,5 +1,8 @@
+# Railway production build — lightweight, no native deps
 [phases.setup]
 nixPkgs = ["python311", "pip"]
+# Do NOT auto-detect from requirements.txt
+aptPkgs = []
 
 [phases.install]
 cmds = [

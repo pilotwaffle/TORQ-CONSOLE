@@ -35,5 +35,12 @@ jsonrpcclient>=4.0.0
 # Configuration
 PyYAML>=6.0.0
 
+# Supabase (learning events persistence)
+supabase>=2.3,<3
+httpx>=0.24.0
+
+# NumPy for semantic search embeddings
+numpy>=1.24.0
+
 # Optional but helpful
 python-dotenv>=1.0.0

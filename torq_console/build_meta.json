@@ -1,0 +1,8 @@
+{
+  "git_sha": "2cda14dc77264ff11e35c2553b71f41d21d0539a",
+  "git_short_sha": "2cda14dc7726",
+  "version": "1.0.10-standalone",
+  "built_at": "2026-02-23T23:03:35.352503+00:00",
+  "branch": "control-plane-v1",
+  "commit_message": "fix(proxy): add telemetry/learning/traces proxy endpoints to Railway"
+}
