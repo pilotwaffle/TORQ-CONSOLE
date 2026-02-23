@@ -122,6 +122,17 @@ def create_railway_app():
         routing_data: Dict[str, Any]
 
     # ============================================================================
+    # Trace Explorer Query Models
+    # ============================================================================
+    class TraceQueryParams(BaseModel):
+        session_id: Optional[str] = None
+        user_id: Optional[str] = None
+        limit: int = 100
+        offset: int = 0
+        start_date: Optional[str] = None
+        end_date: Optional[str] = None
+
+    # ============================================================================
     # Health Check
     # ============================================================================
     @app.get("/health")
@@ -149,25 +160,18 @@ def create_railway_app():
         Every response triggers learning event calculation and persistence.
         """
         try:
-            from torq_console.agents.torq_prince_flowers.core.agent import PrinceFlowersAgent
-            from torq_console.agents.torq_prince_flowers.core.learning_hook import (
+            from torq_console.agents.torq_prince_flowers.core.agent import TORQPrinceFlowers
+            from torq_console.telemetry.learning import (
                 record_learning_event,
                 calculate_consulting_reward,
             )
-            from torq_console.core.session import SessionManager
             import time
 
             start_time = time.time()
             trace_id = request.trace_id or f"chat-{int(time.time() * 1000)}"
             logger.info(f"[{trace_id}] Chat request: {request.message[:100]}...")
 
-            session_mgr = SessionManager()
-            session = session_mgr.get_or_create_session(request.session_id)
-
-            agent = PrinceFlowersAgent(
-                session_id=request.session_id,
-                trace_id=trace_id,
-            )
+            agent = TORQPrinceFlowers()
 
             response_data = await agent.arun(request.message)
             duration = time.time() - start_time
@@ -281,6 +285,126 @@ def create_railway_app():
             return {"ok": True, **result}
         except Exception as e:
             logger.error(f"Policy rollback error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ============================================================================
+    # Trace Explorer API - Query telemetry traces with deploy identity filtering
+    # ============================================================================
+    @app.get("/api/traces")
+    async def list_traces(
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ):
+        """
+        List telemetry traces with filtering and pagination.
+
+        All traces include deploy identity (git_sha, platform, app_version)
+        for correlation with the code that generated them.
+        """
+        try:
+            from torq_console.telemetry.storage import list_traces as db_list_traces
+
+            # Build filters from query params
+            filters = {}
+            if session_id:
+                filters["session_id"] = session_id
+            if user_id:
+                filters["user_id"] = user_id
+            if start_date:
+                filters["start_date"] = start_date
+            if end_date:
+                filters["end_date"] = end_date
+
+            traces = await db_list_traces(
+                filters=filters,
+                limit=limit,
+                offset=offset,
+            )
+
+            return {
+                "traces": traces,
+                "count": len(traces),
+                "limit": limit,
+                "offset": offset,
+                "filters": filters,
+            }
+        except Exception as e:
+            logger.error(f"List traces error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/traces/{trace_id}")
+    async def get_trace(trace_id: str):
+        """
+        Get a single trace with all its metadata and deploy identity.
+
+        Returns the complete trace record including deploy stamp fields
+        (deploy_git_sha, deploy_platform, deploy_app_version) for correlation.
+        """
+        try:
+            from torq_console.telemetry.storage import get_trace as db_get_trace
+
+            trace = await db_get_trace(trace_id)
+
+            if not trace:
+                raise HTTPException(status_code=404, detail=f"Trace {trace_id} not found")
+
+            return trace
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Get trace error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/traces/{trace_id}/spans")
+    async def get_trace_spans(
+        trace_id: str,
+        limit: int = 500,
+        offset: int = 0,
+    ):
+        """
+        Get all spans for a specific trace.
+
+        Spans include timing, parent-child relationships, and deploy identity.
+        Returns a tree structure that can be visualized in a timeline UI.
+        """
+        try:
+            from torq_console.telemetry.storage import get_trace_spans as db_get_spans
+
+            spans = await db_get_spans(
+                trace_id=trace_id,
+                limit=limit,
+                offset=offset,
+            )
+
+            if not spans:
+                return {"spans": [], "trace_id": trace_id, "count": 0}
+
+            # Build span tree for frontend visualization
+            span_map = {span["span_id"]: span for span in spans}
+            root_spans = [s for s in spans if not s.get("parent_span_id")]
+
+            for span in spans:
+                span["children"] = []
+
+            for span in spans:
+                parent_id = span.get("parent_span_id")
+                if parent_id and parent_id in span_map:
+                    span_map[parent_id]["children"].append(span)
+
+            return {
+                "trace_id": trace_id,
+                "spans": spans,
+                "root_spans": root_spans,
+                "count": len(spans),
+                "limit": limit,
+                "offset": offset,
+            }
+        except Exception as e:
+            logger.error(f"Get trace spans error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     # ============================================================================

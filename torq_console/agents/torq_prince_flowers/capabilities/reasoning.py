@@ -329,7 +329,7 @@ class ReasoningEngine:
                 # Attempt web search with timeout
                 import asyncio
                 results = await asyncio.wait_for(
-                    self.web_search_tool.search(query, num_results=5),
+                    self.web_search_tool.search(query, max_results=5),
                     timeout=15.0  # 15 second timeout
                 )
 

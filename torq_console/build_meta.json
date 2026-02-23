@@ -1,8 +1,8 @@
 {
-  "git_sha": "fff23626c9d5b1a3481d2148b12ae1df4f8fffc7",
-  "git_short_sha": "fff23626c9d5",
+  "git_sha": "e6c1ccde1cd0aa2b8a84e6399ef0933c780824d5",
+  "git_short_sha": "e6c1ccde1cd0",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-22T14:09:53.166392+00:00",
-  "branch": "api-railway-proxy",
-  "commit_message": "feat: detect git branch during build using git rev-parse"
+  "built_at": "2026-02-23T22:45:04.025059+00:00",
+  "branch": "control-plane-v1",
+  "commit_message": "feat(control-plane): activate governance, telemetry, deploy identity, learning system"
 }
