@@ -524,3 +524,59 @@ async def create_session(request: Request):
         "message_count": 0,
         "status": "active",
     }
+
+
+# ============================================================================
+# TELEMETRY & LEARNING PROXY ENDPOINTS (→ Railway)
+# ============================================================================
+
+@app.get("/api/telemetry/health")
+async def telemetry_health():
+    """Proxy telemetry health check to Railway."""
+    if RAILWAY_URL:
+        return await _proxy_to_railway("/api/telemetry/health")
+    return {"configured": False, "error": "No backend configured"}
+
+
+@app.post("/api/telemetry")
+async def ingest_telemetry(request: Request):
+    """Proxy telemetry ingestion to Railway."""
+    if RAILWAY_URL:
+        body = await request.json()
+        import json
+        return await _proxy_to_railway("/api/telemetry", method="POST", body=json.dumps(body).encode())
+    raise HTTPException(status_code=503, detail="No backend configured")
+
+
+@app.get("/api/learning/status")
+async def learning_status():
+    """Proxy learning status to Railway."""
+    if RAILWAY_URL:
+        return await _proxy_to_railway("/api/learning/status")
+    return {"configured": False, "error": "No backend configured"}
+
+
+@app.get("/api/traces")
+async def list_traces(request: Request):
+    """Proxy trace list to Railway."""
+    if RAILWAY_URL:
+        params = dict(request.query_params)
+        return await _proxy_to_railway("/api/traces", params=params)
+    raise HTTPException(status_code=503, detail="No backend configured")
+
+
+@app.get("/api/traces/{trace_id:path}")
+async def get_trace(trace_id: str):
+    """Proxy get trace to Railway."""
+    if RAILWAY_URL:
+        return await _proxy_to_railway(f"/api/traces/{trace_id}")
+    raise HTTPException(status_code=503, detail="No backend configured")
+
+
+@app.get("/api/traces/{trace_id:path}/spans")
+async def get_trace_spans(trace_id: str, request: Request):
+    """Proxy get trace spans to Railway."""
+    if RAILWAY_URL:
+        params = dict(request.query_params)
+        return await _proxy_to_railway(f"/api/traces/{trace_id}/spans", params=params)
+    raise HTTPException(status_code=503, detail="No backend configured")
