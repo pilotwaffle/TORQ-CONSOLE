@@ -1,8 +1,8 @@
 {
-  "git_sha": "5b9a06aee6ebe9e280da2f15f934974156d21699",
-  "git_short_sha": "5b9a06aee6eb",
+  "git_sha": "65c5a51388c9f0c27e4fb08bd8169759f78f7c6e",
+  "git_short_sha": "65c5a51388c9",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-23T23:50:57.769418+00:00",
+  "built_at": "2026-02-23T23:51:22.107577+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "feat: lock control plane with guardrails and smoke tests"
 }
