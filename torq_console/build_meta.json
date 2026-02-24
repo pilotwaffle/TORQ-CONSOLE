@@ -1,8 +1,8 @@
 {
-  "git_sha": "d869d40054a8f0ed4b657021e5f52c22b9f71206",
-  "git_short_sha": "d869d40054a8",
+  "git_sha": "5b5e940f14698dcb62f8d2b56812637502e11c88",
+  "git_short_sha": "5b5e940f1469",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T05:47:48.625303+00:00",
-  "branch": "control-plane-v1",
-  "commit_message": "Freeze torq-chat-response-v1 API contract with 4 critical adjustments"
+  "built_at": "2026-02-24T06:43:06.990928+00:00",
+  "branch": "control-plane-v1-clean",
+  "commit_message": "feat: production-proof telemetry health and settings"
 }
