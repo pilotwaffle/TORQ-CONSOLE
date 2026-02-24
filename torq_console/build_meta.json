@@ -1,8 +1,8 @@
 {
-  "git_sha": "e7835a84649501e3c41216bb6aa91291bc83500d",
-  "git_short_sha": "e7835a846495",
+  "git_sha": "e82d7d69e018881d12c567668e96a2dd50d2720c",
+  "git_short_sha": "e82d7d69e018",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T16:04:05.138333+00:00",
+  "built_at": "2026-02-24T21:57:02.733267+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "fix: update expected SHA to latest build metadata"
+  "commit_message": "Fix Railway PORT binding via Python entrypoint"
 }
