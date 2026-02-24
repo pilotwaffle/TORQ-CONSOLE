@@ -1,8 +1,8 @@
 {
-  "git_sha": "9ecb71d7918f1af0691e4bd7c5c81febfeefcf16",
-  "git_short_sha": "9ecb71d7918f",
+  "git_sha": "f40353fa229d05464489c86e8bb0121f726e53c2",
+  "git_short_sha": "f40353fa229d",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T03:02:31.705560+00:00",
+  "built_at": "2026-02-24T05:10:13.126861+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "feat: production-grade web research system"
+  "commit_message": "fix: add arun() method to TORQPrinceFlowers for web API compatibility"
 }
