@@ -1,8 +1,8 @@
 {
-  "git_sha": "c5908dd54e976d0ee2cd2a448978d35e0263e82a",
-  "git_short_sha": "c5908dd54e97",
+  "git_sha": "37fbfb54924a72e55a1c640cbde87489a4cbc743",
+  "git_short_sha": "37fbfb54924a",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T22:21:52.233899+00:00",
+  "built_at": "2026-02-24T23:55:45.565017+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "Fix: Use PORT-aware entrypoint in Dockerfile CMD"
+  "commit_message": "chore: trigger Railway auto-deploy from control-plane-v1-clean"
 }
