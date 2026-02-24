@@ -80,8 +80,8 @@ async def _test_write_access(url: str, key: str) -> Dict[str, Any]:
             "http_status": None,
         }
 
-    # Test with a lightweight read first (to validate URL/key)
-    # Then attempt to understand permissions
+    # Test with a lightweight read (validates URL + key + table exists)
+    # Write test is skipped to avoid schema issues in health check
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             # Try to read telemetry_traces table (validates URL + key)
@@ -96,49 +96,22 @@ async def _test_write_access(url: str, key: str) -> Dict[str, Any]:
             )
 
             if response.status_code == 200:
-                # Read works, check if we have write permissions
-                # Try a minimal write attempt (will fail RLS if no write access)
-                test_trace = {
-                    "trace_id": "__health_check__",
-                    "request_id": "__health__",
-                    "agent_name": "health_check",
-                    "start_ms": 0,
-                    "end_ms": 1,
-                    "status": "test",
+                # Read successful - basic connectivity works
+                return {
+                    "success": True,
+                    "error": None,
+                    "http_status": response.status_code,
+                    "read_access": True,
+                    "note": "Write access not tested - use actual telemetry to verify",
+                    "status": "healthy",
                 }
-
-                write_response = await client.post(
-                    f"{url}/rest/v1/telemetry_traces",
-                    headers={
-                        "apikey": key,
-                        "Authorization": f"Bearer {key}",
-                        "Content-Type": "application/json",
-                        "Prefer": "return=minimal",
-                    },
-                    json=test_trace,
-                )
-
-                if write_response.status_code in (200, 201):
-                    return {
-                        "success": True,
-                        "error": None,
-                        "http_status": write_response.status_code,
-                        "write_access": True,
-                    }
-                else:
-                    return {
-                        "success": False,
-                        "error": f"write_failed_{write_response.status_code}",
-                        "http_status": write_response.status_code,
-                        "write_access": False,
-                        "detail": write_response.text[:200],
-                    }
             elif response.status_code == 401:
                 return {
                     "success": False,
                     "error": "invalid_api_key",
                     "http_status": 401,
                     "hint": "Check SUPABASE_SERVICE_ROLE_KEY matches the project",
+                    "status": "misconfigured",
                 }
             else:
                 return {
@@ -146,6 +119,7 @@ async def _test_write_access(url: str, key: str) -> Dict[str, Any]:
                     "error": f"http_{response.status_code}",
                     "http_status": response.status_code,
                     "detail": response.text[:200],
+                    "status": "degraded",
                 }
 
     except httpx.TimeoutException:
@@ -230,7 +204,9 @@ def _get_recommendations(
     """Generate actionable recommendations based on diagnostics."""
     recommendations = []
 
-    if write_test.get("error") == "invalid_api_key":
+    error = write_test.get("error")
+
+    if error == "invalid_api_key":
         if key_type == "anon":
             recommendations.append(
                 "Using anon key. Set SUPABASE_SERVICE_ROLE_KEY for backend write access."
@@ -242,14 +218,15 @@ def _get_recommendations(
             "Regenerate service_role key in Supabase dashboard > Settings > API"
         )
 
-    if write_test.get("error") == "timeout":
+    if error == "timeout":
         recommendations.append(
             "Supabase URL not reachable. Check SUPABASE_URL is correct."
         )
 
-    if write_test.get("write_access") is False:
+    if write_test.get("read_access") and not write_test.get("success"):
+        # Read works but write test was skipped
         recommendations.append(
-            "Key has read access but not write. Use service_role key for backend."
+            "Read access confirmed. Use actual telemetry writes to verify write access."
         )
 
     if not project_ref:

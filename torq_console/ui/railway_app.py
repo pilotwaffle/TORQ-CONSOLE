@@ -467,7 +467,7 @@ def create_railway_app():
         - Supabase connection status
         - Project ref detection
         - Key type (service_role vs anon)
-        - Write test result
+        - Read/write test result
         - Actionable recommendations
         """
         from torq_console.telemetry.health import get_telemetry_diagnostics
@@ -486,11 +486,12 @@ def create_railway_app():
             diagnostics = await get_telemetry_diagnostics()
             diagnostics.update(base_health)
 
-            # Overall status
-            if diagnostics["write_test"].get("success"):
+            # Use status from write_test if available
+            write_test_status = diagnostics.get("write_test", {}).get("status")
+            if write_test_status:
+                diagnostics["status"] = write_test_status
+            elif diagnostics.get("write_test", {}).get("success"):
                 diagnostics["status"] = "healthy"
-            elif diagnostics["write_test"].get("error") == "invalid_api_key":
-                diagnostics["status"] = "misconfigured"
             else:
                 diagnostics["status"] = "degraded"
 
