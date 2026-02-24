@@ -1,8 +1,8 @@
 {
-  "git_sha": "920708745904bfdea4d5522c62e89bd8d9539aba",
-  "git_short_sha": "920708745904",
+  "git_sha": "b9ab6b240d400eac251eb6797d409bbebd4554b7",
+  "git_short_sha": "b9ab6b240d40",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T06:59:40.393442+00:00",
+  "built_at": "2026-02-24T16:01:20.340627+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "docs: add Railway deployment guide for control-plane-v1-clean"
+  "commit_message": "feat: tighten deployment verification and steps"
 }
