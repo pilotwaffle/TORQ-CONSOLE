@@ -83,9 +83,61 @@ def create_railway_app():
     # Lifespan handler for graceful startup/shutdown (fixes Railway deployment hangs)
     @asynccontextmanager
     async def lifespan(app_instance):
-        # Startup
+        # Startup - validate agent contract
         logger.info("TORQ Console Railway Backend starting...")
+
+        # ============================================================
+        # STARTUP CONTRACT VALIDATION
+        # Fail fast if agent is misconfigured - prevents silent broken UI
+        # ============================================================
+        try:
+            from torq_console.agents.torq_prince_flowers.core.agent import TORQPrinceFlowers
+            from torq_console.agents.protocols import validate_agent_contract
+
+            # Create agent instance
+            test_agent = TORQPrinceFlowers()
+
+            # Validate contract
+            is_valid, errors = validate_agent_contract(test_agent)
+            if not is_valid:
+                logger.error("=" * 60)
+                logger.error("AGENT CONTRACT VALIDATION FAILED")
+                logger.error("The web API will NOT function correctly:")
+                for error in errors:
+                    logger.error(f"  - {error}")
+                logger.error("=" * 60)
+                raise RuntimeError(
+                    f"Agent contract validation failed: {errors}. "
+                    "This prevents the web API from functioning correctly."
+                )
+            logger.info("✓ Agent contract validation passed")
+        except Exception as e:
+            logger.error(f"Agent validation failed: {e}")
+            # In dev mode, continue; in prod, fail
+            if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('RAILWAY_ENVIRONMENT'):
+                raise
+
+        # Configure telemetry as best-effort
+        telemetry_strict = os.environ.get('TORQ_TELEMETRY_STRICT', 'false').lower() == 'true'
+        telemetry_enabled = os.environ.get('TORQ_TELEMETRY_ENABLED', 'true').lower() == 'true'
+
+        if not telemetry_enabled:
+            logger.info("⚠ Telemetry disabled (TORQ_TELEMETRY_ENABLED=false)")
+        elif not telemetry_strict:
+            logger.info("✓ Telemetry in best-effort mode (errors will be logged but not raise)")
+        else:
+            logger.info("✓ Telemetry in strict mode (errors will raise)")
+
+        # Store telemetry config in app state
+        app_instance.state.telemetry_config = {
+            'enabled': telemetry_enabled,
+            'strict': telemetry_strict,
+            'disabled_due_to_error': False,
+            'last_error': None,
+        }
+
         yield
+
         # Shutdown
         logger.info("TORQ Console Railway Backend shutting down...")
 
@@ -168,32 +220,54 @@ def create_railway_app():
     async def chat(request: ChatRequest):
         """
         Agent chat endpoint with mandatory learning hook.
-        Every response triggers learning event calculation and persistence.
+
+        Returns structured responses including errors.
+        Never returns "echo" of input - errors are clearly indicated.
         """
+        from torq_console.agents.torq_prince_flowers.core.agent import TORQPrinceFlowers
+        from torq_console.telemetry.learning import (
+            record_learning_event,
+            calculate_consulting_reward,
+        )
+        import time
+
+        start_time = time.time()
+        trace_id = request.trace_id or f"chat-{int(time.time() * 1000)}"
+        logger.info(f"[{trace_id}] Chat request: {request.message[:100]}...")
+
         try:
-            from torq_console.agents.torq_prince_flowers.core.agent import TORQPrinceFlowers
-            from torq_console.telemetry.learning import (
-                record_learning_event,
-                calculate_consulting_reward,
-            )
-            import time
-
-            start_time = time.time()
-            trace_id = request.trace_id or f"chat-{int(time.time() * 1000)}"
-            logger.info(f"[{trace_id}] Chat request: {request.message[:100]}...")
-
             agent = TORQPrinceFlowers()
-
             response_data = await agent.arun(request.message)
             duration = time.time() - start_time
 
-            # === MANDATORY LEARNING HOOK ===
+            # Extract response fields with defaults
+            response_text = response_data.get("response", "")
+            success = response_data.get("success", True)
+
+            if not success:
+                # Agent reported failure - return structured error
+                return {
+                    "ok": False,
+                    "response": response_text or "I'm sorry, I encountered an error processing your request.",
+                    "trace_id": trace_id,
+                    "session_id": request.session_id,
+                    "agent": "prince_flowers",
+                    "error": {
+                        "type": response_data.get("error_type", "agent_error"),
+                        "message": response_data.get("error", "Unknown error"),
+                    },
+                    "duration_ms": int(duration * 1000),
+                }
+
+            # === MANDATORY LEARNING HOOK (best-effort) ===
+            learning_recorded = False
             try:
+                # Use actual computed values, not hardcoded defaults
                 reward = calculate_consulting_reward(
-                    evidence_level=response_data.get("evidence_level", "medium"),
+                    evidence_level=response_data.get("evidence_level") or "low",
                     routing_success=response_data.get("routing_success", True),
-                    policy_compliance=response_data.get("policy_compliance", 1.0),
-                    user_satisfaction_prediction=response_data.get("satisfaction", 0.8),
+                    policy_compliance=response_data.get("policy_compliance") or 0.8,
+                    user_satisfaction_prediction=response_data.get("satisfaction") or 0.5,
                     response_time=duration,
                 )
                 await record_learning_event(
@@ -201,38 +275,79 @@ def create_railway_app():
                     session_id=request.session_id,
                     agent_name="prince_flowers",
                     user_query=request.message,
-                    agent_response=response_data.get("response", ""),
+                    agent_response=response_text,
                     reward=reward,
                     metadata={
-                        "routing_agent": response_data.get("routing_agent"),
                         "duration_ms": int(duration * 1000),
                         "evidence_level": response_data.get("evidence_level"),
+                        "routing_success": response_data.get("routing_success"),
+                        "tools_used": response_data.get("tools_used", []),
                     }
                 )
+                learning_recorded = True
                 logger.info(f"[{trace_id}] Learning event recorded: reward={reward:.3f}")
             except Exception as e:
-                logger.error(f"[{trace_id}] Learning hook failed: {e}")
+                # Learning hook failure should not break the response
+                logger.error(f"[{trace_id}] Learning hook failed (non-fatal): {e}")
 
             return {
-                "response": response_data.get("response", ""),
+                "ok": True,
+                "response": response_text,
                 "session_id": request.session_id,
                 "trace_id": trace_id,
                 "agent": "prince_flowers",
-                "learning_recorded": True,
+                "learning_recorded": learning_recorded,
                 "duration_ms": int(duration * 1000),
             }
 
         except Exception as e:
-            logger.error(f"Chat error: {e}")
+            duration = time.time() - start_time
+            logger.error(f"[{trace_id}] Chat error: {e}")
             logger.error(traceback.format_exc())
-            raise HTTPException(status_code=500, detail=str(e))
+
+            # Return structured error - never raise HTTPException from here
+            # The UI can render this properly
+            return {
+                "ok": False,
+                "response": "I'm sorry, I encountered an error. Please try again.",
+                "trace_id": trace_id,
+                "session_id": request.session_id,
+                "agent": "prince_flowers",
+                "error": {
+                    "type": type(e).__name__,
+                    "message": str(e),
+                },
+                "duration_ms": int(duration * 1000),
+            }
 
     # ============================================================================
-    # Telemetry Endpoints
+    # Telemetry Endpoints (best-effort)
     # ============================================================================
     @app.post("/api/telemetry")
     async def ingest_telemetry(request: TelemetryIngest):
-        """Ingest telemetry data from Vercel/frontend."""
+        """
+        Ingest telemetry data from Vercel/frontend.
+
+        Best-effort mode: errors are logged but don't fail the request.
+        This prevents test noise and user-facing slowdowns from telemetry issues.
+        """
+        # Check if telemetry is disabled
+        telemetry_config = getattr(app.state, 'telemetry_config', {})
+        if telemetry_config.get('disabled_due_to_error', False):
+            return {
+                "ok": False,
+                "skipped": True,
+                "reason": "telemetry_disabled_due_to_error",
+                "last_error": telemetry_config.get('last_error'),
+            }
+
+        if not telemetry_config.get('enabled', True):
+            return {
+                "ok": False,
+                "skipped": True,
+                "reason": "telemetry_disabled",
+            }
+
         try:
             from torq_console.telemetry import supabase_ingest
             result = await supabase_ingest(
@@ -246,15 +361,104 @@ def create_railway_app():
                 "storage": "supabase"
             }
         except Exception as e:
+            # Extract error type for classification
+            error_str = str(e).lower()
+            error_code = "unknown"
+
+            if "401" in error_str or "unauthorized" in error_str:
+                error_code = "401"
+                error_type = "authentication"
+            elif "403" in error_str or "forbidden" in error_str:
+                error_code = "403"
+                error_type = "authorization"
+            elif "409" in error_str or "conflict" in error_str:
+                error_code = "409"
+                error_type = "conflict"
+            elif "429" in error_str or "rate limit" in error_str:
+                error_code = "429"
+                error_type = "rate_limit"
+            elif "503" in error_str or "unavailable" in error_str:
+                error_code = "503"
+                error_type = "service_unavailable"
+            else:
+                error_type = "unknown"
+
             logger.error(f"Telemetry ingest error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+
+            # In strict mode, raise; in best-effort, log and continue
+            if telemetry_config.get('strict', False):
+                raise HTTPException(status_code=500, detail=str(e))
+
+            # Log once per error type to avoid spam
+            last_error = telemetry_config.get('last_error')
+            if last_error != error_code:
+                logger.warning(f"Telemetry error [{error_code}]: {error_type} - will be logged once")
+                app.state.telemetry_config['last_error'] = error_code
+                app.state.telemetry_config['disabled_due_to_error'] = (error_code == "401")
+
+            return {
+                "ok": False,
+                "error": {
+                    "code": error_code,
+                    "type": error_type,
+                    "message": str(e)[:200],  # Truncate for safety
+                },
+                "telemetry_failed": True,
+            }
 
     @app.get("/api/telemetry/health")
     async def telemetry_health():
-        """Check telemetry system health."""
-        from torq_console.telemetry import get_telemetry_health
-        health = await get_telemetry_health()
-        return health
+        """
+        Check telemetry system health with self-diagnosis.
+
+        Reports Supabase connection status and any configuration issues.
+        """
+        telemetry_config = getattr(app.state, 'telemetry_config', {})
+
+        base_health = {
+            "enabled": telemetry_config.get('enabled', True),
+            "strict": telemetry_config.get('strict', False),
+            "disabled_due_to_error": telemetry_config.get('disabled_due_to_error', False),
+            "last_error": telemetry_config.get('last_error'),
+        }
+
+        # Try to get actual health if enabled
+        if not base_health['disabled_due_to_error'] and base_health['enabled']:
+            try:
+                from torq_console.telemetry import get_telemetry_health
+                health = await get_telemetry_health()
+                health.update(base_health)
+
+                # Add self-diagnosis
+                if base_health['last_error']:
+                    health['diagnosis'] = {
+                        'status': 'misconfigured',
+                        'issue': f"Error code: {base_health['last_error']}",
+                        'recommendation': 'Check Supabase credentials and permissions'
+                    }
+                else:
+                    health['diagnosis'] = {'status': 'healthy'}
+
+                return health
+            except Exception as e:
+                return {
+                    **base_health,
+                    "healthy": False,
+                    "diagnosis": {
+                        'status': 'error',
+                        'issue': str(e),
+                        'recommendation': 'Check telemetry configuration'
+                    }
+                }
+        else:
+            return {
+                **base_health,
+                "healthy": not base_health['disabled_due_to_error'],
+                "diagnosis": {
+                    'status': 'disabled' if not base_health['enabled'] else 'error',
+                    'issue': base_health['last_error'] or 'Manually disabled',
+                }
+            }
 
     # ============================================================================
     # Learning Endpoints

@@ -40,6 +40,7 @@ class TestResults:
     def __init__(self):
         self.passed = 0
         self.failed = 0
+        self.skipped = 0
         self.tests = []
 
     def log_pass(self, name: str):
@@ -52,9 +53,14 @@ class TestResults:
         self.tests.append((name, f"FAIL: {reason}"))
         print(f"  [FAIL] {name}: {reason}")
 
+    def log_skip(self, name: str, reason: str = ""):
+        self.skipped += 1
+        self.tests.append((name, f"SKIP: {reason}"))
+        print(f"  [SKIP] {name}: {reason}")
+
     def summary(self):
         print("\n" + "=" * 60)
-        print(f"Test Results: {self.passed} passed, {self.failed} failed")
+        print(f"Test Results: {self.passed} passed, {self.failed} failed, {self.skipped} skipped")
         print("=" * 60)
         for name, result in self.tests:
             print(f"  {result}: {name}")
@@ -113,13 +119,23 @@ async def test_fallback_ladder():
 
     Verify that when primary provider fails, system falls back
     to secondary providers.
+
+    SKIP condition: No provider API keys configured
     """
     print("\n[Test 2] Fallback Ladder")
 
     results = TestResults()
 
-    # Skip if no API keys for free providers either
+    # Check for provider availability
     has_brave = bool(os.getenv("BRAVE_SEARCH_API_KEY"))
+    has_tavily = bool(os.getenv("TAVILY_API_KEY"))
+
+    if not (has_brave or has_tavily):
+        results.log_skip(
+            "Fallback Ladder",
+            "No provider API keys configured (set BRAVE_SEARCH_API_KEY or TAVILY_API_KEY)"
+        )
+        return results
 
     query = ResearchQuery(
         query="Python async await tutorial",
@@ -127,19 +143,18 @@ async def test_fallback_ladder():
     )
 
     try:
-        # Test with free providers - DDG often returns 0 results, so we expect this might fail
-        response = await search_with_fallback(
-            query,
-            providers=["duckduckgo", "brave"] if has_brave else ["duckduckgo"],
-        )
+        # Build provider list (prioritize working providers)
+        providers = []
+        if has_tavily:
+            providers.append("tavily")
+        if has_brave:
+            providers.append("brave")
+
+        response = await search_with_fallback(query, providers=providers)
 
         # Should get results from at least one provider
         if response.result_count == 0:
-            # DDG is known to return 0 results - this is an expected limitation
-            if not has_brave:
-                results.log_pass(f"Fallback Ladder (DDG limitation - 0 results expected)")
-            else:
-                results.log_fail("Fallback Ladder", "No results from any provider")
+            results.log_fail("Fallback Ladder", "No results from any provider")
         else:
             results.log_pass(f"Fallback Ladder ({response.provider})")
 
@@ -403,15 +418,19 @@ async def main():
     # Aggregate results
     total_passed = sum(r.passed for r in all_results)
     total_failed = sum(r.failed for r in all_results)
+    total_skipped = sum(r.skipped for r in all_results)
 
     print("\n" + "=" * 60)
     print("OVERALL SUMMARY")
     print("=" * 60)
     print(f"Total Passed: {total_passed}")
     print(f"Total Failed: {total_failed}")
+    print(f"Total Skipped: {total_skipped}")
 
     if total_failed == 0:
-        print("\nAll tests PASSED! Research system is production-ready.")
+        if total_skipped > 0:
+            print(f"\n{total_skipped} test(s) skipped - configure API keys to run.")
+        print("\nAll active tests PASSED! Research system is production-ready.")
         return 0
     else:
         print(f"\n{total_failed} test(s) FAILED. See details above.")
