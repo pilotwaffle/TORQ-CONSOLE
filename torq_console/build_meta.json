@@ -1,8 +1,8 @@
 {
-  "git_sha": "77029838aa96188ad164d5aba8bbd1cb7ba86e47",
-  "git_short_sha": "77029838aa96",
+  "git_sha": "c5908dd54e976d0ee2cd2a448978d35e0263e82a",
+  "git_short_sha": "c5908dd54e97",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T22:19:13.100455+00:00",
+  "built_at": "2026-02-24T22:21:52.233899+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "Fix: Use PORT-aware entrypoint in Dockerfile CMD"
 }
