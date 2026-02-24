@@ -1,8 +1,8 @@
 {
-  "git_sha": "dafa416626db92588c090df03d7a593d760b5aa4",
-  "git_short_sha": "dafa416626db",
+  "git_sha": "920708745904bfdea4d5522c62e89bd8d9539aba",
+  "git_short_sha": "920708745904",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T06:55:37.203325+00:00",
+  "built_at": "2026-02-24T06:59:40.393442+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "fix: update expected SHA in verification script"
+  "commit_message": "docs: add Railway deployment guide for control-plane-v1-clean"
 }
