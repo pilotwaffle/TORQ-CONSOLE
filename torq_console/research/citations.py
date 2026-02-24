@@ -11,6 +11,14 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 from .schema import ResearchSource, SynthesisResponse
+from .canonicalizer import (
+    canonicalize_citations,
+    normalize_url,
+    normalize_sources,
+    format_citations_markdown as canonical_format_markdown,
+    validate_citation_format,
+    CanonicalCitation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +40,7 @@ class CitationPolicy:
     - Research mode requires min_sources >= 2
     - Citations must be in consistent format
     - Missing citations trigger auto-retry
+    - Uses canonicalization for deterministic output
     """
 
     # Citation patterns to detect
@@ -50,10 +59,12 @@ class CitationPolicy:
         min_sources: int = 2,
         require_consistent_format: bool = True,
         auto_retry: bool = True,
+        enable_canonicalization: bool = True,
     ):
         self.min_sources = min_sources
         self.require_consistent_format = require_consistent_format
         self.auto_retry = auto_retry
+        self.enable_canonicalization = enable_canonicalization
 
     def check_citations(
         self,
@@ -71,17 +82,22 @@ class CitationPolicy:
                 "format_consistent": bool,
                 "extracted_citations": List[Citation],
                 "missing_sources": List[str],
+                "validation": {...},  # From validate_citation_format
             }
         """
         citations = self._extract_citations(answer, sources)
+
+        # Validate format using canonicalizer
+        validation = validate_citation_format(answer, sources)
 
         return {
             "has_citations": len(citations) > 0,
             "citation_count": len(citations),
             "meets_minimum": len(citations) >= self.min_sources,
-            "format_consistent": self._check_format_consistency(citations),
+            "format_consistent": validation["is_valid"] and len(validation["errors"]) == 0,
             "extracted_citations": [c.model_dump() for c in citations],
             "missing_sources": self._get_missing_sources(citations, sources),
+            "validation": validation,
         }
 
     def _extract_citations(
@@ -155,15 +171,44 @@ class CitationPolicy:
         return missing
 
     def format_citations_markdown(self, sources: List[ResearchSource]) -> str:
-        """Format citations as markdown for inclusion in answer."""
+        """Format citations as markdown for inclusion in answer.
+
+        Uses canonicalized format for deterministic output.
+        """
         if not sources:
             return ""
 
-        lines = ["\n\n**Sources:**"]
-        for idx, source in enumerate(sources, start=1):
-            lines.append(f"{idx}. [{source.title}]({source.url})")
+        # Normalize sources first for stable ordering
+        normalized = normalize_sources(sources)
+        return canonical_format_markdown(normalized)
 
-        return "\n".join(lines)
+    def canonicalize_response(
+        self,
+        answer: str,
+        sources: List[ResearchSource],
+        trust_scores: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Canonicalize citations in a response.
+
+        This makes output deterministic by:
+        1. Normalizing URLs and deduplicating sources
+        2. Stable sorting by trust score, date, title
+        3. Assigning stable [n] IDs
+        4. Rewriting answer to match canonical numbering
+
+        Returns canonicalization result with updated answer and sources.
+        """
+        if not self.enable_canonicalization:
+            return {
+                "answer": answer,
+                "sources": sources,
+                "citations": [],
+                "mapping": {},
+                "duplicates_removed": 0,
+            }
+
+        return canonicalize_citations(answer, sources, trust_scores)
 
     def should_retry(self, check_result: Dict[str, Any]) -> bool:
         """Determine if citation enforcement should trigger a retry."""
@@ -175,6 +220,10 @@ class CitationPolicy:
             return True
 
         # Retry if format is inconsistent and we have citations
+        validation = check_result.get("validation", {})
+        if validation.get("errors"):
+            return True
+
         if check_result["has_citations"] and not check_result["format_consistent"]:
             return True
 
@@ -221,14 +270,12 @@ class CitationFormatter:
 
     @staticmethod
     def markdown(sources: List[ResearchSource]) -> str:
-        """Format as markdown footnotes."""
-        lines = ["**Sources:**\n"]
-        for idx, source in enumerate(sources, start=1):
-            title = source.title
-            url = source.url
-            published = f" ({source.published_at})" if source.published_at else ""
-            lines.append(f"{idx}. [{title}]({url}){published}")
-        return "\n".join(lines)
+        """Format as markdown footnotes.
+
+        Uses canonicalization for deterministic output.
+        """
+        normalized = normalize_sources(sources)
+        return canonical_format_markdown(normalized)
 
     @staticmethod
     def inline(sources: List[ResearchSource]) -> str:
@@ -243,6 +290,20 @@ class CitationFormatter:
             {"title": s.title, "url": s.url, "published_at": s.published_at}
             for s in sources
         ], indent=2)
+
+    @staticmethod
+    def canonical(
+        answer: str,
+        sources: List[ResearchSource],
+        trust_scores: Optional[Dict[str, float]] = None,
+    ) -> str:
+        """
+        Return answer with canonicalized citations.
+
+        This is the recommended format for production use.
+        """
+        result = canonicalize_citations(answer, sources, trust_scores)
+        return result["answer"]
 
 
 def create_citation_policy(**kwargs) -> CitationPolicy:
@@ -260,3 +321,18 @@ def get_citation_policy() -> CitationPolicy:
     if _default_policy is None:
         _default_policy = CitationPolicy()
     return _default_policy
+
+
+# Export canonicalization helpers
+__all__ = [
+    "CitationPolicy",
+    "CitationFormatter",
+    "CitationExtractor",
+    "get_citation_policy",
+    "create_citation_policy",
+    "canonicalize_citations",
+    "normalize_url",
+    "normalize_sources",
+    "validate_citation_format",
+    "CanonicalCitation",
+]

@@ -16,6 +16,7 @@ import logging
 import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from .schema import (
     SearchProvider,
@@ -149,10 +150,30 @@ class ResearchCoordinator:
             signals,
         )
 
-        # 8. Enforce citation policy (retry if needed)
-        citation_check = self.citation_policy.check_citations(
+        # 8. Canonicalize citations (deterministic formatting)
+        canonical_result = self.citation_policy.canonicalize_response(
             synthesis.answer,
             safe_sources,
+            trust_scores={s.domain or urlparse(s.url).netloc: s.score for s in safe_sources},
+        )
+
+        # Update synthesis with canonicalized answer and sources
+        synthesis.answer = canonical_result["answer"]
+        synthesis.citations = [c.model_dump() for c in canonical_result["citations"]]
+        synthesis.has_citations = len(canonical_result["citations"]) > 0
+        synthesis.citation_count = len(canonical_result["citations"])
+
+        # Store canonicalization metadata for trace
+        canonicalization_meta = {
+            "duplicates_removed": canonical_result["duplicates_removed"],
+            "sources_normalized": len(canonical_result["sources"]),
+            "citation_format_version": "v1",
+        }
+
+        # 9. Enforce citation policy (retry if needed)
+        citation_check = self.citation_policy.check_citations(
+            synthesis.answer,
+            canonical_result["sources"],
         )
 
         if self.citation_policy.should_retry(citation_check):
@@ -160,10 +181,19 @@ class ResearchCoordinator:
             synthesis = await self._retry_with_enforced_citations(
                 query,
                 synthesis.answer,
-                safe_sources,
+                canonical_result["sources"],
             )
+            # Re-canonicalize after retry
+            canonical_result = self.citation_policy.canonicalize_response(
+                synthesis.answer,
+                canonical_result["sources"],
+            )
+            synthesis.answer = canonical_result["answer"]
+            synthesis.citations = [c.model_dump() for c in canonical_result["citations"]]
+            synthesis.has_citations = len(canonical_result["citations"]) > 0
+            synthesis.citation_count = len(canonical_result["citations"])
 
-        # 9. Build trace for telemetry
+        # 10. Build trace for telemetry with citation metadata
         total_duration_ms = int((time.time() - start_time) * 1000)
         trace = ResearchTrace(
             trace_id=trace_id,
@@ -197,8 +227,20 @@ class ResearchCoordinator:
             timestamp=trace_start.isoformat(),
         )
 
-        # 10. Emit telemetry (async, don't wait)
-        asyncio.create_task(self._emit_trace(trace))
+        # Build citation metadata for span
+        top_domains = list({
+            urlparse(s.url).netloc for s in safe_sources[:5]
+        })
+
+        citation_span_metadata = {
+            "citations_count": synthesis.citation_count,
+            "sources_top_domains": top_domains,
+            "citation_format_version": "v1",
+        }
+        citation_span_metadata.update(canonicalization_meta)
+
+        # 11. Emit telemetry (async, don't wait)
+        asyncio.create_task(self._emit_trace(trace, citation_span_metadata))
 
         return synthesis
 
@@ -440,7 +482,7 @@ Keep your original answer structure but add citations where appropriate."""
         """Get current deploy version."""
         return os.getenv("TORQ_APP_VERSION", "0.0.0-dev")
 
-    async def _emit_trace(self, trace: ResearchTrace):
+    async def _emit_trace(self, trace: ResearchTrace, citation_metadata: Optional[Dict[str, Any]] = None):
         """Emit telemetry trace for auditability."""
         try:
             from torq_console.telemetry import supabase_ingest
@@ -456,6 +498,15 @@ Keep your original answer structure but add citations where appropriate."""
                 "status": "ok",
                 "metadata": trace.model_dump(),
             }
+
+            # Build span metadata
+            llm_span_meta = {
+                "provider": trace.llm_provider,
+                "model": trace.llm_model,
+                "has_citations": trace.has_citations,
+            }
+            if citation_metadata:
+                llm_span_meta.update(citation_metadata)
 
             spans_data = [
                 {
@@ -477,11 +528,7 @@ Keep your original answer structure but add citations where appropriate."""
                     "kind": "llm",
                     "start_ms": trace.search_duration_ms,
                     "duration_ms": trace.synthesis_duration_ms,
-                    "metadata": {
-                        "provider": trace.llm_provider,
-                        "model": trace.llm_model,
-                        "has_citations": trace.has_citations,
-                    },
+                    "metadata": llm_span_meta,
                 },
             ]
 
