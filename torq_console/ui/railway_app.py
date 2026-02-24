@@ -200,9 +200,31 @@ def create_railway_app():
     # ============================================================================
     @app.get("/health")
     async def health_check():
-        """Railway health check endpoint with smoking gun git_sha."""
+        """Railway health check endpoint with smoking gun git_sha and agent contract status."""
+        from torq_console.agents.protocols import validate_agent_contract
+        from torq_console.research import get_research_status
+
+        # Check agent contract
+        agent_contract_ok = False
+        agent_contract_schema = None
+        agent_name = None
+
+        try:
+            from torq_console.agents.torq_prince_flowers.core.agent import TORQPrinceFlowers
+            test_agent = TORQPrinceFlowers()
+            is_valid, _ = validate_agent_contract(test_agent)
+            agent_contract_ok = is_valid
+            agent_contract_schema = "torq-agent-run-v1"
+            agent_name = "torq_prince_flowers"
+        except Exception as e:
+            agent_contract_ok = False
+            agent_name = str(e)
+
+        # Check research status
+        research_status = get_research_status()
+
         return {
-            "status": "healthy",
+            "status": "healthy" if agent_contract_ok else "degraded",
             "service": "torq-console-railway",
             "_schema": "torq-deploy-v1",
             "running_file": "torq_console/ui/railway_app.py",
@@ -210,7 +232,14 @@ def create_railway_app():
             "app_version": get_app_version_with_source()[0],
             "supabase_configured": bool(os.environ.get("SUPABASE_URL")),
             "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
-            "learning_hook": "mandatory"
+            "learning_hook": "mandatory",
+            # Agent contract status
+            "agent_contract_ok": agent_contract_ok,
+            "agent_contract_schema": agent_contract_schema,
+            "agent_name": agent_name,
+            # Research break-glass switch status
+            "research_enabled": research_status["enabled"],
+            "research_reason": research_status["reason"],
         }
 
     # ============================================================================
@@ -219,7 +248,9 @@ def create_railway_app():
     @app.post("/api/chat")
     async def chat(request: ChatRequest):
         """
-        Agent chat endpoint with mandatory learning hook.
+        Agent chat endpoint with versioned response contract.
+
+        Schema: torq-chat-response-v1
 
         Returns structured responses including errors.
         Never returns "echo" of input - errors are clearly indicated.
@@ -229,11 +260,21 @@ def create_railway_app():
             record_learning_event,
             calculate_consulting_reward,
         )
+        from torq_console.ui.api_contracts import (
+            ChatResponseV1,
+            ErrorResponseV1,
+            get_deploy_info,
+        )
         import time
+        import uuid
 
         start_time = time.time()
         trace_id = request.trace_id or f"chat-{int(time.time() * 1000)}"
+        request_id = f"req-{trace_id}-{uuid.uuid4().hex[:8]}"  # Unique request ID
         logger.info(f"[{trace_id}] Chat request: {request.message[:100]}...")
+
+        # Get deploy info once (used in all responses)
+        deploy_info = get_deploy_info()
 
         try:
             agent = TORQPrinceFlowers()
@@ -245,19 +286,19 @@ def create_railway_app():
             success = response_data.get("success", True)
 
             if not success:
-                # Agent reported failure - return structured error
-                return {
-                    "ok": False,
-                    "response": response_text or "I'm sorry, I encountered an error processing your request.",
-                    "trace_id": trace_id,
-                    "session_id": request.session_id,
-                    "agent": "prince_flowers",
-                    "error": {
-                        "type": response_data.get("error_type", "agent_error"),
-                        "message": response_data.get("error", "Unknown error"),
-                    },
-                    "duration_ms": int(duration * 1000),
-                }
+                # Agent reported failure - return structured error with versioned contract
+                from torq_console.ui.api_contracts import ErrorDetail
+                error_response = ErrorResponseV1(
+                    request_id=request_id,
+                    trace_id=trace_id,
+                    ok=False,
+                    deploy=deploy_info,
+                    error=ErrorDetail(
+                        type=response_data.get("error_type", "AgentError"),
+                        message=response_data.get("error", "Unknown agent error"),
+                    ),
+                )
+                return error_response.model_dump()
 
             # === MANDATORY LEARNING HOOK (best-effort) ===
             learning_recorded = False
@@ -282,6 +323,7 @@ def create_railway_app():
                         "evidence_level": response_data.get("evidence_level"),
                         "routing_success": response_data.get("routing_success"),
                         "tools_used": response_data.get("tools_used", []),
+                        "request_id": request_id,
                     }
                 )
                 learning_recorded = True
@@ -290,35 +332,45 @@ def create_railway_app():
                 # Learning hook failure should not break the response
                 logger.error(f"[{trace_id}] Learning hook failed (non-fatal): {e}")
 
-            return {
-                "ok": True,
-                "response": response_text,
-                "session_id": request.session_id,
-                "trace_id": trace_id,
-                "agent": "prince_flowers",
-                "learning_recorded": learning_recorded,
-                "duration_ms": int(duration * 1000),
-            }
+            # Build versioned response
+            chat_response = ChatResponseV1(
+                request_id=request_id,
+                trace_id=trace_id,
+                ok=True,
+                deploy=deploy_info,
+                response=response_text,
+                agent=response_data.get("agent_name", "prince_flowers"),
+                duration_ms=int(duration * 1000),
+                session_id=request.session_id,
+                learning_recorded=learning_recorded,
+                metadata={
+                    "evidence_level": response_data.get("evidence_level"),
+                    "routing_success": response_data.get("routing_success"),
+                    "tools_used": response_data.get("tools_used", []),
+                },
+            )
+
+            return chat_response.model_dump()
 
         except Exception as e:
             duration = time.time() - start_time
             logger.error(f"[{trace_id}] Chat error: {e}")
             logger.error(traceback.format_exc())
 
-            # Return structured error - never raise HTTPException from here
-            # The UI can render this properly
-            return {
-                "ok": False,
-                "response": "I'm sorry, I encountered an error. Please try again.",
-                "trace_id": trace_id,
-                "session_id": request.session_id,
-                "agent": "prince_flowers",
-                "error": {
-                    "type": type(e).__name__,
-                    "message": str(e),
-                },
-                "duration_ms": int(duration * 1000),
-            }
+            # Return structured error with versioned contract
+            # Never raise HTTPException - always return structured error
+            from torq_console.ui.api_contracts import ErrorDetail
+            error_response = ErrorResponseV1(
+                request_id=request_id,
+                trace_id=trace_id,
+                ok=False,
+                deploy=deploy_info,
+                error=ErrorDetail(
+                    type=type(e).__name__,
+                    message=str(e)[:500],  # Truncate for safety
+                ),
+            )
+            return error_response.model_dump()
 
     # ============================================================================
     # Telemetry Endpoints (best-effort)

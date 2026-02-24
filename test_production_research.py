@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from torq_console.research import (
     research,
     get_research_coordinator,
+    get_research_status,
 )
 from torq_console.research.router import ResearchRouter, get_research_router
 from torq_console.research.cache import get_query_cache
@@ -399,6 +400,56 @@ async def test_citation_stability():
     return results
 
 
+async def test_break_glass_switch():
+    """
+    Test 6: Break-Glass Switch (TORQ_RESEARCH_ENABLED)
+
+    Verify that:
+    1. Router respects TORQ_RESEARCH_ENABLED=false
+    2. Research is disabled when switch is off
+    3. Status endpoint reports correct state
+    """
+    print("\n[Test 6] Break-Glass Switch (TORQ_RESEARCH_ENABLED)")
+
+    results = TestResults()
+
+    from torq_console.research import get_research_router, get_research_status
+
+    # Test 1: Get current status
+    status = get_research_status()
+    if "enabled" in status:
+        results.log_pass("Research Status Endpoint")
+    else:
+        results.log_fail("Research Status Endpoint", "Missing 'enabled' field")
+
+    # Test 2: Router respects the switch
+    router = get_research_router()
+    should, signals = router.should_research("What are the latest Bitcoin prices?")
+
+    if not status["enabled"]:
+        # Research disabled - should return False with specific signal
+        if not should and "research_disabled_by_config" in signals:
+            results.log_pass("Router Respects Disabled Switch")
+        else:
+            results.log_fail(
+                "Router Respects Disabled Switch",
+                f"Expected False + 'research_disabled_by_config', got {should}, {signals}"
+            )
+    else:
+        # Research enabled - should work normally
+        results.log_pass("Router Enabled (normal operation)")
+
+    # Test 3: Status has all required fields
+    required_fields = ["enabled", "reason", "env_var", "current_value"]
+    missing_fields = [f for f in required_fields if f not in status]
+    if not missing_fields:
+        results.log_pass("Status Has Required Fields")
+    else:
+        results.log_fail("Status Has Required Fields", f"Missing: {missing_fields}")
+
+    return results
+
+
 async def main():
     """Run all tests."""
     print("=" * 60)
@@ -414,6 +465,7 @@ async def main():
     all_results.append(await test_cache_hit())
     all_results.append(await test_router_precision())
     all_results.append(await test_citation_stability())
+    all_results.append(await test_break_glass_switch())  # New test
 
     # Aggregate results
     total_passed = sum(r.passed for r in all_results)
