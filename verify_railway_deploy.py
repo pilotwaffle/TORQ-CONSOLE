@@ -44,7 +44,7 @@ class Colors:
     NC = '\033[0m'  # No Color
 
 # Expected values - update these when deploying new commits
-EXPECTED_SHA = "92070874"              # control-plane-v1-clean with deployment guide
+EXPECTED_SHA = "5e39ffc7"              # control-plane-v1-clean latest build metadata
 EXPECTED_PROJECT_REF = "npukynbaglmcdvzyklqa"
 EXPECTED_SCHEMA = "torq-deploy-v1"
 EXPECTED_KEY_TYPE = "service_role"
