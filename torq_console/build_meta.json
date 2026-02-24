@@ -1,8 +1,8 @@
 {
-  "git_sha": "75947fcd506cbe3523d637cf81af1f95369488e6",
-  "git_short_sha": "75947fcd506c",
+  "git_sha": "c68bdc73a874871229247f577df7887e6fdc3c9b",
+  "git_short_sha": "c68bdc73a874",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T00:19:38.774388+00:00",
+  "built_at": "2026-02-24T02:57:47.785170+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "fix: resolve Railway deployment hang issue"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
