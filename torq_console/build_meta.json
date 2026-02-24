@@ -1,8 +1,8 @@
 {
-  "git_sha": "b9ab6b240d400eac251eb6797d409bbebd4554b7",
-  "git_short_sha": "b9ab6b240d40",
+  "git_sha": "04544e9bbdccbfda460798a2f346b2c108824236",
+  "git_short_sha": "04544e9bbdcc",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T16:01:20.340627+00:00",
+  "built_at": "2026-02-24T16:03:33.270995+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "feat: tighten deployment verification and steps"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
