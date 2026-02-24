@@ -32,40 +32,26 @@ def _detect_key_type(key: str) -> str:
     """
     Detect Supabase key type from prefix.
 
-    Returns: 'service_role', 'anon', or 'unknown'
+    Returns: 'service_role', 'anon', or 'missing'
     """
     if not key:
         return "missing"
 
-    # Service role keys typically start witheyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-    # Anon keys also start similarly but are shorter in practice
-    # The key differentiator is in the JWT payload, but we can heuristically check
-
-    # For diagnostic purposes, we'll classify by presence only
-    # Real type detection would require JWT decoding
-    return "present"  # Could be service_role or anon
-
-
-def _is_service_role_key(key: str) -> bool:
-    """
-    Check if this looks like a service_role key by checking env var name.
-
-    This checks the source, not the key content.
-    """
-    # If we're using SERVICE_ROLE_KEY env var, it's likely service_role
+    # Check the source (env var name) for more accurate detection
     service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     anon_key = os.environ.get("SUPABASE_ANON_KEY")
 
     if key == service_key and service_key:
-        return True
+        return "service_role"
     if key == anon_key and anon_key:
-        return False
+        return "anon"
 
-    # Default guess based on length (service_role is longer)
-    return len(key) > 200 if key else False
+    # Fallback: check by JWT structure (service_role has "role": "service_role")
+    # This would require JWT decoding, so we use a heuristic
+    return "unknown"
 
 
-async def _test_write_access(url: str, key: str) -> Dict[str, Any]:
+async def _test_access(url: str, key: str) -> Dict[str, Any]:
     """
     Test write access to Supabase with a minimal, best-effort check.
 
@@ -81,7 +67,6 @@ async def _test_write_access(url: str, key: str) -> Dict[str, Any]:
         }
 
     # Test with a lightweight read (validates URL + key + table exists)
-    # Write test is skipped to avoid schema issues in health check
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             # Try to read telemetry_traces table (validates URL + key)
@@ -102,7 +87,6 @@ async def _test_write_access(url: str, key: str) -> Dict[str, Any]:
                     "error": None,
                     "http_status": response.status_code,
                     "read_access": True,
-                    "note": "Write access not tested - use actual telemetry to verify",
                     "status": "healthy",
                 }
             elif response.status_code == 401:
@@ -114,11 +98,21 @@ async def _test_write_access(url: str, key: str) -> Dict[str, Any]:
                     "status": "misconfigured",
                 }
             else:
+                # Check for PGRST204 schema cache error
+                detail = response.text[:200]
+                if "PGRST204" in detail or "schema cache" in detail.lower():
+                    return {
+                        "success": False,
+                        "error": "schema_cache",
+                        "http_status": response.status_code,
+                        "hint": "Reload schema cache in Supabase dashboard > API",
+                        "status": "misconfigured",
+                    }
                 return {
                     "success": False,
                     "error": f"http_{response.status_code}",
                     "http_status": response.status_code,
-                    "detail": response.text[:200],
+                    "detail": detail,
                     "status": "degraded",
                 }
 
@@ -148,7 +142,8 @@ async def get_telemetry_diagnostics() -> Dict[str, Any]:
             "supabase_url": str,
             "key_type_detected": "service_role"|"anon"|"missing",
             "key_source": "SUPABASE_SERVICE_ROLE_KEY"|"SUPABASE_ANON_KEY"|...,
-            "write_test": {success: bool, error: str|null},
+            "key_prefix": str|null (first 20 chars for verification),
+            "access_test": {success: bool, error: str|null, http_status: int|null},
             "tables": ["telemetry_traces", "telemetry_spans"],
             "timestamp": str,
         }
@@ -176,8 +171,8 @@ async def get_telemetry_diagnostics() -> Dict[str, Any]:
     # Parse project ref
     project_ref = _parse_project_ref(url) if url else None
 
-    # Run write test
-    write_test = await _test_write_access(url, active_key) if url and active_key else {
+    # Run access test (read-only, safe for schema drift)
+    access_test = await _test_access(url, active_key) if url and active_key else {
         "success": False,
         "error": "no_credentials",
         "http_status": None,
@@ -189,22 +184,22 @@ async def get_telemetry_diagnostics() -> Dict[str, Any]:
         "key_type_detected": key_type,
         "key_source": key_source,
         "key_prefix": (active_key[:20] + "...") if active_key else None,
-        "write_test": write_test,
+        "access_test": access_test,
         "tables": ["telemetry_traces", "telemetry_spans"],
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "recommendations": _get_recommendations(write_test, key_type, project_ref),
+        "recommendations": _get_recommendations(access_test, key_type, project_ref),
     }
 
 
 def _get_recommendations(
-    write_test: Dict[str, Any],
+    access_test: Dict[str, Any],
     key_type: str,
     project_ref: Optional[str],
 ) -> list[str]:
     """Generate actionable recommendations based on diagnostics."""
     recommendations = []
 
-    error = write_test.get("error")
+    error = access_test.get("error")
 
     if error == "invalid_api_key":
         if key_type == "anon":
@@ -218,23 +213,25 @@ def _get_recommendations(
             "Regenerate service_role key in Supabase dashboard > Settings > API"
         )
 
+    elif error == "schema_cache":
+        recommendations.append(
+            "PostgREST schema cache is stale. In Supabase dashboard: API > Reload schema cache"
+        )
+        recommendations.append(
+            f"Verify migration was applied to project {project_ref or 'YOUR_PROJECT'}"
+        )
+
     if error == "timeout":
         recommendations.append(
             "Supabase URL not reachable. Check SUPABASE_URL is correct."
         )
 
-    if write_test.get("read_access") and not write_test.get("success"):
-        # Read works but write test was skipped
-        recommendations.append(
-            "Read access confirmed. Use actual telemetry writes to verify write access."
-        )
+    if access_test.get("read_access") and access_test.get("success"):
+        recommendations.append("Supabase telemetry is fully operational.")
 
-    if not project_ref:
+    if not project_ref and access_test.get("error") != "no_credentials":
         recommendations.append(
             "Could not parse project ref from SUPABASE_URL. Check URL format."
         )
-
-    if not recommendations and write_test.get("success"):
-        recommendations.append("Supabase telemetry is fully operational.")
 
     return recommendations

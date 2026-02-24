@@ -337,7 +337,7 @@ def create_railway_app():
                 # Learning hook failure should not break the response
                 logger.error(f"[{trace_id}] Learning hook failed (non-fatal): {e}")
 
-            # Build versioned success response
+            # Build versioned success response with telemetry info
             return success_response(
                 request_id=request_id,
                 trace_id=trace_id,
@@ -351,6 +351,10 @@ def create_railway_app():
                 },
                 session_id=request.session_id,
                 learning_recorded=learning_recorded,
+                telemetry={
+                    "enabled": telemetry_config.get('enabled', True),
+                    "sink": "supabase" if telemetry_config.get('enabled') else "null",
+                },
             ).model_dump()
 
         except Exception as e:
@@ -370,6 +374,10 @@ def create_railway_app():
                 duration_ms=int(duration * 1000),
                 debug_type=type(e).__name__,
                 session_id=request.session_id,
+                telemetry={
+                    "enabled": telemetry_config.get('enabled', True),
+                    "sink": "supabase" if telemetry_config.get('enabled') else "null",
+                },
             ).model_dump()
 
     # ============================================================================
@@ -467,7 +475,7 @@ def create_railway_app():
         - Supabase connection status
         - Project ref detection
         - Key type (service_role vs anon)
-        - Read/write test result
+        - Access test result (read-only)
         - Actionable recommendations
         """
         from torq_console.telemetry.health import get_telemetry_diagnostics
@@ -486,11 +494,11 @@ def create_railway_app():
             diagnostics = await get_telemetry_diagnostics()
             diagnostics.update(base_health)
 
-            # Use status from write_test if available
-            write_test_status = diagnostics.get("write_test", {}).get("status")
-            if write_test_status:
-                diagnostics["status"] = write_test_status
-            elif diagnostics.get("write_test", {}).get("success"):
+            # Use status from access_test
+            access_test_status = diagnostics.get("access_test", {}).get("status")
+            if access_test_status:
+                diagnostics["status"] = access_test_status
+            elif diagnostics.get("access_test", {}).get("success"):
                 diagnostics["status"] = "healthy"
             else:
                 diagnostics["status"] = "degraded"
@@ -502,7 +510,7 @@ def create_railway_app():
                 "status": "error",
                 "error": str(e),
                 "supabase_project_ref": None,
-                "write_test": {"success": False, "error": "diagnostic_failed"},
+                "access_test": {"success": False, "error": "diagnostic_failed"},
             }
 
     # ============================================================================

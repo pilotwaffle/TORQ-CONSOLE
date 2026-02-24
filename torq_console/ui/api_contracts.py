@@ -172,6 +172,12 @@ class ChatResponseV1(BaseModel):
         description="Whether learning event was recorded (null if unknown)"
     )
 
+    # Telemetry status (optional - added post-v1 without breaking changes)
+    telemetry: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Telemetry system status (enabled, sink)"
+    )
+
     # ========================================================================
     # Mutually Exclusive: one of these is present based on 'ok'
     # ========================================================================
@@ -275,12 +281,21 @@ def success_response(
     metadata: Optional[Dict[str, Any]] = None,
     session_id: Optional[str] = None,
     learning_recorded: Optional[bool] = None,
+    telemetry: Optional[Dict[str, Any]] = None,
 ) -> ChatResponseV1:
     """
     Construct a successful /api/chat response.
 
     Returns a frozen ChatResponseV1 with ok=True.
     """
+    # Get telemetry status if not provided
+    if telemetry is None:
+        import os
+        telemetry = {
+            "enabled": os.getenv("TORQ_TELEMETRY_ENABLED", "true").lower() == "true",
+            "sink": os.getenv("TORQ_TELEMETRY_SINK", "supabase"),
+        }
+
     return ChatResponseV1(
         request_id=request_id,
         trace_id=trace_id,
@@ -295,6 +310,7 @@ def success_response(
             metadata=metadata or {},
         ),
         error=None,
+        telemetry=telemetry,
     )
 
 
@@ -307,6 +323,7 @@ def error_response(
     duration_ms: int,
     debug_type: Optional[str] = None,
     session_id: Optional[str] = None,
+    telemetry: Optional[Dict[str, Any]] = None,
 ) -> ChatResponseV1:
     """
     Construct an error /api/chat response.
@@ -318,6 +335,13 @@ def error_response(
     import os
     include_debug = os.environ.get("TORQ_DEBUG", "false").lower() == "true"
 
+    # Default telemetry if not provided
+    if telemetry is None:
+        telemetry = {
+            "enabled": os.getenv("TORQ_TELEMETRY_ENABLED", "true").lower() == "true",
+            "sink": os.getenv("TORQ_TELEMETRY_SINK", "supabase"),
+        }
+
     return ChatResponseV1(
         request_id=request_id,
         trace_id=trace_id,
@@ -327,6 +351,7 @@ def error_response(
         session_id=session_id,
         learning_recorded=None,  # Errors don't record learning
         data=None,
+        telemetry=telemetry,
         error=ErrorDetail(
             type=error_type,
             message=message[:500],  # Truncate for safety
