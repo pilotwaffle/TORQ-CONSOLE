@@ -1,8 +1,8 @@
 {
-  "git_sha": "7de1ed7c730e6d42b8fc224d5e798ef181962be7",
-  "git_short_sha": "7de1ed7c730e",
+  "git_sha": "7f94ceddae38078b985d594b456350cd6c6f4168",
+  "git_short_sha": "7f94ceddae38",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T00:01:32.809868+00:00",
+  "built_at": "2026-02-24T00:09:23.164271+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "chore: trigger railway redeploy"
+  "commit_message": "fix: correct Supabase filter query params"
 }
