@@ -1,8 +1,8 @@
 {
-  "git_sha": "5b5e940f14698dcb62f8d2b56812637502e11c88",
-  "git_short_sha": "5b5e940f1469",
+  "git_sha": "46c29d752f725f212962d09ff19195ed640573b7",
+  "git_short_sha": "46c29d752f72",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T06:43:06.990928+00:00",
+  "built_at": "2026-02-24T06:55:24.775682+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "feat: production-proof telemetry health and settings"
+  "commit_message": "fix: use $PORT in railway.json and add deploy verification script"
 }
