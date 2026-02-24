@@ -1,8 +1,8 @@
 {
-  "git_sha": "d869d40054a8f0ed4b657021e5f52c22b9f71206",
-  "git_short_sha": "d869d40054a8",
+  "git_sha": "61b9bb49cc437c10e424906e1f6e953dded0327c",
+  "git_short_sha": "61b9bb49cc43",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T05:47:48.625303+00:00",
+  "built_at": "2026-02-24T06:10:00.365266+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "Freeze torq-chat-response-v1 API contract with 4 critical adjustments"
+  "commit_message": "Simplify telemetry health check to read-only test"
 }
