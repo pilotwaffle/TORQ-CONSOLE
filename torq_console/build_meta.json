@@ -1,8 +1,8 @@
 {
-  "git_sha": "65c5a51388c9f0c27e4fb08bd8169759f78f7c6e",
-  "git_short_sha": "65c5a51388c9",
+  "git_sha": "7de1ed7c730e6d42b8fc224d5e798ef181962be7",
+  "git_short_sha": "7de1ed7c730e",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-23T23:51:22.107577+00:00",
+  "built_at": "2026-02-24T00:01:32.809868+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "feat: lock control plane with guardrails and smoke tests"
+  "commit_message": "chore: trigger railway redeploy"
 }
