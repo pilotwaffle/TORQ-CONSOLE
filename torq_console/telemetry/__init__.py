@@ -30,26 +30,25 @@ async def _query_supabase(
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise ValueError("Supabase not configured")
 
-    # Build SELECT parameters
-    select_params = ["*"]
-
-    # Add filters
-    if filters:
-        for key, value in filters.items():
-            if isinstance(value, str):
-                select_params.append(f"{key}=eq.{value}")
-            elif isinstance(value, bool):
-                select_params.append(f"{key}={str(value).lower()}")
-            else:
-                select_params.append(f"{key}=cs.{value}")
-
-    # Build params
+    # Build params - filters must be separate query params, not in select
     params = {
-        "select": ",".join(select_params),
+        "select": "*",
         "limit": limit,
         "offset": offset,
         "order": order,
     }
+
+    # Add filters as separate query parameters
+    if filters:
+        for key, value in filters.items():
+            if isinstance(value, str):
+                params[key] = f"eq.{value}"
+            elif isinstance(value, bool):
+                params[key] = str(value).lower()
+            elif isinstance(value, list):
+                params[key] = f"cs.{{{','.join(value)}}}"
+            else:
+                params[key] = f"cs.{value}"
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(

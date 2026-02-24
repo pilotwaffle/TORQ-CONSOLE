@@ -1,8 +1,8 @@
 {
-  "git_sha": "2cda14dc77264ff11e35c2553b71f41d21d0539a",
-  "git_short_sha": "2cda14dc7726",
+  "git_sha": "9ecb71d7918f1af0691e4bd7c5c81febfeefcf16",
+  "git_short_sha": "9ecb71d7918f",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-23T23:03:35.352503+00:00",
+  "built_at": "2026-02-24T03:02:31.705560+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "fix(proxy): add telemetry/learning/traces proxy endpoints to Railway"
+  "commit_message": "feat: production-grade web research system"
 }

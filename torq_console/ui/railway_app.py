@@ -15,6 +15,7 @@ import sys
 import uuid
 import logging
 from datetime import datetime, timezone
+from contextlib import asynccontextmanager
 
 # ============================================================================
 # Logging - INFO to stdout, WARNING+ to stderr
@@ -79,10 +80,20 @@ def create_railway_app():
     logger.info("TORQ Console - Railway Backend")
     logger.info("=" * 60)
 
+    # Lifespan handler for graceful startup/shutdown (fixes Railway deployment hangs)
+    @asynccontextmanager
+    async def lifespan(app_instance):
+        # Startup
+        logger.info("TORQ Console Railway Backend starting...")
+        yield
+        # Shutdown
+        logger.info("TORQ Console Railway Backend shutting down...")
+
     app = FastAPI(
         title="TORQ Console Railway Backend",
         description="Agent backend with mandatory learning hook",
-        version="1.0.0"
+        version="1.0.0",
+        lifespan=lifespan
     )
 
     # CORS for Vercel proxy
@@ -223,7 +234,7 @@ def create_railway_app():
     async def ingest_telemetry(request: TelemetryIngest):
         """Ingest telemetry data from Vercel/frontend."""
         try:
-            from torq_console.telemetry.storage import supabase_ingest
+            from torq_console.telemetry import supabase_ingest
             result = await supabase_ingest(
                 trace=request.trace,
                 spans=request.spans,
@@ -241,7 +252,7 @@ def create_railway_app():
     @app.get("/api/telemetry/health")
     async def telemetry_health():
         """Check telemetry system health."""
-        from torq_console.telemetry.storage import get_telemetry_health
+        from torq_console.telemetry import get_telemetry_health
         health = await get_telemetry_health()
         return health
 
@@ -263,29 +274,101 @@ def create_railway_app():
             }
 
     @app.post("/api/learning/policy/approve")
-    async def approve_policy(request: LearningPolicyUpdate):
+    async def approve_policy(request: Request, policy_data: LearningPolicyUpdate):
         """Approve a new learning policy (admin only)."""
+        from torq_console.telemetry.admin import admin_required, log_admin_action
+
+        # Admin check
+        token = request.headers.get("X-Torq-Admin-Token", "")
+        if not verify_admin_token(token):
+            await log_admin_action(
+                action="policy_approve_denied",
+                details={"policy_id": policy_data.policy_id},
+                actor="unauthorized",
+                success=False,
+            )
+            raise HTTPException(status_code=401, detail="Valid admin token required")
+
+        actor = f"token_{hash(token) % 10000:04d}" if token else "dev"
+
         try:
             from torq_console.telemetry.learning import approve_policy_version
             result = await approve_policy_version(
-                policy_id=request.policy_id,
-                routing_data=request.routing_data,
+                policy_id=policy_data.policy_id,
+                routing_data=policy_data.routing_data,
             )
-            return {"ok": True, "policy_id": request.policy_id, **result}
+
+            await log_admin_action(
+                action="policy_approve",
+                details={"policy_id": policy_data.policy_id, "result": result},
+                actor=actor,
+                success=True,
+            )
+
+            return {"ok": True, "policy_id": policy_data.policy_id, **result}
         except Exception as e:
             logger.error(f"Policy approval error: {e}")
+            await log_admin_action(
+                action="policy_approve",
+                details={"policy_id": policy_data.policy_id, "error": str(e)},
+                actor=actor,
+                success=False,
+            )
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.post("/api/learning/policy/rollback")
-    async def rollback_policy():
+    async def rollback_policy(request: Request):
         """Rollback to previous policy (admin only)."""
+        from torq_console.telemetry.admin import log_admin_action
+
+        # Admin check
+        token = request.headers.get("X-Torq-Admin-Token", "")
+        if not verify_admin_token(token):
+            await log_admin_action(
+                action="policy_rollback_denied",
+                details={},
+                actor="unauthorized",
+                success=False,
+            )
+            raise HTTPException(status_code=401, detail="Valid admin token required")
+
+        actor = f"token_{hash(token) % 10000:04d}" if token else "dev"
+
         try:
             from torq_console.telemetry.learning import rollback_policy_version
             result = await rollback_policy_version()
+
+            await log_admin_action(
+                action="policy_rollback",
+                details={"result": result},
+                actor=actor,
+                success=True,
+            )
+
             return {"ok": True, **result}
         except Exception as e:
             logger.error(f"Policy rollback error: {e}")
+            await log_admin_action(
+                action="policy_rollback",
+                details={"error": str(e)},
+                actor=actor,
+                success=False,
+            )
             raise HTTPException(status_code=500, detail=str(e))
+
+
+def verify_admin_token(token: str) -> bool:
+    """Verify admin token is valid."""
+    import os
+    import hmac
+
+    admin_token = os.getenv("TORQ_ADMIN_TOKEN", "")
+    if not admin_token:
+        # Dev mode: no admin token required
+        return True
+    if not token:
+        return False
+    return hmac.compare_digest(token, admin_token)
 
     # ============================================================================
     # Trace Explorer API - Query telemetry traces with deploy identity filtering
@@ -306,7 +389,7 @@ def create_railway_app():
         for correlation with the code that generated them.
         """
         try:
-            from torq_console.telemetry.storage import list_traces as db_list_traces
+            from torq_console.telemetry import list_traces as db_list_traces
 
             # Build filters from query params
             filters = {}
@@ -345,7 +428,7 @@ def create_railway_app():
         (deploy_git_sha, deploy_platform, deploy_app_version) for correlation.
         """
         try:
-            from torq_console.telemetry.storage import get_trace as db_get_trace
+            from torq_console.telemetry import get_trace as db_get_trace
 
             trace = await db_get_trace(trace_id)
 
@@ -372,7 +455,7 @@ def create_railway_app():
         Returns a tree structure that can be visualized in a timeline UI.
         """
         try:
-            from torq_console.telemetry.storage import get_trace_spans as db_get_spans
+            from torq_console.telemetry import get_trace_spans as db_get_spans
 
             spans = await db_get_spans(
                 trace_id=trace_id,

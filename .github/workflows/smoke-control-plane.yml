@@ -1,0 +1,39 @@
+name: Control Plane Smoke Test
+
+on:
+  push:
+    branches:
+      - control-plane-v1
+      - main
+  pull_request:
+    branches:
+      - control-plane-v1
+      - main
+
+jobs:
+  smoke:
+    name: Post-Deploy Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run smoke tests
+        env:
+          VERCEL_URL: https://torq-console.vercel.app
+          RAILWAY_URL: https://web-production-74ed0.up.railway.app
+        run: |
+          python scripts/smoke_control_plane.py
+
+      - name: Fail on SHA mismatch
+        if: failure()
+        run: |
+          echo "::error::Smoke tests failed - deployment may be unhealthy"
+          exit 1
