@@ -123,10 +123,18 @@ async def get_trace_spans(
 
 async def get_telemetry_health() -> Dict[str, Any]:
     """Check telemetry system health."""
+    from .health import get_telemetry_diagnostics
+
+    # Get detailed diagnostics
+    diagnostics = await get_telemetry_diagnostics()
+
+    # Simplified health for compatibility
     return {
         "configured": bool(SUPABASE_URL and SUPABASE_KEY),
         "backend": "supabase",
         "tables": ["telemetry_traces", "telemetry_spans"],
+        # New diagnostic fields
+        "diagnostics": diagnostics,
     }
 
 

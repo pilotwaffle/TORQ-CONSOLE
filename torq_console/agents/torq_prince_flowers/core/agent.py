@@ -15,10 +15,11 @@ import uuid
 from typing import Dict, List, Any, Optional, Tuple, Union
 from datetime import datetime
 
-# Add parent directory to path for absolute imports
+# Add parent to path for absolute imports
 sys.path.insert(0, str(__file__).replace('\\', '/').split('/torq_console/')[0])
 
 from torq_console.llm.providers.base import BaseLLMProvider
+from torq_console.agents.protocols import AgentResponse
 from .state import ReasoningMode, AgenticAction, ReasoningTrajectory, TORQAgentResult
 from .learning_hook import MandatoryLearningHook
 from ..capabilities.reasoning import ReasoningEngine
@@ -202,6 +203,59 @@ Before providing any response, ensure:
 ✓ Safety: No security risks or harmful guidance
 
 Remember: Your goal is to be maximally helpful while maintaining the highest standards of quality, security, and user satisfaction."""
+
+    async def arun(self, message: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Run the agent - main entry point for web API.
+
+        This method implements the AsyncAgent protocol contract.
+
+        Args:
+            message: The user's message
+            context: Additional context (session_id, user_info, etc.)
+
+        Returns:
+            Dict matching AgentResponse schema (torq-agent-run-v1)
+        """
+        result = await self.process_query(message, context)
+
+        # Compute evidence_level from actual signals
+        evidence_level = None
+        if result.tools_used:
+            if "web_search" in result.tools_used:
+                evidence_level = "high"
+            else:
+                evidence_level = "medium"
+        elif result.reasoning_summary:
+            evidence_level = "low"
+
+        # Compute routing_success from actual result
+        routing_success = result.success
+
+        # Compute satisfaction from confidence and success
+        satisfaction = None
+        if result.success:
+            satisfaction = 0.5 + (result.confidence * 0.5)  # Map 0-1 to 0.5-1.0
+
+        # Build response using AgentResponse for type safety
+        response = AgentResponse(
+            response=result.response or "",
+            success=result.success,
+            confidence=result.confidence,
+            execution_time=result.execution_time,
+            tools_used=result.tools_used or [],
+            reasoning_summary=result.reasoning_summary,
+            evidence_level=evidence_level,
+            routing_success=routing_success,
+            policy_compliance=None,  # Computed by policy engine separately
+            satisfaction=satisfaction,
+            error=result.error if not result.success else None,
+        )
+
+        return response.model_dump()
+
+    def get_agent_status(self) -> Dict[str, Any]:
+        """Get current agent status and statistics."""
 
     async def process_query(self, query: str, context: Dict[str, Any] = None) -> TORQAgentResult:
         """

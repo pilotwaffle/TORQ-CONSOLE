@@ -1,8 +1,8 @@
 {
-  "git_sha": "9ecb71d7918f1af0691e4bd7c5c81febfeefcf16",
-  "git_short_sha": "9ecb71d7918f",
+  "git_sha": "e82d7d69e018881d12c567668e96a2dd50d2720c",
+  "git_short_sha": "e82d7d69e018",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T03:02:31.705560+00:00",
-  "branch": "control-plane-v1",
-  "commit_message": "feat: production-grade web research system"
+  "built_at": "2026-02-24T21:57:02.733267+00:00",
+  "branch": "control-plane-v1-clean",
+  "commit_message": "Fix Railway PORT binding via Python entrypoint"
 }

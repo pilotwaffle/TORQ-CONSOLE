@@ -45,14 +45,17 @@ except ImportError as e:
     ENHANCED_PRINCE_V2_AVAILABLE = False
     EnhancedPrinceFlowersV2 = None
 
-# Import enhanced integration wrapper
+# Import enhanced integration wrapper (lazy, optional dependency)
+# Only imported if actually used to avoid warning noise from optional marvin dependency
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 try:
     from torq_integration import register_prince_flowers_integration, PrinceFlowersIntegrationWrapper
     ENHANCED_INTEGRATION_AVAILABLE = True
-except ImportError as e:
-    print(f"Enhanced integration not available: {e}")
+except ImportError:
+    # Silently skip - torq_integration has optional marvin dependency
     ENHANCED_INTEGRATION_AVAILABLE = False
+    register_prince_flowers_integration = None
+    PrinceFlowersIntegrationWrapper = None
 
 
 class TorqConsole:

@@ -8,6 +8,7 @@ Prince Flowers web research with:
 - Conservative routing
 - Security hardening
 - Normalized provider outputs
+- Canonicalized citations (deterministic formatting)
 
 Usage:
     from torq_console.research import research
@@ -23,10 +24,17 @@ from .coordinator import (
     ResearchCoordinator,
 )
 
-from .router import ResearchRouter, get_research_router
+from .router import ResearchRouter, get_research_router, is_research_enabled, get_research_status
 from .cache import QueryCache, get_query_cache, get_url_cache
 from .citations import CitationPolicy, get_citation_policy
 from .security import WebSecurityChecker, get_security_checker
+from .canonicalizer import (
+    canonicalize_citations,
+    normalize_url,
+    normalize_sources,
+    validate_citation_format,
+    CanonicalCitation,
+)
 from .schema import (
     SearchProvider,
     ResearchSource,
@@ -53,6 +61,12 @@ __all__ = [
     # Citations
     "CitationPolicy",
     "get_citation_policy",
+    # Canonicalization
+    "canonicalize_citations",
+    "normalize_url",
+    "normalize_sources",
+    "validate_citation_format",
+    "CanonicalCitation",
     # Security
     "WebSecurityChecker",
     "get_security_checker",

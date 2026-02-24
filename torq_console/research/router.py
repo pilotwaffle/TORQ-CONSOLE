@@ -3,14 +3,23 @@ Conservative Research Router
 
 Decides when web research is needed. Implements a "local-first" approach
 to avoid unnecessary browsing and control costs.
+
+Release Controls:
+- TORQ_RESEARCH_ENABLED: Break-glass switch to disable all web research
+  When disabled, agent still responds but with "no web tools available"
 """
 
+import os
 import re
 import logging
 from typing import List, Optional, Set
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
+
+# Release control: Break-glass switch for research mode
+# Set TORQ_RESEARCH_ENABLED=false to disable all web research
+_RESEARCH_ENABLED = os.environ.get("TORQ_RESEARCH_ENABLED", "true").lower() == "true"
 
 # Time-related signals that indicate need for fresh data
 TIME_CUES = [
@@ -101,6 +110,12 @@ class ResearchRouter:
         """
         query_lower = query.lower().strip()
         signals = []
+
+        # Break-glass: Check if research is globally disabled
+        if not _RESEARCH_ENABLED:
+            signals.append("research_disabled_by_config")
+            logger.info("Research disabled by TORQ_RESEARCH_ENABLED=false")
+            return False, signals
 
         # Check for explicit research request (highest priority)
         if self._has_explicit_research_signal(query_lower):
@@ -251,3 +266,28 @@ def get_research_router() -> ResearchRouter:
     if _default_router is None:
         _default_router = ResearchRouter()
     return _default_router
+
+
+def is_research_enabled() -> bool:
+    """
+    Check if research mode is globally enabled.
+
+    This is the break-glass switch for incident response.
+    Returns False if TORQ_RESEARCH_ENABLED=false.
+    """
+    return _RESEARCH_ENABLED
+
+
+def get_research_status() -> dict:
+    """
+    Get the current research status for health/monitoring.
+
+    Returns:
+        Dict with enabled status and reason if disabled.
+    """
+    return {
+        "enabled": _RESEARCH_ENABLED,
+        "reason": "break_glass_switch" if not _RESEARCH_ENABLED else None,
+        "env_var": "TORQ_RESEARCH_ENABLED",
+        "current_value": os.environ.get("TORQ_RESEARCH_ENABLED", "true"),
+    }
