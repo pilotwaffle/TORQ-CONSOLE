@@ -1,155 +1,119 @@
-# TORQ Console - Railway Deployment Guide
+# Railway Deployment Guide: control-plane-v1-clean
 
-## Overview
+## Objective
 
-Railway runs the full TORQ Console backend including:
-- Prince Flowers agent with learning hook
-- Query router with Q-values
-- Experience replay engine
-- All telemetry + learning endpoints
+Deploy TORQ Console with production-proof telemetry diagnostics including:
+- `key_type_detected` field (detects service_role vs anon)
+- `key_source` field (which env var provided the key)
+- `access_test` field (read-only Supabase connectivity check)
+- PGRST204 schema cache error handling
 
-## Prerequisites
+---
 
-1. Railway account (https://railway.app)
-2. Supabase project with all migrations applied
-3. GitHub repo connected to Railway
+## Pre-Deployment Checklist
 
-## Step 1: Create Railway Project
+- [x] Duplicate SUPABASE_URL entries removed from `.env`
+- [x] `railway.json` uses `$PORT` (not hardcoded 8080)
+- [x] `torq_console/settings.py` added (runtime env reads)
+- [x] `torq_console/telemetry/health.py` updated (access_test, PGRST204)
+- [x] `verify_railway_deploy.py` added (deployment validation)
+- [x] Branch `control-plane-v1-clean` pushed to GitHub
 
-1. Go to https://railway.app
-2. Click "New Project" → "Deploy from GitHub repo"
-3. Select: `pilotwaffle/TORQ-CONSOLE`
-4. Branch: `main`
-5. Click "Deploy"
+---
 
-## Step 2: Configure the Service
+## Step 1: Configure Railway Service
 
-After initial deploy, click into your service and configure:
+### Navigate to Railway Project
+```
+https://railway.com/project/c6e58b87-d5f8-4819-86cb-1f34635616f3/service/2b12325d-6b35-445a-8b84-475c1e9bb27b
+```
 
-### Environment Variables (Settings → Environment Variables)
+### Update Source Settings
 
+1. **Settings** -> **Source**
+2. **Repository**: `pilotwaffle/TORQ-CONSOLE`
+3. **Branch**: `control-plane-v1-clean`
+4. **Root Directory**: `/` (repo root)
+
+### Verify Start Command
+
+In **Settings** -> the start command should use `$PORT`:
+```
+python -m uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT
+```
+
+Or via `railway.json` (already fixed):
+```json
+{
+  "deploy": {
+    "startCommand": "python -m uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port $PORT",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30
+  }
+}
+```
+
+---
+
+## Step 2: Set Environment Variables
+
+In **Variables** tab, set these **exact** keys:
+
+### Required for Telemetry Health
 ```bash
-# Supabase (required for telemetry + learning)
 SUPABASE_URL=https://npukynbaglmcdvzyklqa.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wdWt5bmJhZ2xtY2R2enlrbGFhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTU2MDUzNCwiZXhwIjoyMDg3MTM2NTM0fQ.-O3TTF2rr9_kUfOk9oD5Q_Fe494wtPxHOJsga5oT7Pk
-
-# LLM Keys (required for agent)
-ANTHROPIC_API_KEY=your_anthropic_key_here
-OPENAI_API_KEY=your_openai_key_here
-
-# Learning System (optional, recommended)
-TORQ_ADMIN_TOKEN=your_secure_random_string
-
-# Proxy Secret (for Vercel → Railway)
-TORQ_PROXY_SHARED_SECRET=your_shared_secret_here
-
-# Production mode
-TORQ_CONSOLE_PRODUCTION=true
-TORQ_DISABLE_LOCAL_LLM=true
-TORQ_DISABLE_GPU=true
+SUPABASE_SERVICE_ROLE_KEY=<your service role key>
+SUPABASE_ANON_KEY=<your anon key>
 ```
 
-### Root Directory
+### Required for LLM
+```bash
+ANTHROPIC_API_KEY=<your key>
+OPENAI_API_KEY=<your key>
+```
 
-Set to: `/` (repo root)
+### Optional
+```bash
+TORQ_PROXY_SHARED_SECRET=<shared secret with Vercel>
+TORQ_ADMIN_TOKEN=<for admin endpoints>
+```
 
-### Build Command
+### Critical: Use Consistent Key Names
+
+**Backend should use ONLY:**
+- `SUPABASE_URL` (single source of truth)
+- `SUPABASE_SERVICE_ROLE_KEY` (write access, backend)
+- `SUPABASE_ANON_KEY` (optional, only if needed)
+
+**Do NOT use:**
+- `SUPABASE_KEY` (ambiguous, can conflict)
+- Duplicate `SUPABASE_URL` entries (last wins, unpredictable)
+
+---
+
+## Step 3: Trigger Deployment
+
+1. Click **Deploy New** or **Redeploy**
+2. Wait for build to complete (5-10 minutes)
+3. Railway will provide a deployment URL
+
+---
+
+## Step 4: Verify Deployment
+
+### Run Verification Script
 
 ```bash
-python -m pip install -r requirements-railway.txt
+python verify_railway_deploy.py https://<your-railway-url>.up.railway.app
 ```
 
-### Start Command
+### Expected Output (All Pass)
 
-```bash
-uvicorn torq_console.ui.railway_app:app --host 0.0.0.0 --port ${PORT}
-```
+All checks should show [PASS]:
+- torq-deploy-v1 schema present
+- Git SHA matches expected
+- key_type_detected: service_role
+- key_source: SUPABASE_SERVICE_ROLE_KEY
+- access_test: healthy (HTTP 200)
+- Supabase project ref: npukynbaglmcdvzyklqa
 
-## Step 3: Get Your Railway URL
-
-After deployment, Railway will give you a URL like:
-```
-https://torq-console-production.up.railway.app
-```
-
-Copy this — you'll need it for Vercel environment variables.
-
-## Step 4: Configure Vercel to Proxy to Railway
-
-In Vercel Dashboard → Project → Settings → Environment Variables:
-
-```bash
-TORQ_BACKEND_URL=https://torq-console-production.up.railway.app
-TORQ_PROXY_SHARED_SECRET=same_value_as_railway
-TORQ_PROXY_TIMEOUT_MS=30000
-```
-
-Then redeploy Vercel.
-
-## Step 5: Verify the Connection
-
-Test from your terminal:
-
-```bash
-# Test Railway health
-curl https://torq-console-production.up.railway.app/health
-
-# Test Vercel proxy
-curl -X POST https://torq-console.vercel.app/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Hello from Vercel!"}'
-```
-
-## Step 6: Add Proxy Secret Middleware to Railway
-
-Create a new file `torq_console/api/middleware.py`:
-
-```python
-from fastapi import Request, HTTPException
-from starlette.middleware.base import BaseHTTPMiddleware
-
-class ProxySecretMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Require proxy secret for sensitive endpoints
-        if request.url.path in ["/api/chat", "/api/learning", "/api/telemetry"]:
-            secret = request.headers.get("x-torq-proxy-secret")
-            expected = os.environ.get("TORQ_PROXY_SHARED_SECRET")
-
-            if not secret or secret != expected:
-                raise HTTPException(status_code=403, detail="Forbidden: Invalid proxy secret")
-
-        response = await call_next(request)
-        return response
-```
-
-Then add to `torq_console/ui/railway_app.py`:
-
-```python
-app.add_middleware(ProxySecretMiddleware)
-```
-
-## What This Enables
-
-✅ Vercel serves the fast frontend
-✅ Railway runs the full agent with learning
-✅ Every chat triggers the learning hook
-✅ Telemetry + learning events write to Supabase
-✅ Q-values update via experience replay
-✅ Policy versioning works via Supabase
-
-## Troubleshooting
-
-### Railway service not starting
-- Check logs in Railway dashboard
-- Verify PYTHONPATH in Dockerfile
-- Check that all requirements install
-
-### Vercel proxy failing
-- Verify TORQ_BACKEND_URL is correct (no trailing slash)
-- Check Railway service is running
-- Look for CORS errors in browser console
-
-### Learning events not appearing
-- Verify SUPABASE_SERVICE_ROLE_KEY is set (not anon key)
-- Check that migrations 01-10 have been run
-- Check Railway logs for errors during learning hook execution
