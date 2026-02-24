@@ -49,6 +49,16 @@ def get_app_version_with_source() -> tuple:
         return "dev", "default"
 
 
+def get_app_version() -> str:
+    """
+    Returns app version string only.
+
+    Use this in API contracts where you need the version string,
+    not the tuple from get_app_version_with_source().
+    """
+    return get_app_version_with_source()[0]
+
+
 def is_package_installed() -> bool:
     try:
         pkg_version(_DIST_NAME)

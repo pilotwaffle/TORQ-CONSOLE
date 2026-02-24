@@ -463,8 +463,15 @@ def create_railway_app():
         """
         Check telemetry system health with self-diagnosis.
 
-        Reports Supabase connection status and any configuration issues.
+        Reports:
+        - Supabase connection status
+        - Project ref detection
+        - Key type (service_role vs anon)
+        - Write test result
+        - Actionable recommendations
         """
+        from torq_console.telemetry.health import get_telemetry_diagnostics
+
         telemetry_config = getattr(app.state, 'telemetry_config', {})
 
         base_health = {
@@ -474,42 +481,27 @@ def create_railway_app():
             "last_error": telemetry_config.get('last_error'),
         }
 
-        # Try to get actual health if enabled
-        if not base_health['disabled_due_to_error'] and base_health['enabled']:
-            try:
-                from torq_console.telemetry import get_telemetry_health
-                health = await get_telemetry_health()
-                health.update(base_health)
+        # Get detailed diagnostics
+        try:
+            diagnostics = await get_telemetry_diagnostics()
+            diagnostics.update(base_health)
 
-                # Add self-diagnosis
-                if base_health['last_error']:
-                    health['diagnosis'] = {
-                        'status': 'misconfigured',
-                        'issue': f"Error code: {base_health['last_error']}",
-                        'recommendation': 'Check Supabase credentials and permissions'
-                    }
-                else:
-                    health['diagnosis'] = {'status': 'healthy'}
+            # Overall status
+            if diagnostics["write_test"].get("success"):
+                diagnostics["status"] = "healthy"
+            elif diagnostics["write_test"].get("error") == "invalid_api_key":
+                diagnostics["status"] = "misconfigured"
+            else:
+                diagnostics["status"] = "degraded"
 
-                return health
-            except Exception as e:
-                return {
-                    **base_health,
-                    "healthy": False,
-                    "diagnosis": {
-                        'status': 'error',
-                        'issue': str(e),
-                        'recommendation': 'Check telemetry configuration'
-                    }
-                }
-        else:
+            return diagnostics
+        except Exception as e:
             return {
                 **base_health,
-                "healthy": not base_health['disabled_due_to_error'],
-                "diagnosis": {
-                    'status': 'disabled' if not base_health['enabled'] else 'error',
-                    'issue': base_health['last_error'] or 'Manually disabled',
-                }
+                "status": "error",
+                "error": str(e),
+                "supabase_project_ref": None,
+                "write_test": {"success": False, "error": "diagnostic_failed"},
             }
 
     # ============================================================================

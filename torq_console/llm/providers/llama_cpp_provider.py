@@ -12,12 +12,17 @@ from dataclasses import dataclass
 import json
 
 # Try to import llama-cpp-python (optional dependency)
+# Only warn if TORQ_LOCAL_LLM_ENABLED is explicitly set
+import os
+_torq_local_llm_enabled = os.environ.get('TORQ_LOCAL_LLM_ENABLED', 'false').lower() == 'true'
+
 try:
     from llama_cpp import Llama
     LLAMA_CPP_AVAILABLE = True
 except ImportError:
     LLAMA_CPP_AVAILABLE = False
-    logging.warning("llama-cpp-python not installed. Install with: pip install llama-cpp-python")
+    if _torq_local_llm_enabled:
+        logging.warning("llama-cpp-python not installed but TORQ_LOCAL_LLM_ENABLED=true. Install with: pip install llama-cpp-python")
 
 
 @dataclass

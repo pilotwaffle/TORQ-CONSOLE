@@ -254,14 +254,14 @@ def get_deploy_info() -> DeployInfo:
     import os
     from torq_console.build_info import (
         get_git_sha,
-        get_app_version_with_source,
+        get_app_version,  # Use helper that returns string directly
         get_platform,
     )
 
     return DeployInfo(
         platform=get_platform(),
         git_sha=get_git_sha()[:8],
-        app_version=get_app_version_with_source()[0],  # Returns tuple (version, source)
+        app_version=get_app_version(),  # Returns string directly
         environment=os.environ.get("RAILWAY_ENVIRONMENT", "development"),
     )
 
