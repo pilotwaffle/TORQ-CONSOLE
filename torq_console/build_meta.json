@@ -1,8 +1,8 @@
 {
-  "git_sha": "46c29d752f725f212962d09ff19195ed640573b7",
-  "git_short_sha": "46c29d752f72",
+  "git_sha": "dafa416626db92588c090df03d7a593d760b5aa4",
+  "git_short_sha": "dafa416626db",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T06:55:24.775682+00:00",
+  "built_at": "2026-02-24T06:55:37.203325+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "fix: use $PORT in railway.json and add deploy verification script"
+  "commit_message": "fix: update expected SHA in verification script"
 }
