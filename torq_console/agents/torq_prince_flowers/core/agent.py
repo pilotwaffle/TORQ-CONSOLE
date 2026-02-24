@@ -203,6 +203,34 @@ Before providing any response, ensure:
 
 Remember: Your goal is to be maximally helpful while maintaining the highest standards of quality, security, and user satisfaction."""
 
+    async def arun(self, message: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Alias for process_query - compatibility with web API.
+
+        Args:
+            message: The user's message
+            context: Additional context
+
+        Returns:
+            Dict with response and metadata
+        """
+        result = await self.process_query(message, context)
+
+        # Build response dict for web API
+        return {
+            "response": result.response,
+            "success": result.success,
+            "confidence": result.confidence,
+            "tools_used": result.tools_used,
+            "reasoning_summary": result.reasoning_summary,
+            "execution_time": result.execution_time,
+            "metadata": result.metadata,
+            "evidence_level": "medium",  # Default evidence level
+            "routing_success": True,  # Default routing success
+            "policy_compliance": 1.0,  # Default policy compliance
+            "satisfaction": 0.8,  # Default satisfaction prediction
+        }
+
     async def process_query(self, query: str, context: Dict[str, Any] = None) -> TORQAgentResult:
         """
         Main entry point for processing user queries.
