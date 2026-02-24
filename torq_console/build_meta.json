@@ -1,8 +1,8 @@
 {
-  "git_sha": "d182c58db4d91abcdc6b1c23468da6a961b5d35b",
-  "git_short_sha": "d182c58db4d9",
+  "git_sha": "3137b5d571ac543fc1fd57eb550ec088a7750f53",
+  "git_short_sha": "3137b5d571ac",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T05:26:55.292973+00:00",
+  "built_at": "2026-02-24T05:40:15.714737+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "feat: add agent protocol, best-effort telemetry, structured errors"
+  "commit_message": "Add platform hardening: versioned API contracts, break-glass switch, telemetry sink abstraction"
 }
