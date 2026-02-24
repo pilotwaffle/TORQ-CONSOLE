@@ -15,6 +15,7 @@ import sys
 import uuid
 import logging
 from datetime import datetime, timezone
+from contextlib import asynccontextmanager
 
 # ============================================================================
 # Logging - INFO to stdout, WARNING+ to stderr
@@ -79,10 +80,20 @@ def create_railway_app():
     logger.info("TORQ Console - Railway Backend")
     logger.info("=" * 60)
 
+    # Lifespan handler for graceful startup/shutdown (fixes Railway deployment hangs)
+    @asynccontextmanager
+    async def lifespan(app_instance):
+        # Startup
+        logger.info("TORQ Console Railway Backend starting...")
+        yield
+        # Shutdown
+        logger.info("TORQ Console Railway Backend shutting down...")
+
     app = FastAPI(
         title="TORQ Console Railway Backend",
         description="Agent backend with mandatory learning hook",
-        version="1.0.0"
+        version="1.0.0",
+        lifespan=lifespan
     )
 
     # CORS for Vercel proxy
