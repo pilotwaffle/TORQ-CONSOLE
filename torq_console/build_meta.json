@@ -1,8 +1,8 @@
 {
-  "git_sha": "3137b5d571ac543fc1fd57eb550ec088a7750f53",
-  "git_short_sha": "3137b5d571ac",
+  "git_sha": "d869d40054a8f0ed4b657021e5f52c22b9f71206",
+  "git_short_sha": "d869d40054a8",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T05:40:15.714737+00:00",
+  "built_at": "2026-02-24T05:47:48.625303+00:00",
   "branch": "control-plane-v1",
-  "commit_message": "Add platform hardening: versioned API contracts, break-glass switch, telemetry sink abstraction"
+  "commit_message": "Freeze torq-chat-response-v1 API contract with 4 critical adjustments"
 }
