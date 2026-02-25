@@ -6,7 +6,7 @@ ARG GIT_SHA=unknown
 ARG GIT_BRANCH=unknown
 
 # Cache buster for deterministic fresh builds
-ARG CACHE_BUST=20260222-v1
+ARG CACHE_BUST=20260225-v2
 RUN echo "cache_bust=$CACHE_BUST"
 
 # Set environment variables
