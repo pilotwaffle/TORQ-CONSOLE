@@ -1,8 +1,8 @@
 {
-  "git_sha": "e82d7d69e018881d12c567668e96a2dd50d2720c",
-  "git_short_sha": "e82d7d69e018",
+  "git_sha": "37fbfb54924a72e55a1c640cbde87489a4cbc743",
+  "git_short_sha": "37fbfb54924a",
   "version": "1.0.10-standalone",
-  "built_at": "2026-02-24T21:57:02.733267+00:00",
+  "built_at": "2026-02-24T23:55:45.565017+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "Fix Railway PORT binding via Python entrypoint"
+  "commit_message": "chore: trigger Railway auto-deploy from control-plane-v1-clean"
 }

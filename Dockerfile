@@ -65,6 +65,6 @@ with open(path, "w", encoding="utf-8") as f:
     print("[build] wrote", path, "->", meta)
 PY
 
-# Start command - Railway exposes port 8080
-ENV PORT=8080
-CMD ["python", "-m", "uvicorn", "torq_console.ui.railway_app:app", "--host", "0.0.0.0", "--port", "8080"]
+# Start command - Railway injects PORT via environment
+# Use Python entrypoint that reads PORT from environment
+CMD ["python", "-m", "torq_console.ui.start_railway"]
