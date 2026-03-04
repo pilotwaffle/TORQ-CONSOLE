@@ -1,0 +1,9 @@
+{
+  "name": "com.torq.chrome_bridge",
+  "description": "TORQ Native Messaging Host for Prince Flowers Agent",
+  "path": "E:\\TORQ-CONSOLE\\chrome_bridge\\run_host.bat",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://YOUR_EXTENSION_ID/"
+  ]
+}
