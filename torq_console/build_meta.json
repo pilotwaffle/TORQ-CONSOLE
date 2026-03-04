@@ -1,8 +1,8 @@
 {
-  "git_sha": "6262c38419da96eed7f9763952821d27533f1571",
-  "git_short_sha": "6262c38419da",
+  "git_sha": "5cce74161a10c65bb6c4c890bfc9807624edd99b",
+  "git_short_sha": "5cce74161a10",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-04T17:46:15.840105+00:00",
+  "built_at": "2026-03-04T17:46:27.642455+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "feat: Add Chrome Bridge integration for browser automation"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
