@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TORQ Browser Bridge</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 340px;
+      padding: 16px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+
+    h3 {
+      margin-bottom: 12px;
+      font-size: 16px;
+      color: #4cc9f0;
+    }
+
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status.connected {
+      background: #06d6a0;
+      color: #000;
+    }
+
+    .status.disconnected {
+      background: #ef476f;
+      color: #fff;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #aaa;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #16213e;
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #4cc9f0;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    #approve {
+      background: #06d6a0;
+      color: #000;
+    }
+
+    #deny {
+      background: #ef476f;
+      color: #fff;
+    }
+
+    .info {
+      margin-top: 16px;
+      padding: 10px;
+      background: #16213e;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #888;
+    }
+
+    .response {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+    }
+
+    .response.success {
+      background: #06d6a0;
+      color: #000;
+      display: block;
+    }
+
+    .response.error {
+      background: #ef476f;
+      color: #fff;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h3>TORQ Browser Bridge</h3>
+
+  <div id="status" class="status">Connecting...</div>
+
+  <label for="session">Session ID</label>
+  <input
+    id="session"
+    type="text"
+    placeholder="Paste session_id from Prince agent"
+    autocomplete="off"
+  >
+
+  <div class="buttons">
+    <button id="approve">Approve</button>
+    <button id="deny">Deny</button>
+  </div>
+
+  <div id="response" class="response"></div>
+
+  <div class="info">
+    <strong>What is this?</strong><br>
+    Prince Flowers Agent requests browser control.
+    Approve sessions here to allow automated actions.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

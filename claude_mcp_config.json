@@ -1,0 +1,56 @@
+{
+  "description": "MCP configuration for TORQ Chrome Bridge integration with Claude Code",
+  "install_instructions": [
+    "1. Copy this to ~/.claude/mcp.json (global) or .claude/mcp.json (project)",
+    "2. Update paths to match your system",
+    "3. Set CHROME_BRIDGE_API_KEY if using authentication",
+    "4. Restart Claude Code"
+  ],
+  "mcpServers": {
+    "chrome-bridge": {
+      "command": "python",
+      "args": [
+        "E:/TORQ-CONSOLE/torq_console/mcp/chrome_bridge_server.py"
+      ],
+      "env": {
+        "CHROME_BRIDGE_URL": "http://127.0.0.1:4545",
+        "CHROME_BRIDGE_API_KEY": "",
+        "CHROME_BRIDGE_REQUIRE_APPROVAL": "true"
+      }
+    }
+  },
+  "hooks": {
+    "description": "Hooks configuration for ~/.claude/settings.json",
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "E:/TORQ-CONSOLE/scripts/claude_stop_screenshot.sh",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "E:/TORQ-CONSOLE/scripts/verify_deployment.sh \"$FILE_PATH\"",
+            "timeout": 60000
+          }
+        ]
+      }
+    ]
+  },
+  "environment_variables": {
+    "CHROME_BRIDGE_URL": "Chrome Bridge HTTP URL (default: http://127.0.0.1:4545)",
+    "CHROME_BRIDGE_API_KEY": "API key for authentication (optional but recommended)",
+    "CHROME_BRIDGE_REQUIRE_APPROVAL": "Require approval for browser actions (default: true)",
+    "RAILWAY_DEPLOY_URL": "Railway deployment URL for verification hooks",
+    "VERCEL_DEPLOY_URL": "Vercel deployment URL for verification hooks"
+  }
+}
