@@ -63,12 +63,17 @@ logger.info(f"Railway proxy configured: {bool(RAILWAY_URL)}")
 # ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1)
+    """Chat request with versioned contract support."""
+    v: int = 1  # Contract version
+    message: str = Field(..., min_length=1, max_length=10000)
     session_id: Optional[str] = None  # Use provided or generate new
     agent_id: Optional[str] = None  # null = auto-route
     mode: Optional[str] = "auto"  # auto, single, sequential, parallel, etc.
     context: Optional[dict[str, Any]] = None
     model: Optional[str] = None
+    # Trace continuity
+    trace_id: Optional[str] = None
+    request_id: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -128,8 +133,21 @@ def _proxy_to_railway(
     body: bytes = None,
     extra_headers: dict = None,
     query_string: str = "",
+    trace_id: str = None,
+    request_id: str = None,
 ) -> dict:
-    """Forward request to Railway backend using stdlib urllib."""
+    """
+    Forward request to Railway backend using stdlib urllib.
+
+    Args:
+        path: API path
+        method: HTTP method
+        body: Request body
+        extra_headers: Additional headers to forward
+        query_string: Query string
+        trace_id: Trace ID for observability
+        request_id: Request ID for observability
+    """
     if not RAILWAY_URL:
         raise HTTPException(status_code=503, detail="Backend not configured.")
 
@@ -144,6 +162,12 @@ def _proxy_to_railway(
 
     if PROXY_SECRET:
         headers["x-torq-proxy-secret"] = PROXY_SECRET
+
+    # Trace continuity headers
+    if trace_id:
+        headers["x-torq-trace-id"] = trace_id
+    if request_id:
+        headers["x-request-id"] = request_id
 
     if extra_headers:
         headers.update(extra_headers)
@@ -320,12 +344,17 @@ async def chat(req: ChatRequest):
         # Use provided session_id or generate new one
         session_id = req.session_id or str(uuid.uuid4())
 
+        # Generate request_id for trace continuity if not provided
+        request_id = req.request_id or f"vercel-{trace_id}"
+
         # Build payload matching Railway's unified contract
         payload_dict = {
             "message": req.message,
             "session_id": session_id,
             "agent_id": req.agent_id,  # Use provided agent_id or None for auto-route
             "mode": req.mode or "auto",
+            "trace_id": req.trace_id,
+            "request_id": request_id,
         }
         if req.context:
             payload_dict["context"] = req.context
@@ -337,21 +366,29 @@ async def chat(req: ChatRequest):
                 "/api/chat",  # Railway's endpoint
                 method="POST",
                 body=payload,
+                trace_id=req.trace_id,
+                request_id=request_id,
             )
 
+            # Handle both v1 (text, agent_id_used) and legacy (response, agent_id) formats
+            response_text = result.get("text") or result.get("response", "")
+            agent_used = result.get("agent_id_used") or result.get("agent_id") or result.get("agent") or "prince_flowers"
+
             return ChatResponse(
-                response=result.get("response", ""),
-                agent_id=result.get("agent_id", result.get("agent", "prince_flowers")),
+                response=response_text,
+                agent_id=agent_used,
                 timestamp=result.get("timestamp", _now_iso()),
                 metadata={
+                    "v": result.get("v", 0),  # Contract version
                     "backend": "railway",
                     "proxy": "vercel→railway",
-                    "learning_recorded": result.get("learning_recorded", False),
                     "trace_id": result.get("trace_id"),
+                    "request_id": result.get("request_id"),
                     "duration_ms": result.get("duration_ms"),
                     "mode_used": result.get("mode_used"),
                     "agents_involved": result.get("agents_involved"),
                     "routing": result.get("routing"),
+                    "evaluation": result.get("evaluation"),
                     "degraded": False,
                 },
             )
@@ -495,10 +532,35 @@ async def get_agent(agent_id: str):
 
 @app.get("/api/chat/agents")
 async def list_chat_agents():
-    """List agents for chat — proxies to Railway for agent registry."""
+    """
+    List agents for chat — proxies to Railway for agent registry with caching.
+
+    Cache: 60 seconds to reduce load and speed up UI boot.
+    """
+    # Check cache first
+    cache_key = "agents_cache"
+    cache_time_key = "agents_cache_time"
+    now = time.time()
+    cache_ttl = 60  # 60 seconds
+
+    # Import cache module at runtime (Vercel compatibility)
+    try:
+        from functools import lru_cache
+    except ImportError:
+        pass
+
+    # Simple in-memory cache for serverless
+    if hasattr(list_chat_agents, "_cache") and hasattr(list_chat_agents, "_cache_time"):
+        if now - list_chat_agents._cache_time < cache_ttl:
+            logger.debug(f"[AGENTS_CACHE] Using cached agents ({int(now - list_chat_agents._cache_time)}s old)")
+            return list_chat_agents._cache
+
     if RAILWAY_URL:
         try:
             result = _proxy_to_railway("/api/chat/agents", method="GET")
+            # Update cache
+            list_chat_agents._cache = result
+            list_chat_agents._cache_time = now
             return result
         except HTTPException:
             # Fallback to local agents if Railway unavailable
