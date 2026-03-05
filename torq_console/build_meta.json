@@ -1,8 +1,8 @@
 {
-  "git_sha": "6dc23a260e1536fb91afe87d5920a01ca7c6c398",
-  "git_short_sha": "6dc23a260e15",
+  "git_sha": "fc33ce9c400575ccef5ef7fc6f68d4973c35431b",
+  "git_short_sha": "fc33ce9c4005",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:15:21.052942+00:00",
+  "built_at": "2026-03-05T07:17:21.160025+00:00",
   "branch": "main",
-  "commit_message": "feat: unified chat API with improved contract + Vercel Edge Function proxy"
+  "commit_message": "fix: make /api/chat publicly accessible for Vercel proxy"
 }
