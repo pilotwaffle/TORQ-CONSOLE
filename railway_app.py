@@ -93,6 +93,18 @@ from torq_console.knowledge_plane.railway_integration import knowledge_router
 app.include_router(knowledge_router)
 
 # ============================================================================
+# Multi-Agent Orchestration Routes
+# ============================================================================
+
+try:
+    from torq_console.agents.railway_orchestration import create_orchestration_router
+    orchestration_router = create_orchestration_router()
+    app.include_router(orchestration_router)
+    logger.info("Multi-agent orchestration routes loaded")
+except ImportError as e:
+    logger.warning(f"Could not load orchestration routes: {e}")
+
+# ============================================================================
 # Security Middleware (inline to avoid import)
 # ============================================================================
 
