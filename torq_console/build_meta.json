@@ -1,8 +1,8 @@
 {
-  "git_sha": "6a5497928daeddf215a5d1ca109fe9e11dab92db",
-  "git_short_sha": "6a5497928dae",
+  "git_sha": "0eeb0a649a391d0e71e45af4da8c09c3eb2cdc56",
+  "git_short_sha": "0eeb0a649a39",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T17:47:28.887232+00:00",
+  "built_at": "2026-03-05T18:01:10.157377+00:00",
   "branch": "main",
-  "commit_message": "feat: Vercel proxy prefers canonical response fields"
+  "commit_message": "feat: implement Autonomous Task Graph Engine per PRD"
 }
