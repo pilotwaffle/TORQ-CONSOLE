@@ -1,8 +1,8 @@
 {
-  "git_sha": "3c4fe4eb270cc79a64108816ed97292cb98b37d4",
-  "git_short_sha": "3c4fe4eb270c",
+  "git_sha": "f70d0bbe7846bf3efa387b3e2506c2e60cb4a47e",
+  "git_short_sha": "f70d0bbe7846",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T04:19:33.040760+00:00",
+  "built_at": "2026-03-05T04:19:46.056053+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "Add multi-agent orchestration and cognitive loop endpoints"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
