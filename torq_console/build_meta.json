@@ -1,8 +1,8 @@
 {
-  "git_sha": "ceb7b5e0af22bcae4066bbec957f487a4b8f537b",
-  "git_short_sha": "ceb7b5e0af22",
+  "git_sha": "f72bf18d6ee7644304877a72503cb03f4c97b7d3",
+  "git_short_sha": "f72bf18d6ee7",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:29:31.981973+00:00",
+  "built_at": "2026-03-05T07:31:49.201638+00:00",
   "branch": "main",
-  "commit_message": "chore: add @vercel/node dependency for serverless function"
+  "commit_message": "fix: add Vercel serverless proxy to root for API routing"
 }
