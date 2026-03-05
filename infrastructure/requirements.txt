@@ -1,0 +1,26 @@
+# TORQ Console - OpenTelemetry Requirements
+# Step 2: Infrastructure Upgrades - Distributed Tracing
+
+# OpenTelemetry SDK
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+
+# OTLP Exporters (for Grafana Tempo, Jaeger, etc.)
+opentelemetry-exporter-otlp-proto-grpc==1.22.0
+opentelemetry-exporter-otlp-proto-http==1.22.0
+
+# Console Exporter (for debugging)
+opentelemetry-sdk-extension-aws==2.0.0
+
+# FastAPI Integration
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Optional: Advanced integrations
+# opentelemetry-instrumentation-fastapi==0.43b0
+# opentelemetry-instrumentation-httpx==0.43b0
+# opentelemetry-instrumentation-sqlalchemy==0.43b0
+# opentelemetry-instrumentation-redis==0.43b0
+
+# For Railway deployment
+gunicorn==21.2.0

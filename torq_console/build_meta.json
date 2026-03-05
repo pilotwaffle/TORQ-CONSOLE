@@ -1,8 +1,8 @@
 {
-  "git_sha": "fe821df717722d0e53f0882efbea6e19f4d57ace",
-  "git_short_sha": "fe821df71772",
+  "git_sha": "f70d0bbe7846bf3efa387b3e2506c2e60cb4a47e",
+  "git_short_sha": "f70d0bbe7846",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-04T17:46:34.294183+00:00",
+  "built_at": "2026-03-05T04:19:46.056053+00:00",
   "branch": "control-plane-v1-clean",
   "commit_message": "chore: update build metadata [skip ci]"
 }

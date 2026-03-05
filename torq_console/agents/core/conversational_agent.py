@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 from .base_agent import BaseAgent, AgentCapability, AgentContext, AgentResult
 from .interfaces import IConversationAgent, ConversationMode, ConversationTurn
 from .capabilities import ConversationCapability
-from ..registry import register_agent
+from .registry import register_agent
 
 
 class ConversationalAgent(BaseAgent, IConversationAgent):
@@ -49,7 +49,7 @@ class ConversationalAgent(BaseAgent, IConversationAgent):
                 AgentCapability.LEARNING
             ],
             llm_provider=llm_provider,
-           =config
+            config=config
         )
 
         # Initialize conversation capability

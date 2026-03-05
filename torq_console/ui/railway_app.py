@@ -58,7 +58,7 @@ def create_railway_app():
     This is a minimal, focused backend for the Vercel->Railway proxy architecture.
     Vercel serves the UI; Railway runs the full agent with learning.
     """
-    from fastapi import FastAPI, HTTPException
+    from fastapi import FastAPI, HTTPException, Request
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel
     from typing import Optional, Dict, Any, List
@@ -803,8 +803,347 @@ def verify_admin_token(token: str) -> bool:
             "backend": "railway",
         }
 
+    # ============================================================================
+    # Multi-Agent Orchestration Endpoints
+    # ============================================================================
+
+    class AgentListRequest(BaseModel):
+        limit: Optional[int] = 50
+        status_filter: Optional[str] = None
+        capability_filter: Optional[str] = None
+
+    @app.post("/api/agents/list")
+    async def list_agents(req: AgentListRequest):
+        """List all available agents with optional filtering."""
+        try:
+            from torq_console.agents.core.registry import get_agent_registry
+
+            registry = get_agent_registry()
+            agents = registry.list_agents()
+
+            # Apply filters
+            if req.status_filter:
+                agents = [a for a in agents if a.get('status') == req.status_filter]
+            if req.capability_filter:
+                agents = [a for a in agents if req.capability_filter in str(a.get('capabilities', []))]
+
+            # Apply limit
+            if req.limit:
+                agents = agents[:req.limit]
+
+            return {
+                "success": True,
+                "agents": agents,
+                "count": len(agents)
+            }
+        except Exception as e:
+            logger.error(f"Error listing agents: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    class RouteTaskRequest(BaseModel):
+        task: Dict[str, Any]
+        routing_strategy: str = "capability_match"
+
+    @app.post("/api/agents/route")
+    async def route_task(req: RouteTaskRequest):
+        """Route a task to the best available agent."""
+        try:
+            from torq_console.agents.core.registry import get_agent_registry
+            from torq_console.agents.core.base_agent import AgentCapability
+
+            registry = get_agent_registry()
+            task_type = req.task.get("type", "general")
+
+            # Simple routing based on task type
+            routing_map = {
+                "code": "workflow_agent",
+                "debug": "workflow_agent",
+                "research": "research_agent",
+                "search": "research_agent",
+                "chat": "conversational_agent",
+                "conversation": "conversational_agent",
+                "orchestrate": "orchestration_agent",
+            }
+
+            agent_id = routing_map.get(task_type, "conversational_agent")
+            agent_info = registry.get_agent_info(agent_id)
+
+            return {
+                "success": True,
+                "routed_agent": agent_id,
+                "agent_info": agent_info,
+                "confidence": 0.9,
+                "routing_strategy": req.routing_strategy
+            }
+        except Exception as e:
+            logger.error(f"Error routing task: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    class OrchestrateRequest(BaseModel):
+        workflow: Dict[str, Any]
+        input_data: Optional[Dict[str, Any]] = {}
+        execution_mode: str = "sequential"
+
+    @app.post("/api/agents/orchestrate")
+    async def orchestrate_agents(req: OrchestrateRequest):
+        """Execute a multi-agent workflow."""
+        try:
+            from torq_console.agents.core.orchestration_agent import OrchestrationAgent, OrchestrationMode
+
+            orchestrator = OrchestrationAgent()
+
+            # Create orchestration plan
+            plan = await orchestrator._parse_workflow_definition(req.workflow)
+            if not plan:
+                raise HTTPException(status_code=400, detail="Invalid workflow definition")
+
+            # Execute plan
+            result = await orchestrator.execute_orchestration_plan(plan)
+
+            return {
+                "success": result.status == "completed",
+                "workflow_id": result.plan_id,
+                "status": result.status,
+                "task_results": {k: {
+                    "success": v.success,
+                    "content": v.content[:200] if v.content else None
+                } for k, v in result.task_results.items()},
+                "execution_time": result.execution_time,
+                "success_count": result.success_count,
+                "failure_count": result.failure_count
+            }
+        except Exception as e:
+            logger.error(f"Error orchestrating agents: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ============================================================================
+    # Knowledge Plane Endpoints
+    # ============================================================================
+
+    class KnowledgeSearchRequest(BaseModel):
+        query: str
+        limit: int = 10
+        threshold: float = 0.7
+
+    @app.post("/api/knowledge/search")
+    async def search_knowledge(req: KnowledgeSearchRequest):
+        """Search the Knowledge Plane using semantic similarity."""
+        try:
+            import httpx
+
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+
+            if not supabase_url or not supabase_key:
+                raise HTTPException(status_code=500, detail="Supabase not configured")
+
+            # For now, simple text search (would use embeddings in production)
+            headers = {
+                'apikey': supabase_key,
+                'Authorization': f'Bearer {supabase_key}',
+                'Content-Type': 'application/json'
+            }
+
+            async with httpx.AsyncClient() as client:
+                # Simple text search via ilike
+                resp = await client.get(
+                    f"{supabase_url}/rest/v1/thoughts",
+                    params={
+                        "select": "*",
+                        "or": f"content.ilike.*{req.query}*,type.ilike.*{req.query}*,tags.cs.{{{req.query}}}",
+                        "limit": req.limit
+                    },
+                    headers=headers
+                )
+
+                if resp.status_code == 200:
+                    thoughts = resp.json()
+                    return {
+                        "success": True,
+                        "query": req.query,
+                        "results": thoughts,
+                        "count": len(thoughts)
+                    }
+                else:
+                    raise HTTPException(status_code=500, detail=f"Supabase error: {resp.status_code}")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error searching knowledge: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    class StoreKnowledgeRequest(BaseModel):
+        content: str
+        type: str = "fact"
+        tags: List[str] = []
+        source: str = "api"
+
+    @app.post("/api/knowledge/store")
+    async def store_knowledge(req: StoreKnowledgeRequest):
+        """Store a thought in the Knowledge Plane."""
+        try:
+            import httpx
+            import hashlib
+
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+
+            if not supabase_url or not supabase_key:
+                raise HTTPException(status_code=500, detail="Supabase not configured")
+
+            # Generate content hash
+            content_hash = hashlib.sha256(req.content.encode()).hexdigest()[:16]
+
+            headers = {
+                'apikey': supabase_key,
+                'Authorization': f'Bearer {supabase_key}',
+                'Content-Type': 'application/json'
+            }
+
+            async with httpx.AsyncClient() as client:
+                thought_data = {
+                    "content": req.content,
+                    "type": req.type,
+                    "tags": req.tags,
+                    "source": req.source,
+                    "content_hash": content_hash
+                }
+
+                resp = await client.post(
+                    f"{supabase_url}/rest/v1/thoughts",
+                    json=thought_data,
+                    headers=headers
+                )
+
+                if resp.status_code in [200, 201]:
+                    result = resp.json()
+                    return {
+                        "success": True,
+                        "thought": result,
+                        "message": "Knowledge stored successfully"
+                    }
+                else:
+                    raise HTTPException(status_code=500, detail=f"Supabase error: {resp.status_code}")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error storing knowledge: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ============================================================================
+    # Cognitive Loop Endpoints
+    # ============================================================================
+
+    class CognitiveExecuteRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    @app.post("/api/cognitive/execute")
+    async def execute_cognitive_loop(req: CognitiveExecuteRequest):
+        """Execute the full cognitive reasoning loop."""
+        try:
+            from torq_console.agents.cognitive_loop.cognitive_loop import CognitiveLoop, SessionContext
+
+            cognitive_loop = CognitiveLoop()
+            context = SessionContext(session_id=req.session_id) if req.session_id else None
+
+            result = await cognitive_loop.execute(req.query, context)
+
+            return {
+                "success": True,
+                "session_id": result.session_id,
+                "response": result.response,
+                "confidence": result.confidence,
+                "phases": {
+                    "reason": {"duration_ms": result.phase_durations.get("reason", 0)},
+                    "retrieve": {"duration_ms": result.phase_durations.get("retrieve", 0)},
+                    "plan": {"duration_ms": result.phase_durations.get("plan", 0)},
+                    "act": {"duration_ms": result.phase_durations.get("act", 0)},
+                    "evaluate": {"duration_ms": result.phase_durations.get("evaluate", 0)},
+                    "learn": {"duration_ms": result.phase_durations.get("learn", 0)},
+                },
+                "total_duration_ms": result.total_duration_ms,
+                "knowledge_used": result.knowledge_used
+            }
+        except Exception as e:
+            logger.error(f"Error executing cognitive loop: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/cognitive/status")
+    async def cognitive_status():
+        """Get cognitive loop system status."""
+        try:
+            from torq_console.agents.cognitive_loop.config import CognitiveLoopConfig
+
+            config = CognitiveLoopConfig()
+
+            return {
+                "success": True,
+                "status": "operational",
+                "config": {
+                    "reasoning_model": config.reasoning_model,
+                    "retrieval_enabled": config.enable_retrieval,
+                    "planning_enabled": config.enable_planning,
+                    "learning_enabled": config.enable_learning,
+                    "max_iterations": config.max_iterations
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error getting cognitive status: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ============================================================================
+    # System Status Endpoint
+    # ============================================================================
+
+    @app.get("/api/system/status")
+    async def system_status():
+        """Get comprehensive system status."""
+        try:
+            from torq_console.agents.core.registry import get_agent_registry
+
+            registry = get_agent_registry()
+            stats = registry.get_registry_stats()
+
+            return {
+                "success": True,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "services": {
+                    "railway": {"status": "healthy", "version": get_app_version_with_source()[0]},
+                    "supabase": {
+                        "configured": bool(os.getenv("SUPABASE_URL")),
+                        "project": os.getenv("SUPABASE_URL", "").split("//")[1].split(".")[0] if os.getenv("SUPABASE_URL") else None
+                    },
+                    "anthropic": {
+                        "configured": bool(os.getenv("ANTHROPIC_API_KEY")),
+                        "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+                    }
+                },
+                "agents": {
+                    "total": stats["total_agents"],
+                    "active": stats.get("active_instances", 0),
+                    "capabilities": stats.get("capability_counts", {})
+                },
+                "endpoints": {
+                    "api_chat": "enabled",
+                    "api_agents_list": "enabled",
+                    "api_agents_route": "enabled",
+                    "api_agents_orchestrate": "enabled",
+                    "api_knowledge_search": "enabled",
+                    "api_knowledge_store": "enabled",
+                    "api_cognitive_execute": "enabled",
+                    "api_telemetry": "enabled",
+                    "api_learning": "enabled"
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error getting system status: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
     logger.info("Railway app created successfully")
-    logger.info("Endpoints: /api/chat, /api/telemetry, /api/learning, /api/debug/deploy, /health")
+    logger.info("Endpoints: /api/chat, /api/agents/list, /api/agents/route, /api/agents/orchestrate, /api/knowledge/search, /api/knowledge/store, /api/cognitive/execute, /api/telemetry, /api/learning, /api/system/status, /api/debug/deploy, /health")
 
     return app
 

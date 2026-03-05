@@ -55,7 +55,7 @@ os.environ['TORQ_DISABLE_GPU'] = 'true'
 
 # Version -- must be defined before FastAPI() call at module level
 
-APP_VERSION = os.getenv('APP_VERSION', '1.0.10-standalone')
+APP_VERSION = os.getenv('APP_VERSION', '1.1.0-knowledge-plane')
 
 
 from fastapi import FastAPI, HTTPException, Request
@@ -72,7 +72,7 @@ logger.info("Creating Railway standalone app...")
 
 app = FastAPI(
     title="TORQ Console Railway Backend",
-    description="Agent backend with mandatory learning hook and drift monitoring",
+    description="Agent backend with mandatory learning hook, drift monitoring, and Knowledge Plane",
     version=APP_VERSION
 )
 
@@ -84,6 +84,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================================================
+# Knowledge Plane Routes
+# ============================================================================
+
+from torq_console.knowledge_plane.railway_integration import knowledge_router
+app.include_router(knowledge_router)
 
 # ============================================================================
 # Security Middleware (inline to avoid import)
@@ -1671,6 +1678,11 @@ async def root():
             "/api/monitor/compute",
             "/api/monitor/baseline",
             "/api/monitor/metrics/daily",
+            "/api/knowledge/store",
+            "/api/knowledge/search",
+            "/api/knowledge/recent",
+            "/api/knowledge/stats",
+            "/api/knowledge/health"
         ]
     }
 

@@ -14,7 +14,7 @@ from enum import Enum
 
 from .base_agent import BaseAgent, AgentCapability, AgentContext, AgentResult
 from .interfaces import IOrchestrationAgent
-from ..registry import get_agent_registry
+from .registry import get_agent_registry, register_agent
 
 
 class OrchestrationMode(str, Enum):

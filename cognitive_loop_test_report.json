@@ -1,0 +1,395 @@
+{
+  "timestamp": "2026-03-04T20:35:22.421719",
+  "summary": {
+    "total_tests": 15,
+    "success_count": 15,
+    "failure_count": 0,
+    "success_rate": 100.0,
+    "total_retries": 0,
+    "avg_confidence": 0.9940190476190476,
+    "latency": {
+      "avg": 0.9251235961914063,
+      "min": 0.16248035430908203,
+      "max": 4.305943012237549,
+      "target_met": true
+    },
+    "phase_times": {
+      "reason": {
+        "avg": 0.0001564343770345052,
+        "min": 4.935264587402344e-05,
+        "max": 0.0007836818695068359,
+        "count": 15
+      },
+      "retrieve": {
+        "avg": 2.495447794596354e-06,
+        "min": 1.6689300537109375e-06,
+        "max": 5.4836273193359375e-06,
+        "count": 15
+      },
+      "plan": {
+        "avg": 5.963643391927083e-05,
+        "min": 1.5020370483398438e-05,
+        "max": 0.00020074844360351562,
+        "count": 15
+      },
+      "act": {
+        "avg": 0.01712058385213216,
+        "min": 5.698204040527344e-05,
+        "max": 0.253551721572876,
+        "count": 15
+      },
+      "evaluate": {
+        "avg": 7.521311442057291e-05,
+        "min": 2.5033950805664062e-05,
+        "max": 0.0003058910369873047,
+        "count": 15
+      },
+      "learn": {
+        "avg": 0.6723255157470703,
+        "min": 0.1616194248199463,
+        "max": 3.0444610118865967,
+        "count": 15
+      }
+    },
+    "learning_events_stored": 15,
+    "errors": []
+  },
+  "test_queries": [
+    {
+      "query": "Analyze the current TORQ architecture",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 4.305943012237549,
+      "confidence": 0.9959999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Search for financial insights about AI companies",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.22226262092590332,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Generate a summary of recent learning events",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.4016566276550293,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "What is async programming in Python?",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.16248035430908203,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Create a function to calculate fibonacci numbers",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.8565642833709717,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Compare and contrast REST vs GraphQL APIs",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.7947351932525635,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Research the latest trends in AI",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.7149560451507568,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Execute non_existent_tool with invalid parameters",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.7234992980957031,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Search for something that will timeout immediately",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.6647288799285889,
+      "confidence": 0.9942857142857142,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.24339747428894043,
+      "confidence": 0.9199999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "What is Python?",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.9573260307312011,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "What is JavaScript?",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.9573260307312011,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "What is Go?",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.9573260307312011,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "Explain async/await",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.9573260307312011,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    },
+    {
+      "query": "What is a database?",
+      "success": true,
+      "status": "CognitiveLoopStatus.COMPLETED",
+      "latency": 0.9573260307312011,
+      "confidence": 0.9999999999999999,
+      "retry_count": 0,
+      "error": null
+    }
+  ],
+  "learning_events": [
+    {
+      "id": "7f2d4366-7b3d-4120-a8fc-de278a865998",
+      "agent_id": "test_cognitive_agent",
+      "query": "Analyze the current TORQ architecture",
+      "intent": "analysis",
+      "success": true,
+      "success_score": 0.9959999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "data_analysis"
+      ],
+      "learned_insights": [
+        "Effective tools: data_analysis",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:11.213135",
+      "metadata": {}
+    },
+    {
+      "id": "a3464b02-4d64-4761-807e-6b32fe4ce56f",
+      "agent_id": "test_cognitive_agent",
+      "query": "Search for financial insights about AI companies",
+      "intent": "research",
+      "success": true,
+      "success_score": 0.9999999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "web_search"
+      ],
+      "learned_insights": [
+        "Effective tools: web_search",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:12.109893",
+      "metadata": {}
+    },
+    {
+      "id": "bf9d1810-0b5b-4711-8356-96e025f1ec7b",
+      "agent_id": "test_cognitive_agent",
+      "query": "Generate a summary of recent learning events",
+      "intent": "generation",
+      "success": true,
+      "success_score": 0.9999999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "document_generation"
+      ],
+      "learned_insights": [
+        "High confidence in generation intent detection",
+        "Effective tools: document_generation",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:12.443995",
+      "metadata": {}
+    },
+    {
+      "id": "6857fac5-cd27-47d4-9d62-c683a10f10b8",
+      "agent_id": "test_cognitive_agent",
+      "query": "What is async programming in Python?",
+      "intent": "query",
+      "success": true,
+      "success_score": 0.9999999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "knowledge_query"
+      ],
+      "learned_insights": [
+        "High confidence in query intent detection",
+        "Effective tools: knowledge_query",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:12.949342",
+      "metadata": {}
+    },
+    {
+      "id": "39ea8df5-2c32-4c24-bfb5-2be2d3c7b587",
+      "agent_id": "test_cognitive_agent",
+      "query": "Create a function to calculate fibonacci numbers",
+      "intent": "task",
+      "success": true,
+      "success_score": 0.9999999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "data_analysis",
+        "document_generation",
+        "validation",
+        "synthesis"
+      ],
+      "learned_insights": [
+        "Effective tools: document_generation, data_analysis, validation, synthesis",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:13.219143",
+      "metadata": {}
+    },
+    {
+      "id": "41edcc9a-7c5c-4f5a-8d4c-54a595e7e749",
+      "agent_id": "test_cognitive_agent",
+      "query": "Compare and contrast REST vs GraphQL APIs",
+      "intent": "analysis",
+      "success": true,
+      "success_score": 0.9999999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "data_analysis",
+        "api_call",
+        "synthesis"
+      ],
+      "learned_insights": [
+        "Effective tools: api_call, data_analysis, synthesis",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:14.442301",
+      "metadata": {}
+    },
+    {
+      "id": "ae1bbdcf-a642-4da1-a3f0-6c3c9a2a6d12",
+      "agent_id": "test_cognitive_agent",
+      "query": "Research the latest trends in AI",
+      "intent": "research",
+      "success": true,
+      "success_score": 0.9999999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "code_execution",
+        "synthesis",
+        "web_search"
+      ],
+      "learned_insights": [
+        "High confidence in research intent detection",
+        "Effective tools: web_search, code_execution, synthesis",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:15.095583",
+      "metadata": {}
+    },
+    {
+      "id": "7c7cfbd2-f5e1-402a-9d31-f62c7dfe8b7a",
+      "agent_id": "test_cognitive_agent",
+      "query": "Execute non_existent_tool with invalid parameters",
+      "intent": "task",
+      "success": true,
+      "success_score": 0.9999999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "code_execution",
+        "validation",
+        "synthesis"
+      ],
+      "learned_insights": [
+        "Effective tools: code_execution, validation, synthesis",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:15.919425",
+      "metadata": {}
+    },
+    {
+      "id": "f3a83cb5-9d44-40b0-92e3-ce4c73254fa3",
+      "agent_id": "test_cognitive_agent",
+      "query": "Search for something that will timeout immediately",
+      "intent": "research",
+      "success": true,
+      "success_score": 0.9942857142857142,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [
+        "web_search"
+      ],
+      "learned_insights": [
+        "Effective tools: web_search",
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:16.643431",
+      "metadata": {}
+    },
+    {
+      "id": "6906123f-dd1a-44a9-9965-f824a6d195c3",
+      "agent_id": "test_cognitive_agent",
+      "query": "",
+      "intent": "unknown",
+      "success": true,
+      "success_score": 0.9199999999999999,
+      "execution_time_seconds": 0.0,
+      "retry_count": 0,
+      "tools_used": [],
+      "learned_insights": [
+        "High-quality result achieved"
+      ],
+      "timestamp": "2026-03-05T02:35:17.307612",
+      "metadata": {}
+    }
+  ]
+}

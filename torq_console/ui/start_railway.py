@@ -7,7 +7,7 @@ def main():
         "torq_console.ui.railway_app:app",
         host="0.0.0.0",
         port=port,
-        log_level=os.environ.get("LOG_LEVEL", "info"),
+        log_level=os.environ.get("LOG_LEVEL", "info").lower(),
     )
 
 if __name__ == "__main__":
