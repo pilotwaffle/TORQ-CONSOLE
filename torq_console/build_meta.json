@@ -1,8 +1,8 @@
 {
-  "git_sha": "3fc9100fcda9a7772c6f0a614504e43f8716ee27",
-  "git_short_sha": "3fc9100fcda9",
+  "git_sha": "243615c85f0470c323bb1277e3df01feb7a325cf",
+  "git_short_sha": "243615c85f04",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T06:56:47.576761+00:00",
+  "built_at": "2026-03-05T07:04:34.871307+00:00",
   "branch": "main",
-  "commit_message": "feat: add multi-agent orchestration API endpoints"
+  "commit_message": "feat: load agents from backend registry in frontend"
 }
