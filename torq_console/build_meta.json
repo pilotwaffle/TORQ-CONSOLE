@@ -1,8 +1,8 @@
 {
-  "git_sha": "fc33ce9c400575ccef5ef7fc6f68d4973c35431b",
-  "git_short_sha": "fc33ce9c4005",
+  "git_sha": "b18ea8b77101987803d10149308b79ed780f827f",
+  "git_short_sha": "b18ea8b77101",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:17:21.160025+00:00",
+  "built_at": "2026-03-05T07:18:53.272619+00:00",
   "branch": "main",
-  "commit_message": "fix: make /api/chat publicly accessible for Vercel proxy"
+  "commit_message": "fix: adjust Vercel rewrites order - API first, then SPA fallback"
 }
