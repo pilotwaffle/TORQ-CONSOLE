@@ -1,8 +1,8 @@
 {
-  "git_sha": "caedd894263c16b85bca3bb6e4e9406b24c1b845",
-  "git_short_sha": "caedd894263c",
+  "git_sha": "b7af3bf779fea90baad2de8ef3190737f2a6d7f1",
+  "git_short_sha": "b7af3bf779fe",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T06:18:07.529720+00:00",
+  "built_at": "2026-03-05T06:20:08.449014+00:00",
   "branch": "main",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "feat: add Vercel API proxy to Railway with proxy secret auth"
 }
