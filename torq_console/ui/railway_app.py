@@ -16,6 +16,7 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
+from starlette.requests import Request
 
 # ============================================================================
 # Logging - INFO to stdout, WARNING+ to stderr
