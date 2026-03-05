@@ -1,8 +1,8 @@
 {
-  "git_sha": "48da451db18fca27f9e3ede1e6caf91e4a34e418",
-  "git_short_sha": "48da451db18f",
+  "git_sha": "957fd894a8d82bf217b7352a46beb880f128aa3f",
+  "git_short_sha": "957fd894a8d8",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:38:15.759489+00:00",
+  "built_at": "2026-03-05T07:42:50.825725+00:00",
   "branch": "main",
-  "commit_message": "fix: update Python handler to use Vercel event/context format"
+  "commit_message": "fix: update Vercel API to proxy /api/chat routes to Railway"
 }
