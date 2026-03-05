@@ -1,8 +1,8 @@
 {
-  "git_sha": "1b52191a3cc25dec64b35687d016c55505169b2a",
-  "git_short_sha": "1b52191a3cc2",
+  "git_sha": "83f81f9874a0895ec00d67e083ede010a9ecbdab",
+  "git_short_sha": "83f81f9874a0",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T05:36:03.532969+00:00",
+  "built_at": "2026-03-05T05:42:29.813136+00:00",
   "branch": "main",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "fix: use railway_app.py in Dockerfile with proper PORT env var expansion"
 }
