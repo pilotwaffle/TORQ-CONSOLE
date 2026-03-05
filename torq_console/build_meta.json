@@ -1,8 +1,8 @@
 {
-  "git_sha": "b658b05da62ecaaf9662a59ffa7d8a6ff50cb399",
-  "git_short_sha": "b658b05da62e",
+  "git_sha": "48da451db18fca27f9e3ede1e6caf91e4a34e418",
+  "git_short_sha": "48da451db18f",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:36:03.759950+00:00",
+  "built_at": "2026-03-05T07:38:15.759489+00:00",
   "branch": "main",
-  "commit_message": "fix: remove unsupported TypeScript serverless function"
+  "commit_message": "fix: update Python handler to use Vercel event/context format"
 }
