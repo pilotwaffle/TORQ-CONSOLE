@@ -4,13 +4,15 @@
   "devCommand": "npx vite",
   "installCommand": "npm install",
   "framework": null,
+  "trailingSlash": false,
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/:path*",
       "dest": "https://web-production-74ed0.up.railway.app/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/:path*(.*)",
       "dest": "/index.html"
     }
   ]
