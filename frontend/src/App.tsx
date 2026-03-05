@@ -138,15 +138,15 @@ function App() {
       const initialSession: ChatSession = {
         id: `session_${Date.now()}`,
         title: 'Chat with Prince Flowers',
-        agentId: 'prince_flowers',
+        agentId: 'torq_prince_flowers',  // Use backend ID
         messages: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
       addSession(initialSession);
       setActiveSession(initialSession.id);
-      // Set active agent to Prince Flowers
-      setActiveAgent('prince_flowers');
+      // Set active agent to Prince Flowers (backend ID)
+      setActiveAgent('torq_prince_flowers');
     }
 
     setWorkspace({

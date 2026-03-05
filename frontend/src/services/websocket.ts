@@ -206,26 +206,42 @@ class WebSocketManager {
 
   private async sendRestMessage(sessionId: string, content: string, agentId: string): Promise<void> {
     try {
-      const response = await fetch('/api/chat', {
+      // Use Railway direct URL for now (Vercel proxy not working)
+      const RAILWAY_URL = 'https://web-production-74ed0.up.railway.app/api/chat';
+
+      const response = await fetch(RAILWAY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: content,
-          mode: 'single_agent', // Default mode
-          model: 'claude-3-5-sonnet-20240620',
+          session_id: sessionId,
+          agent_id: agentId || null, // null means auto-route
+          mode: 'auto', // System chooses best approach
         }),
       });
 
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Chat error ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
 
       const responseMessage: Message = {
         id: `msg_${Date.now()}`,
         role: 'assistant',
-        content: data.response,
+        content: data.response || data.error || 'No response',
         timestamp: Date.now(),
-        agentId: data.agent_id || 'prince_flowers',
+        agentId: data.agent_id || agentId || 'prince_flowers',
       };
+
+      // Log routing info for debugging
+      console.log('[WebSocket] Chat response:', {
+        routedTo: data.agent_id,
+        mode: data.mode_used,
+        agentsInvolved: data.agents_involved,
+        duration: data.duration_ms,
+      });
 
       // Use onAgentResponse to trigger upsert logic in store
       this.eventHandlers.onAgentResponse?.({ sessionId, message: responseMessage });

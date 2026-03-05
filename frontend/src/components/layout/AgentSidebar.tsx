@@ -18,6 +18,7 @@ const AgentCard: React.FC<{ agent: Agent; isActive: boolean }> = ({ agent, isAct
   } as const;
 
   const agentIcons: Record<string, string> = {
+    prince_flowers: '👑',
     orchestrator: '🌸',
     code: '💻',
     debug: '🐛',
@@ -25,13 +26,30 @@ const AgentCard: React.FC<{ agent: Agent; isActive: boolean }> = ({ agent, isAct
     test: '🧪',
     architecture: '🏗️',
     research: '🔍',
-    prince_flowers: '👑',
     orchestration: '🎯',
     core: '🤖',
     enhanced: '✨',
     conversational: '💬',
     workflow: '⚙️',
   };
+
+  // Speed indicators
+  const speedColors: Record<string, string> = {
+    fast: 'text-green-500',
+    balanced: 'text-blue-500',
+    deep: 'text-purple-500',
+  };
+
+  const speedIcons: Record<string, string> = {
+    fast: '⚡',
+    balanced: '⚖️',
+    deep: '🔬',
+  };
+
+  // Get extended metadata if available
+  const metadata = (agent as any).metadata || {};
+  const speed = metadata.speed || 'balanced';
+  const bestFor = metadata.best_for || [];
 
   return (
     <Card
@@ -47,10 +65,30 @@ const AgentCard: React.FC<{ agent: Agent; isActive: boolean }> = ({ agent, isAct
             <Badge variant={statusColors[agent.status as keyof typeof statusColors] || 'secondary'} className="text-xs">
               {agent.status}
             </Badge>
+            {speed && (
+              <span className={`text-xs ${speedColors[speed]}`} title={`Speed: ${speed}`}>
+                {speedIcons[speed] || '⚖️'}
+              </span>
+            )}
           </div>
-          <p className="text-small text-text-muted truncate">
-            {agent.capabilities.slice(0, 2).join(', ')}
-          </p>
+
+          {/* Best For tags */}
+          {bestFor.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {bestFor.slice(0, 2).map((useCase: string, idx: number) => (
+                <span key={idx} className="text-xs text-text-muted bg-bg-tertiary px-1.5 py-0.5 rounded">
+                  {useCase}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Capabilities as fallback if no best_for */}
+          {bestFor.length === 0 && (
+            <p className="text-small text-text-muted truncate">
+              {agent.capabilities.slice(0, 2).join(', ')}
+            </p>
+          )}
         </div>
       </div>
     </Card>
