@@ -1,8 +1,8 @@
 {
-  "git_sha": "1ef28b64c6cf11d6baf16672d55037ecbeb0a587",
-  "git_short_sha": "1ef28b64c6cf",
+  "git_sha": "b21aec99d7a66a8e26d846d4565f7d1a028f8c33",
+  "git_short_sha": "b21aec99d7a6",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T04:34:57.444069+00:00",
+  "built_at": "2026-03-05T04:42:43.909885+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "fix: correct startCommand path in railway.json"
 }
