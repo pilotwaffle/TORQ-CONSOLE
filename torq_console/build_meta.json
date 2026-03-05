@@ -1,8 +1,8 @@
 {
-  "git_sha": "988c0193cbed5e0d514e46cd616c24634c103c52",
-  "git_short_sha": "988c0193cbed",
+  "git_sha": "ceb7b5e0af22bcae4066bbec957f487a4b8f537b",
+  "git_short_sha": "ceb7b5e0af22",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:28:32.636016+00:00",
+  "built_at": "2026-03-05T07:29:31.981973+00:00",
   "branch": "main",
-  "commit_message": "feat: add Vercel serverless proxy for Railway API"
+  "commit_message": "chore: add @vercel/node dependency for serverless function"
 }
