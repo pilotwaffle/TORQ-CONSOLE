@@ -8,6 +8,7 @@ import { useAgentStore } from '@/stores/agentStore';
 import { useCoordinationStore } from '@/stores/coordinationStore';
 import { useKeyboardShortcuts, SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
 import type { Agent, ChatSession } from '@/lib/types';
+import agentRegistryService from '@/services/agentRegistryService';
 
 function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -45,80 +46,88 @@ function App() {
   ]);
 
   useEffect(() => {
+    // Load agents from backend registry
     // The agentStore already initializes WebSocket on creation (see agentStore.ts line 220-224).
-    // We ensure Prince Flowers and fallback agents are always available.
 
     const princeFlowers: Agent = {
-      id: 'prince_flowers',
+      id: 'torq_prince_flowers',
       name: 'Prince Flowers',
       status: 'idle',
-      type: 'orchestrator',
+      type: 'prince_flowers',
       capabilities: ['AI Search', 'Web Research', 'Agent Orchestration', 'Code Generation'],
     };
 
+    // Fallback agents in case backend is unavailable
     const fallbackAgents: Agent[] = [
       princeFlowers,
       {
-        id: 'agent_code',
-        name: 'Code Generator',
+        id: 'conversational_agent',
+        name: 'Conversational Agent',
+        status: 'idle',
+        type: 'orchestrator',
+        capabilities: ['Conversation', 'Memory', 'Learning'],
+      },
+      {
+        id: 'workflow_agent',
+        name: 'Workflow Agent',
         status: 'idle',
         type: 'code',
-        capabilities: ['Python', 'TypeScript', 'React'],
+        capabilities: ['Code Generation', 'Debugging', 'Testing', 'Architecture'],
       },
       {
-        id: 'agent_debug',
-        name: 'Debug Assistant',
+        id: 'research_agent',
+        name: 'Research Agent',
         status: 'idle',
-        type: 'debug',
-        capabilities: ['Error Analysis', 'Root Cause', 'Fixes'],
+        type: 'research',
+        capabilities: ['Research', 'Analysis', 'Web Search'],
       },
       {
-        id: 'agent_docs',
-        name: 'Documentation',
+        id: 'orchestration_agent',
+        name: 'Orchestration Agent',
         status: 'idle',
-        type: 'docs',
-        capabilities: ['API Docs', 'Guides', 'References'],
-      },
-      {
-        id: 'agent_test',
-        name: 'Test Engineer',
-        status: 'idle',
-        type: 'test',
-        capabilities: ['Unit Tests', 'Integration', 'E2E'],
-      },
-      {
-        id: 'agent_arch',
-        name: 'Architecture',
-        status: 'idle',
-        type: 'architecture',
-        capabilities: ['System Design', 'Patterns', 'Trade-offs'],
+        type: 'orchestration',
+        capabilities: ['Orchestration', 'Coordination'],
       },
     ];
 
-    // After 3 seconds, merge backend agents with fallback agents
-    // This ensures Prince Flowers is always present, even if backend doesn't return him
-    const fallbackTimer = setTimeout(() => {
-      const { agents: backendAgents } = useAgentStore.getState();
+    // Try to load agents from backend
+    const loadBackendAgents = async () => {
+      try {
+        const backendAgents = await agentRegistryService.loadAgents();
 
-      // Create a map of existing agents to avoid duplicates
-      const existingAgentMap = new Map(backendAgents.map((a) => [a.id, a]));
+        if (backendAgents.length > 0) {
+          console.log(`Loaded ${backendAgents.length} agents from backend registry`);
 
-      // Add fallback agents for any missing ones (with Prince Flowers taking precedence)
-      fallbackAgents.forEach((fallbackAgent) => {
-        if (!existingAgentMap.has(fallbackAgent.id)) {
-          existingAgentMap.set(fallbackAgent.id, fallbackAgent);
+          // Ensure Prince Flowers is present
+          const hasPrinceFlowers = backendAgents.some((a) =>
+            a.id === 'torq_prince_flowers' || a.id === 'prince_flowers'
+          );
+
+          if (!hasPrinceFlowers) {
+            backendAgents.unshift(princeFlowers);
+          }
+
+          setAgents(backendAgents);
+        } else {
+          // Use fallback agents
+          console.log('Backend returned no agents, using fallback');
+          setAgents(fallbackAgents);
         }
-      });
+      } catch (error) {
+        console.error('Failed to load backend agents, using fallback:', error);
+        setAgents(fallbackAgents);
+      }
+    };
 
-      // Convert back to array, ensuring Prince Flowers is first
-      const mergedAgents = Array.from(existingAgentMap.values());
-      const princeFlowersAgent = mergedAgents.find((a) => a.id === 'prince_flowers');
-      const otherAgents = mergedAgents.filter((a) => a.id !== 'prince_flowers');
+    // Load immediately and also after 3 seconds as fallback
+    loadBackendAgents();
 
-      if (princeFlowersAgent) {
-        setAgents([princeFlowersAgent, ...otherAgents]);
-      } else {
-        setAgents(mergedAgents);
+    // After 3 seconds, if we still have no agents, ensure fallback is loaded
+    const fallbackTimer = setTimeout(() => {
+      const { agents } = useAgentStore.getState();
+      if (agents.length === 0) {
+        console.log('No agents loaded after 3s, using fallback');
+        setAgents(fallbackAgents);
       }
     }, 3000);
 

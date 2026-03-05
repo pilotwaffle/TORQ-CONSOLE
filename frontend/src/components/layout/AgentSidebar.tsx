@@ -25,6 +25,12 @@ const AgentCard: React.FC<{ agent: Agent; isActive: boolean }> = ({ agent, isAct
     test: '🧪',
     architecture: '🏗️',
     research: '🔍',
+    prince_flowers: '👑',
+    orchestration: '🎯',
+    core: '🤖',
+    enhanced: '✨',
+    conversational: '💬',
+    workflow: '⚙️',
   };
 
   return (
