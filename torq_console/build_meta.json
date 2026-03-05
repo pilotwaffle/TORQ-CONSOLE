@@ -1,8 +1,8 @@
 {
-  "git_sha": "372b0914f99e2233a8cc9d9c87c56629d16996f5",
-  "git_short_sha": "372b0914f99e",
+  "git_sha": "4de08935350bd978c3e784783d51a3e91c47e7ee",
+  "git_short_sha": "4de08935350b",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T17:18:40.788368+00:00",
+  "built_at": "2026-03-05T17:42:38.496926+00:00",
   "branch": "main",
-  "commit_message": "fix: revert railway orchestration to working state"
+  "commit_message": "feat: Railway returns canonical response format with legacy compatibility"
 }
