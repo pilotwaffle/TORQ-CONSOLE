@@ -39,7 +39,8 @@ RUN date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/build_timestamp
 COPY . .
 
 # Add /app to Python path so imports work without package install
-ENV PYTHONPATH=/app:$PYTHONPATH
+# Note: Using default value to avoid undefined variable during build
+ENV PYTHONPATH=/app
 
 # Write build_meta.json directly (without importing torq_console)
 # This is the file fallback for get_git_sha() / get_build_time() / get_build_branch()
@@ -65,6 +66,6 @@ with open(path, "w", encoding="utf-8") as f:
     print("[build] wrote", path, "->", meta)
 PY
 
-# Start command - Railway injects PORT via environment
-# Use Python entrypoint that reads PORT from environment
-CMD ["python", "-m", "torq_console.ui.start_railway"]
+# Start command - use uvicorn with Railway's PORT environment variable
+# Railway injects PORT as env var, shell expands $PORT before uvicorn sees it
+CMD ["sh", "-c", "uvicorn railway_app:app --host 0.0.0.0 --port ${PORT} --log-level warning"]
