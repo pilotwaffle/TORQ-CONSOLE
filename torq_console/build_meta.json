@@ -1,8 +1,8 @@
 {
-  "git_sha": "58af3879dfaba028d77a4787e393e77ecd8dde26",
-  "git_short_sha": "58af3879dfab",
+  "git_sha": "b07ce3ff1702ec1cb25b4bcd066e1af549b56618",
+  "git_short_sha": "b07ce3ff1702",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T05:19:52.678035+00:00",
-  "branch": "control-plane-v1-clean",
-  "commit_message": "docs: update branch comparison with Railway fix info"
+  "built_at": "2026-03-05T05:25:12.760790+00:00",
+  "branch": "main",
+  "commit_message": "chore: update build metadata [skip ci]"
 }
