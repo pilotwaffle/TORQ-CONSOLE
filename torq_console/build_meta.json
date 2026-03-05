@@ -1,8 +1,8 @@
 {
-  "git_sha": "b21aec99d7a66a8e26d846d4565f7d1a028f8c33",
-  "git_short_sha": "b21aec99d7a6",
+  "git_sha": "76b11c67ca53de8a2a0d5268e66cc0561b4de4af",
+  "git_short_sha": "76b11c67ca53",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T04:42:43.909885+00:00",
+  "built_at": "2026-03-05T05:19:39.099857+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "fix: correct startCommand path in railway.json"
+  "commit_message": "fix: use working railway_app:app entry point with Knowledge Plane endpoints"
 }
