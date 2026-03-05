@@ -1,8 +1,8 @@
 {
-  "git_sha": "b18ea8b77101987803d10149308b79ed780f827f",
-  "git_short_sha": "b18ea8b77101",
+  "git_sha": "9f9508d0bd9b18416a2e3d78bed78de2d5f6a2c6",
+  "git_short_sha": "9f9508d0bd9b",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:18:53.272619+00:00",
+  "built_at": "2026-03-05T07:23:01.447754+00:00",
   "branch": "main",
-  "commit_message": "fix: adjust Vercel rewrites order - API first, then SPA fallback"
+  "commit_message": "feat: frontend calls Railway directly + enhanced agent display"
 }
