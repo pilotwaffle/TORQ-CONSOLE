@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Union
 from .base_agent import BaseAgent, AgentCapability, AgentContext, AgentResult
 from .interfaces import IResearchAgent, SearchScope, ResearchQuery
 from .capabilities import ResearchCapability, CapabilityFactory
-from ..registry import register_agent
+from .registry import register_agent
 
 
 class ResearchAgent(BaseAgent, IResearchAgent):

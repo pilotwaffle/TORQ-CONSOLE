@@ -1,0 +1,106 @@
+{
+  "version": "1.1.0-knowledge-plane",
+  "service_url": "web-production-74ed0.up.railway.app",
+  "deployment_date": "2026-03-04T18:43:00Z",
+  "status": "ready",
+  "api": {
+    "base_path": "/api/knowledge",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "description": "Knowledge Plane health check"
+      },
+      {
+        "method": "POST",
+        "path": "/store",
+        "description": "Store knowledge entry",
+        "request_body": {
+          "content": "string (required)",
+          "title": "string (optional)",
+          "category": "string (optional)",
+          "tags": "array (optional)",
+          "source": "string (optional)",
+          "metadata": "object (optional)"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/search",
+        "description": "Search knowledge base",
+        "request_body": {
+          "query": "string (required)",
+          "category": "string (optional)",
+          "tags": "array (optional)",
+          "limit": "number (1-100, default: 10)",
+          "threshold": "number (0-1, default: 0.7)"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/recent",
+        "description": "Get recent knowledge entries",
+        "parameters": {
+          "limit": "number (1-100, default: 20)"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/stats",
+        "description": "Get knowledge base statistics"
+      }
+    ]
+  },
+  "environment_variables": {
+    "required": [
+      "OPENAI_API_KEY",
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "TORQ_BRAIN_KEY"
+    ],
+    "optional": [
+      "REDIS_URL"
+    ],
+    "auto_set": [
+      "TORQ_CONSOLE_PRODUCTION=true",
+      "TORQ_DISABLE_LOCAL_LLM=true",
+      "TORQ_DISABLE_GPU=true"
+    ]
+  },
+  "files": {
+    "created": [
+      "torq_console/knowledge_plane/__init__.py",
+      "torq_console/knowledge_plane/api.py",
+      "torq_console/knowledge_plane/railway_integration.py",
+      "test_knowledge_plane.py",
+      "supabase_knowledge_plane_setup.sql",
+      "KNOWLEDGE_PLANE_RAILWAY_DEPLOYMENT.md",
+      "KNOWLEDGE_PLANE_DEPLOYMENT_STATUS.md",
+      "KNOWLEDGE_PLANE_FINAL_DEPLOYMENT_REPORT.md",
+      "deploy_knowledge_plane_railway.sh",
+      "add_knowledge_routes.py"
+    ],
+    "modified": [
+      "railway_app.py",
+      "railway.json",
+      ".nixpacks.toml"
+    ]
+  },
+  "database": {
+    "type": "Supabase (PostgreSQL)",
+    "table": "torq_knowledge",
+    "setup_script": "supabase_knowledge_plane_setup.sql",
+    "features": [
+      "Vector embeddings (pgvector)",
+      "Full-text search",
+      "Tag-based filtering",
+      "Category organization"
+    ]
+  },
+  "deployment": {
+    "platform": "Railway",
+    "start_command": "uvicorn railway_app:app --host 0.0.0.0 --port $PORT",
+    "health_check": "/health",
+    "replicas": 1
+  }
+}

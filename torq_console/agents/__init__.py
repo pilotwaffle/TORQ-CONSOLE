@@ -228,4 +228,33 @@ def get_marvin_status() -> dict:
     return status
 
 
-__version__ = '0.4.0'  # Updated for Policy-Driven Routing System
+__version__ = '0.5.0'  # Updated for Cognitive Loop Telemetry
+
+
+# ============================================================================
+# Cognitive Loop Telemetry (NEW!)
+# ============================================================================
+
+# Always export telemetry - it doesn't depend on Marvin
+try:
+    from .telemetry import (
+        CognitiveLoopTelemetry,
+        CognitiveLoopContext,
+        StepResult,
+        CognitiveSpanKind,
+        AttributeKey,
+        get_cognitive_telemetry,
+        run_observed_loop
+    )
+
+    __all__.extend([
+        'CognitiveLoopTelemetry',
+        'CognitiveLoopContext',
+        'StepResult',
+        'CognitiveSpanKind',
+        'AttributeKey',
+        'get_cognitive_telemetry',
+        'run_observed_loop',
+    ])
+except ImportError:
+    pass

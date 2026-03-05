@@ -16,7 +16,7 @@ from .capabilities import (
     DocumentationCapability, TestingCapability, ArchitectureCapability,
     CapabilityFactory
 )
-from ..registry import register_agent
+from .registry import register_agent
 
 
 class WorkflowAgent(BaseAgent, IWorkflowAgent):
