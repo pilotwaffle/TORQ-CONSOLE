@@ -100,16 +100,34 @@ class UnifiedChatRequest(BaseModel):
 
 
 class UnifiedChatResponse(BaseModel):
-    """Unified chat response."""
-    response: str
+    """
+    Canonical unified chat response v1.
+
+    Field naming is consistent: agent_id_used (not agent), mode_used, routing_confidence.
+    """
+    # Core response - canonical field name
+    text: str
     session_id: str
-    agent_id: str
+    # Agent info - canonical field name
+    agent_id_used: str
     mode_used: ExecutionMode
     agents_involved: List[str] = Field(default_factory=list)
-    routing: Dict[str, Any] = Field(default_factory=dict)
+    # Routing - structured with confidence
+    routing: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Routing info when agent was auto-selected: selected_agent, confidence, reasoning"
+    )
+    # Metadata
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    # Timing
+    latency_ms: int = Field(..., description="Response latency in milliseconds")
+    # Errors
     error: Optional[str] = None
-    duration_ms: int
+
+    # Legacy compatibility - deprecated, remove after frontend migrates
+    response: Optional[str] = Field(None, deprecated=True, description="Legacy: use 'text' instead")
+    agent_id: Optional[str] = Field(None, deprecated=True, description="Legacy: use 'agent_id_used' instead")
+    duration_ms: Optional[int] = Field(None, deprecated=True, description="Legacy: use 'latency_ms' instead")
 
 
 class AgentCard(BaseModel):
@@ -293,12 +311,15 @@ class UnifiedOrchestrator:
 
             if not active_agents:
                 return UnifiedChatResponse(
-                    response="No agents available",
+                    text="No agents available",
+                    response="No agents available",  # Legacy compatibility
                     session_id=request.session_id,
-                    agent_id="system",
+                    agent_id_used="system",
+                    agent_id="system",  # Legacy compatibility
                     mode_used=request.mode,
                     error="No active agents",
-                    duration_ms=0
+                    latency_ms=0,
+                    duration_ms=0  # Legacy compatibility
                 )
 
             # Determine agent selection
@@ -311,12 +332,15 @@ class UnifiedOrchestrator:
                 selected_agent = await self.registry.get_agent(request.agent_id)
                 if not selected_agent:
                     return UnifiedChatResponse(
-                        response=f"Agent {request.agent_id} not found",
+                        text=f"Agent {request.agent_id} not found",
+                        response=f"Agent {request.agent_id} not found",  # Legacy compatibility
                         session_id=request.session_id,
-                        agent_id=request.agent_id,
+                        agent_id_used=request.agent_id,
+                        agent_id=request.agent_id,  # Legacy compatibility
                         mode_used=request.mode,
                         error="Agent not found",
-                        duration_ms=0
+                        latency_ms=0,
+                        duration_ms=0  # Legacy compatibility
                     )
                 routed_to = request.agent_id
                 routing_confidence = 1.0
@@ -355,34 +379,40 @@ class UnifiedOrchestrator:
             duration_ms = int((time.time() - start_time) * 1000)
 
             return UnifiedChatResponse(
-                response=result.get("response", ""),
+                text=result.get("response", ""),
+                response=result.get("response", ""),  # Legacy compatibility
                 session_id=request.session_id,
-                agent_id=routed_to,
+                agent_id_used=routed_to,
+                agent_id=routed_to,  # Legacy compatibility
                 mode_used=mode_to_use,
                 agents_involved=agents_involved,
                 routing={
                     "selected_agent": routed_to,
                     "confidence": routing_confidence,
-                    "reasoning": f"Agent selected based on query analysis"
+                    "reasoning": "Explicit agent selection" if request.agent_id else "Agent selected based on query analysis"
                 },
                 metadata={
                     "task_id": task_id,
                     "duration_ms": duration_ms,
                     "agent_count": len(agents_involved)
                 },
-                duration_ms=duration_ms
+                latency_ms=duration_ms,
+                duration_ms=duration_ms  # Legacy compatibility
             )
 
         except Exception as e:
             duration_ms = int((time.time() - start_time) * 1000)
             logger.error(f"Chat error: {e}")
             return UnifiedChatResponse(
-                response=f"Error: {str(e)}",
+                text=f"Error: {str(e)}",
+                response=f"Error: {str(e)}",  # Legacy compatibility
                 session_id=request.session_id,
-                agent_id="system",
+                agent_id_used="system",
+                agent_id="system",  # Legacy compatibility
                 mode_used=request.mode,
                 error=str(e),
-                duration_ms=duration_ms
+                latency_ms=duration_ms,
+                duration_ms=duration_ms  # Legacy compatibility
             )
 
     async def _route_request(self, query: str, agents: List[AgentCard]) -> Dict[str, Any]:
