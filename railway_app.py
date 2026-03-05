@@ -117,6 +117,21 @@ except ImportError as e:
     logger.warning(f"Could not load unified chat API: {e}")
 
 # ============================================================================
+# Task Graph Engine Routes
+# ============================================================================
+
+try:
+    from torq_console.tasks.api import create_task_router
+    task_router = create_task_router(
+        supabase_client=None,  # Will be initialized with actual client
+        agent_registry=None,  # Will be initialized with actual registry
+    )
+    app.include_router(task_router)
+    logger.info("Task Graph Engine routes loaded")
+except ImportError as e:
+    logger.warning(f"Could not load task graph engine: {e}")
+
+# ============================================================================
 # Security Middleware (inline to avoid import)
 # ============================================================================
 
