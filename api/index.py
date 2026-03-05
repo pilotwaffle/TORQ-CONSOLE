@@ -370,21 +370,23 @@ async def chat(req: ChatRequest):
                 request_id=request_id,
             )
 
-            # Handle both v1 (text, agent_id_used) and legacy (response, agent_id) formats
+            # Prefer canonical fields, fall back to legacy for compatibility
             response_text = result.get("text") or result.get("response", "")
-            agent_used = result.get("agent_id_used") or result.get("agent_id") or result.get("agent") or "prince_flowers"
+            agent_used = result.get("agent_id_used") or result.get("agent_id") or "prince_flowers"
+            latency = result.get("latency_ms") or result.get("duration_ms") or 0
 
             return ChatResponse(
                 response=response_text,
                 agent_id=agent_used,
                 timestamp=result.get("timestamp", _now_iso()),
                 metadata={
-                    "v": result.get("v", 0),  # Contract version
                     "backend": "railway",
                     "proxy": "vercel→railway",
+                    "canonical": bool(result.get("text")),  # True if Railway returned canonical format
                     "trace_id": result.get("trace_id"),
                     "request_id": result.get("request_id"),
-                    "duration_ms": result.get("duration_ms"),
+                    "duration_ms": latency,
+                    "latency_ms": latency,
                     "mode_used": result.get("mode_used"),
                     "agents_involved": result.get("agents_involved"),
                     "routing": result.get("routing"),
