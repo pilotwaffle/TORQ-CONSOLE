@@ -1,8 +1,8 @@
 {
-  "git_sha": "f70d0bbe7846bf3efa387b3e2506c2e60cb4a47e",
-  "git_short_sha": "f70d0bbe7846",
+  "git_sha": "560659d3d5047364715d5733c3ff7757f89eef68",
+  "git_short_sha": "560659d3d504",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T04:19:46.056053+00:00",
+  "built_at": "2026-03-05T04:34:42.503864+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "fix: correct Railway app import path in nixpacks.toml"
 }
