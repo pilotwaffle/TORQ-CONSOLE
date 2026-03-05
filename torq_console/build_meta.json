@@ -1,8 +1,8 @@
 {
-  "git_sha": "76b11c67ca53de8a2a0d5268e66cc0561b4de4af",
-  "git_short_sha": "76b11c67ca53",
+  "git_sha": "58af3879dfaba028d77a4787e393e77ecd8dde26",
+  "git_short_sha": "58af3879dfab",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T05:19:39.099857+00:00",
+  "built_at": "2026-03-05T05:19:52.678035+00:00",
   "branch": "control-plane-v1-clean",
-  "commit_message": "fix: use working railway_app:app entry point with Knowledge Plane endpoints"
+  "commit_message": "docs: update branch comparison with Railway fix info"
 }
