@@ -123,7 +123,9 @@ except ImportError as e:
 PROXY_SECRET = os.environ.get("TORQ_PROXY_SHARED_SECRET", "")
 ADMIN_TOKEN = os.environ.get("TORQ_ADMIN_TOKEN", "")
 
-PROTECTED_PATHS = {"/api/chat", "/api/learning", "/api/telemetry"}
+PROTECTED_PATHS = {"/api/learning", "/api/telemetry"}
+# Note: /api/chat is now publicly accessible for Vercel proxy
+# Agent-specific endpoints like /api/agent/* remain protected if needed
 ADMIN_PATHS = {"/api/learning/policy/approve", "/api/learning/policy/rollback"}
 
 @app.middleware("http")
