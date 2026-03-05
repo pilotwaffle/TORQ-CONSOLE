@@ -1,8 +1,8 @@
 {
-  "git_sha": "e3fdc29c6f1b74526c37942f9690d5db408db5e5",
-  "git_short_sha": "e3fdc29c6f1b",
+  "git_sha": "627bd3893ad78286f618bf65eef8c51be6244446",
+  "git_short_sha": "627bd3893ad7",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:48:20.663489+00:00",
+  "built_at": "2026-03-05T16:43:53.670261+00:00",
   "branch": "main",
-  "commit_message": "fix: update Vercel ChatRequest to match Railway contract"
+  "commit_message": "feat: add contract versioning and trace continuity"
 }
