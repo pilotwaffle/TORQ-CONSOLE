@@ -1,8 +1,8 @@
 {
-  "git_sha": "243615c85f0470c323bb1277e3df01feb7a325cf",
-  "git_short_sha": "243615c85f04",
+  "git_sha": "60cc6dfa854ba5441f2e1ad728dd58d72fa1903d",
+  "git_short_sha": "60cc6dfa854b",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:04:34.871307+00:00",
+  "built_at": "2026-03-05T07:05:37.450639+00:00",
   "branch": "main",
-  "commit_message": "feat: load agents from backend registry in frontend"
+  "commit_message": "fix: configure Vercel rewrites for API proxy to Railway"
 }
