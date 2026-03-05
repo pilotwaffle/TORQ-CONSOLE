@@ -317,11 +317,17 @@ async def chat(req: ChatRequest):
     if RAILWAY_URL:
         session_id = str(uuid.uuid4())
 
-        payload = json.dumps({
+        # Build payload matching Railway's unified contract
+        payload_dict = {
             "message": req.message,
             "session_id": session_id,
-            "trace_id": trace_id,
-        }).encode("utf-8")
+            "agent_id": None,  # Auto-route by default
+            "mode": req.mode or "auto",
+        }
+        if req.context:
+            payload_dict["context"] = req.context
+
+        payload = json.dumps(payload_dict).encode("utf-8")
 
         try:
             result = _proxy_to_railway(
@@ -479,6 +485,40 @@ async def get_agent(agent_id: str):
     if agent_id not in agents:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
     return agents[agent_id]
+
+
+@app.get("/api/chat/agents")
+async def list_chat_agents():
+    """List agents for chat — proxies to Railway for agent registry."""
+    if RAILWAY_URL:
+        try:
+            result = _proxy_to_railway("/api/chat/agents", method="GET")
+            return result
+        except HTTPException:
+            # Fallback to local agents if Railway unavailable
+            pass
+    # Local fallback
+    return await list_agents()
+
+
+@app.get("/api/chat/health")
+async def chat_health():
+    """Health check for chat API — proxies to Railway."""
+    if RAILWAY_URL:
+        try:
+            result = _proxy_to_railway("/api/chat/health", method="GET")
+            return result
+        except HTTPException as e:
+            return {
+                "status": "degraded",
+                "railway_error": str(e.detail),
+                "timestamp": _now_iso(),
+            }
+    return {
+        "status": "unconfigured",
+        "message": "Railway backend not configured",
+        "timestamp": _now_iso(),
+    }
 
 
 @app.get("/api/status")

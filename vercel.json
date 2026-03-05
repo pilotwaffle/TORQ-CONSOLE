@@ -9,11 +9,11 @@
   "rewrites": [
     {
       "source": "/api/chat/:path*",
-      "destination": "/api/chat_proxy.py"
+      "destination": "/api/index.py"
     },
     {
       "source": "/api/chat",
-      "destination": "/api/chat_proxy.py"
+      "destination": "/api/index.py"
     },
     {
       "source": "/(.*)",
