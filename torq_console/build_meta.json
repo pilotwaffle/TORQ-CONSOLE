@@ -1,8 +1,8 @@
 {
-  "git_sha": "4130be1fbfb60d58df4ff0be0758061e7315be62",
-  "git_short_sha": "4130be1fbfb6",
+  "git_sha": "caedd894263c16b85bca3bb6e4e9406b24c1b845",
+  "git_short_sha": "caedd894263c",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T06:06:24.527445+00:00",
+  "built_at": "2026-03-05T06:18:07.529720+00:00",
   "branch": "main",
-  "commit_message": "fix: use Python wrapper for Railway PORT expansion (Option A)"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
