@@ -11,12 +11,9 @@ import { Agent } from '@/lib/types';
 // Configuration
 // ============================================================================
 
-// Direct Railway URL - bypasses Vercel proxy for now
-const RAILWAY_URL = 'https://web-production-74ed0.up.railway.app/api';
-const VERCEL_PROXY_URL = '/api'; // Falls back to local proxy if available
-
-// Use Railway direct for now (Vercel proxy not working)
-const API_BASE_URL = RAILWAY_URL;
+// Use Vercel serverless proxy - relative URL
+// The api/proxy.ts function forwards to Railway with proxy secret
+const API_BASE_URL = '/api';
 
 // ============================================================================
 // Types

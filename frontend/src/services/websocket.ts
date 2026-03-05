@@ -206,10 +206,10 @@ class WebSocketManager {
 
   private async sendRestMessage(sessionId: string, content: string, agentId: string): Promise<void> {
     try {
-      // Use Railway direct URL for now (Vercel proxy not working)
-      const RAILWAY_URL = 'https://web-production-74ed0.up.railway.app/api/chat';
+      // Use Vercel serverless proxy - forwards to Railway
+      const API_URL = '/api/chat';
 
-      const response = await fetch(RAILWAY_URL, {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

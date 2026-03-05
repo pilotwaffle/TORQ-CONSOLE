@@ -4,16 +4,19 @@
   "devCommand": "npx vite",
   "installCommand": "npm install",
   "framework": null,
-  "trailingSlash": false,
-  "cleanUrls": true,
+  "functions": {
+    "api/proxy.ts": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "dest": "https://web-production-74ed0.up.railway.app/api/:path*"
+      "function": "api/proxy.ts"
     },
     {
-      "source": "/:path*(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
