@@ -1,8 +1,8 @@
 {
-  "git_sha": "f0fad6b5a2ee222d2079296febb32ed8da1be3c8",
-  "git_short_sha": "f0fad6b5a2ee",
+  "git_sha": "b658b05da62ecaaf9662a59ffa7d8a6ff50cb399",
+  "git_short_sha": "b658b05da62e",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:34:51.555599+00:00",
+  "built_at": "2026-03-05T07:36:03.759950+00:00",
   "branch": "main",
-  "commit_message": "fix: use Python serverless function for Vercel proxy"
+  "commit_message": "fix: remove unsupported TypeScript serverless function"
 }
