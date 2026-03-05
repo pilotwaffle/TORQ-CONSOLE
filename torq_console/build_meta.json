@@ -1,8 +1,8 @@
 {
-  "git_sha": "60cc6dfa854ba5441f2e1ad728dd58d72fa1903d",
-  "git_short_sha": "60cc6dfa854b",
+  "git_sha": "6dc23a260e1536fb91afe87d5920a01ca7c6c398",
+  "git_short_sha": "6dc23a260e15",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T07:05:37.450639+00:00",
+  "built_at": "2026-03-05T07:15:21.052942+00:00",
   "branch": "main",
-  "commit_message": "fix: configure Vercel rewrites for API proxy to Railway"
+  "commit_message": "feat: unified chat API with improved contract + Vercel Edge Function proxy"
 }
