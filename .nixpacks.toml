@@ -14,4 +14,4 @@ cmds = [
 cmds = []
 
 [start]
-cmd = "uvicorn railway_app:app --host 0.0.0.0 --port $PORT --log-level warning"
+cmd = "python start_railway.py"
