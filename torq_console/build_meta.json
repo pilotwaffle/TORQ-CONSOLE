@@ -1,8 +1,8 @@
 {
-  "git_sha": "b07ce3ff1702ec1cb25b4bcd066e1af549b56618",
-  "git_short_sha": "b07ce3ff1702",
+  "git_sha": "858806db9244ac886eefddfa9ca1b038ae5a6f76",
+  "git_short_sha": "858806db9244",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-05T05:25:12.760790+00:00",
+  "built_at": "2026-03-05T05:35:28.961544+00:00",
   "branch": "main",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "fix: upgrade eslint and typescript-eslint to v7/v8 compatible versions"
 }
