@@ -73,13 +73,11 @@ class AgentSpeed(str, Enum):
 
 class UnifiedChatRequest(BaseModel):
     """
-    Unified chat request contract v1.
+    Unified chat request contract.
 
-    Version 1 contract - all fields are optional except message.
-    Frontend should include v field for contract validation.
+    Supports both simple chat and multi-agent orchestration.
     """
-    v: int = Field(1, description="Contract version", ge=1, le=1)
-    message: str = Field(..., description="User message or query", min_length=1, max_length=10000)
+    message: str = Field(..., description="User message or query", min_length=1)
     session_id: str = Field(..., description="Session ID for conversation tracking")
     agent_id: Optional[str] = Field(
         None,
@@ -99,43 +97,19 @@ class UnifiedChatRequest(BaseModel):
         le=300,
         description="Maximum time for execution"
     )
-    # Trace continuity
-    trace_id: Optional[str] = Field(None, description="External trace ID for observability")
-    request_id: Optional[str] = Field(None, description="Unique request ID")
 
 
 class UnifiedChatResponse(BaseModel):
-    """
-    Unified chat response v1.
-
-    Version 1 response contract with structured routing and evaluation confidence.
-    """
-    v: int = Field(1, description="Contract version")
-    # Core response
-    text: str = Field(..., description="The assistant's response text")
+    """Unified chat response."""
+    response: str
     session_id: str
-    # Agent info
-    agent_id_used: str = Field(..., description="Agent that handled the request")
+    agent_id: str
     mode_used: ExecutionMode
     agents_involved: List[str] = Field(default_factory=list)
-    # Routing (only meaningful when agent_id was null)
-    routing: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Routing decision when agent was auto-selected. Contains: selected_agent, confidence, reasoning"
-    )
-    # Evaluation (optional, when quality evaluation is enabled)
-    evaluation: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Quality evaluation when enabled. Contains: confidence, checks, score"
-    )
-    # Trace continuity
-    trace_id: Optional[str] = None
-    request_id: Optional[str] = None
-    # Timing
-    duration_ms: int
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    # Errors
+    routing: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     error: Optional[str] = None
+    duration_ms: int
 
 
 class AgentCard(BaseModel):
@@ -319,10 +293,9 @@ class UnifiedOrchestrator:
 
             if not active_agents:
                 return UnifiedChatResponse(
-                    v=1,
-                    text="No agents available",
+                    response="No agents available",
                     session_id=request.session_id,
-                    agent_id_used="system",
+                    agent_id="system",
                     mode_used=request.mode,
                     error="No active agents",
                     duration_ms=0
@@ -338,10 +311,9 @@ class UnifiedOrchestrator:
                 selected_agent = await self.registry.get_agent(request.agent_id)
                 if not selected_agent:
                     return UnifiedChatResponse(
-                        v=1,
-                        text=f"Agent {request.agent_id} not found",
+                        response=f"Agent {request.agent_id} not found",
                         session_id=request.session_id,
-                        agent_id_used=request.agent_id,
+                        agent_id=request.agent_id,
                         mode_used=request.mode,
                         error="Agent not found",
                         duration_ms=0
@@ -383,19 +355,16 @@ class UnifiedOrchestrator:
             duration_ms = int((time.time() - start_time) * 1000)
 
             return UnifiedChatResponse(
-                v=1,
-                text=result.get("response", ""),
+                response=result.get("response", ""),
                 session_id=request.session_id,
-                agent_id_used=routed_to,
+                agent_id=routed_to,
                 mode_used=mode_to_use,
                 agents_involved=agents_involved,
                 routing={
                     "selected_agent": routed_to,
                     "confidence": routing_confidence,
-                    "reasoning": "Explicit agent selection" if request.agent_id else "Agent selected based on query analysis"
+                    "reasoning": f"Agent selected based on query analysis"
                 },
-                trace_id=request.trace_id,
-                request_id=request.request_id,
                 metadata={
                     "task_id": task_id,
                     "duration_ms": duration_ms,
@@ -408,10 +377,9 @@ class UnifiedOrchestrator:
             duration_ms = int((time.time() - start_time) * 1000)
             logger.error(f"Chat error: {e}")
             return UnifiedChatResponse(
-                v=1,
-                text=f"Error: {str(e)}",
+                response=f"Error: {str(e)}",
                 session_id=request.session_id,
-                agent_id_used="system",
+                agent_id="system",
                 mode_used=request.mode,
                 error=str(e),
                 duration_ms=duration_ms
