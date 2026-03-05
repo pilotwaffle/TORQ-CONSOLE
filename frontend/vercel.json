@@ -4,25 +4,20 @@
   "devCommand": "npx vite",
   "installCommand": "npm install",
   "framework": null,
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "edge"
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "dest": "https://web-production-74ed0.up.railway.app/api/:path*"
+      "source": "/api/:match*",
+      "function": "api/chat",
+      "force": true
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/:path*",
-      "headers": [
-        {
-          "key": "x-torq-proxy-secret",
-          "value": "${TORQ_PROXY_SHARED_SECRET}"
-        }
-      ]
     }
   ]
 }

@@ -93,7 +93,7 @@ from torq_console.knowledge_plane.railway_integration import knowledge_router
 app.include_router(knowledge_router)
 
 # ============================================================================
-# Multi-Agent Orchestration Routes
+# Multi-Agent Orchestration Routes (Original)
 # ============================================================================
 
 try:
@@ -103,6 +103,18 @@ try:
     logger.info("Multi-agent orchestration routes loaded")
 except ImportError as e:
     logger.warning(f"Could not load orchestration routes: {e}")
+
+# ============================================================================
+# Unified Chat API (v2 - Improved Contract)
+# ============================================================================
+
+try:
+    from torq_console.agents.railway_orchestration_v2 import create_unified_router
+    unified_router = create_unified_router()
+    app.include_router(unified_router)
+    logger.info("Unified chat API v2 loaded")
+except ImportError as e:
+    logger.warning(f"Could not load unified chat API: {e}")
 
 # ============================================================================
 # Security Middleware (inline to avoid import)
