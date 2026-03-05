@@ -3,6 +3,9 @@ Vercel Serverless Function: API Proxy to Railway
 
 This function handles all /api/chat/* requests and forwards them to Railway
 with the TORQ_PROXY_SHARED_SECRET header injected server-side.
+
+Vercel Python Function documentation:
+https://vercel.com/docs/functions/runtimes/python
 """
 
 import os
@@ -19,19 +22,20 @@ PROXY_SECRET = os.environ.get("TORQ_PROXY_SHARED_SECRET", "")
 TIMEOUT_MS = int(os.environ.get("TORQ_PROXY_TIMEOUT_MS", "30000"))
 
 
-def handler(request):
+def handler(event, context):
     """
-    Vercel serverless function handler.
+    Vercel Python serverless function handler.
 
     Args:
-        request: Vercel request object with method, body, headers, path properties
+        event: Dict with request data including method, body, headers, path
+        context: Runtime context (not used but required)
 
     Returns:
-        Response dict with status, headers, and body
+        Dict with statusCode, headers, and body
     """
     # Get request details
-    method = request.method or "GET"
-    path = request.path or ""
+    method = event.get("method", "GET")
+    path = event.get("path", "")
 
     # Build full URL to Railway
     url = f"{BACKEND_URL}{path}"
@@ -42,9 +46,10 @@ def handler(request):
         "User-Agent": "TORQ-Vercel-Proxy/1.0",
     }
 
-    # Forward headers from request (excluding host)
-    if hasattr(request, "headers") and request.headers:
-        for key, value in request.headers.items():
+    # Forward headers from request
+    request_headers = event.get("headers", {})
+    if isinstance(request_headers, dict):
+        for key, value in request_headers.items():
             if key.lower() not in ["host", "content-length"]:
                 headers[key] = value
 
@@ -54,13 +59,14 @@ def handler(request):
 
     # Prepare body
     body_data = None
-    if hasattr(request, "body") and request.body:
-        if isinstance(request.body, str):
-            body_data = request.body.encode("utf-8")
-        elif isinstance(request.body, dict):
-            body_data = json.dumps(request.body).encode("utf-8")
+    body = event.get("body")
+    if body:
+        if isinstance(body, str):
+            body_data = body.encode("utf-8")
+        elif isinstance(body, dict):
+            body_data = json.dumps(body).encode("utf-8")
         else:
-            body_data = request.body
+            body_data = body
 
     # Create HTTP request
     req = Request(url, data=body_data, method=method, headers=headers)
@@ -84,7 +90,7 @@ def handler(request):
                     response_headers[key] = value
 
             return {
-                "status": resp.status,
+                "statusCode": resp.status,
                 "headers": response_headers,
                 "body": response_body,
             }
@@ -92,7 +98,7 @@ def handler(request):
     except HTTPError as e:
         logger.error(f"Railway HTTP error: {e.code} - {e.reason}")
         return {
-            "status": e.code,
+            "statusCode": e.code,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({
                 "error": "proxy_error",
@@ -103,7 +109,7 @@ def handler(request):
     except URLError as e:
         logger.error(f"Railway connection error: {e.reason}")
         return {
-            "status": 502,
+            "statusCode": 502,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({
                 "error": "proxy_error",
@@ -114,7 +120,7 @@ def handler(request):
     except Exception as e:
         logger.exception(f"Unexpected proxy error: {e}")
         return {
-            "status": 500,
+            "statusCode": 500,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({
                 "error": "proxy_error",
