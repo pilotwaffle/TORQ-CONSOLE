@@ -64,8 +64,10 @@ logger.info(f"Railway proxy configured: {bool(RAILWAY_URL)}")
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
+    session_id: Optional[str] = None  # Use provided or generate new
+    agent_id: Optional[str] = None  # null = auto-route
+    mode: Optional[str] = "auto"  # auto, single, sequential, parallel, etc.
     context: Optional[dict[str, Any]] = None
-    mode: Optional[str] = "single_agent"
     model: Optional[str] = None
 
 
@@ -315,13 +317,14 @@ async def chat(req: ChatRequest):
 
     # Try Railway proxy first
     if RAILWAY_URL:
-        session_id = str(uuid.uuid4())
+        # Use provided session_id or generate new one
+        session_id = req.session_id or str(uuid.uuid4())
 
         # Build payload matching Railway's unified contract
         payload_dict = {
             "message": req.message,
             "session_id": session_id,
-            "agent_id": None,  # Auto-route by default
+            "agent_id": req.agent_id,  # Use provided agent_id or None for auto-route
             "mode": req.mode or "auto",
         }
         if req.context:
@@ -338,7 +341,7 @@ async def chat(req: ChatRequest):
 
             return ChatResponse(
                 response=result.get("response", ""),
-                agent_id=result.get("agent", "prince_flowers"),
+                agent_id=result.get("agent_id", result.get("agent", "prince_flowers")),
                 timestamp=result.get("timestamp", _now_iso()),
                 metadata={
                     "backend": "railway",
@@ -346,6 +349,9 @@ async def chat(req: ChatRequest):
                     "learning_recorded": result.get("learning_recorded", False),
                     "trace_id": result.get("trace_id"),
                     "duration_ms": result.get("duration_ms"),
+                    "mode_used": result.get("mode_used"),
+                    "agents_involved": result.get("agents_involved"),
+                    "routing": result.get("routing"),
                     "degraded": False,
                 },
             )
