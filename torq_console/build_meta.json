@@ -1,8 +1,8 @@
 {
-  "git_sha": "de74ee5c2ebeb7eda6c0dc780405fd1fbdf0c270",
-  "git_short_sha": "de74ee5c2ebe",
+  "git_sha": "25c1209e817833055890f06d2a6bafe65915cad0",
+  "git_short_sha": "25c1209e8178",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T02:02:32.657851+00:00",
+  "built_at": "2026-03-06T02:53:19.331902+00:00",
   "branch": "main",
-  "commit_message": "fix: correct all SQL syntax and RLS policy errors"
+  "commit_message": "fix: cast to numeric for ROUND function in view"
 }
