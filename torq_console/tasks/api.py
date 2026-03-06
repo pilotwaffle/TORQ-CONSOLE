@@ -306,6 +306,106 @@ def create_task_router(
 
         return result.data
 
+    @router.get("/executions/{execution_id}/graph")
+    async def get_execution_graph(execution_id: UUID) -> Dict[str, Any]:
+        """
+        Get execution graph with node statuses for visualization.
+
+        Returns the full graph structure with runtime status overlay.
+        Powers UI progress views, debugging, and workflow replay.
+        """
+        if not supabase_client:
+            raise HTTPException(status_code=501, detail="Not implemented")
+
+        # Get execution details
+        exec_result = supabase_client.table("task_executions").select("*").eq(
+            "execution_id", str(execution_id)
+        ).execute()
+
+        if not exec_result.data:
+            raise HTTPException(status_code=404, detail="Execution not found")
+
+        execution = exec_result.data[0]
+        graph_id = execution["graph_id"]
+
+        # Get graph definition
+        graph_result = supabase_client.table("task_graphs").select("*").eq(
+            "graph_id", str(graph_id)
+        ).execute()
+
+        if not graph_result.data:
+            raise HTTPException(status_code=404, detail="Graph not found")
+
+        graph = graph_result.data[0]
+
+        # Get nodes with their definitions
+        nodes_result = supabase_client.table("task_nodes").select("*").eq(
+            "graph_id", str(graph_id)
+        ).execute()
+
+        # Get edges
+        edges_result = supabase_client.table("task_edges").select("*").eq(
+            "graph_id", str(graph_id)
+        ).execute()
+
+        # Get node results for this execution
+        results_result = supabase_client.table("task_node_results").select("*").eq(
+            "execution_id", str(execution_id)
+        ).execute()
+
+        # Build a map of node_id -> latest result
+        node_status_map = {}
+        for result in results_result.data:
+            node_id = result.get("node_id")
+            if node_id:
+                node_status_map[node_id] = {
+                    "status": result.get("status"),
+                    "started_at": result.get("started_at"),
+                    "completed_at": result.get("completed_at"),
+                    "duration_ms": result.get("duration_ms"),
+                    "attempt": result.get("attempt"),
+                    "error_message": result.get("error_message"),
+                    "output_size_bytes": result.get("output_size_bytes"),
+                }
+
+        # Augment nodes with runtime status
+        nodes_with_status = []
+        for node in nodes_result.data:
+            node_id = node["node_id"]
+            runtime_info = node_status_map.get(node_id, {"status": "pending"})
+            nodes_with_status.append({
+                **node,
+                "runtime": runtime_info,
+            })
+
+        return {
+            "execution": {
+                "execution_id": execution["execution_id"],
+                "status": execution["status"],
+                "started_at": execution.get("started_at"),
+                "completed_at": execution.get("completed_at"),
+                "total_duration_ms": execution.get("total_duration_ms"),
+                "nodes_completed": execution.get("nodes_completed", 0),
+                "nodes_failed": execution.get("nodes_failed", 0),
+                "trace_id": execution.get("trace_id"),
+            },
+            "graph": {
+                "graph_id": graph["graph_id"],
+                "name": graph["name"],
+                "description": graph.get("description"),
+                "status": graph["status"],
+            },
+            "nodes": nodes_with_status,
+            "edges": edges_result.data,
+            "summary": {
+                "total_nodes": len(nodes_result.data),
+                "completed": sum(1 for n in nodes_with_status if n["runtime"].get("status") == "completed"),
+                "failed": sum(1 for n in nodes_with_status if n["runtime"].get("status") == "failed"),
+                "running": sum(1 for n in nodes_with_status if n["runtime"].get("status") == "running"),
+                "pending": sum(1 for n in nodes_with_status if n["runtime"].get("status") == "pending"),
+            }
+        }
+
     # ========================================================================
     # Examples & Templates
     # ========================================================================

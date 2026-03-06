@@ -116,6 +116,8 @@ class TaskGraphResponse(BaseModel):
     name: str
     description: Optional[str]
     status: GraphStatus
+    version: int = 1
+    parent_graph_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
     nodes: List[NodeDefinition]
