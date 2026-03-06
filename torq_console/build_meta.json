@@ -1,8 +1,8 @@
 {
-  "git_sha": "25c1209e817833055890f06d2a6bafe65915cad0",
-  "git_short_sha": "25c1209e8178",
+  "git_sha": "7ff9cfa5c95070b529f4c62b70eec89ee209eed8",
+  "git_short_sha": "7ff9cfa5c950",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T02:53:19.331902+00:00",
+  "built_at": "2026-03-06T03:28:04.677660+00:00",
   "branch": "main",
-  "commit_message": "fix: cast to numeric for ROUND function in view"
+  "commit_message": "fix: remove DO success block to avoid truncation issues"
 }
