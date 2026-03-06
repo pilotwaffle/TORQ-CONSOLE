@@ -109,11 +109,29 @@ except Exception as e:
 # Unified Chat API (v2 - Improved Contract)
 # ============================================================================
 
+# Initialize session store for conversation persistence
+_session_store = None
+try:
+    from supabase import create_client
+    from torq_console.agents.session_store import SessionStore
+
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+    if supabase_url and supabase_key:
+        _supabase_client = create_client(supabase_url, supabase_key)
+        _session_store = SessionStore(_supabase_client)
+        logger.info("Session store initialized with Supabase")
+except ImportError:
+    logger.warning("Supabase client not available - session persistence disabled")
+except Exception as e:
+    logger.warning(f"Failed to initialize session store: {e}")
+
 try:
     from torq_console.agents.railway_orchestration_v2 import create_unified_router
-    unified_router = create_unified_router()
+    unified_router = create_unified_router(session_store=_session_store)
     app.include_router(unified_router)
-    logger.info("Unified chat API v2 loaded")
+    logger.info("Unified chat API v2 loaded with session support")
 except Exception as e:
     logger.exception(f"Failed to load unified chat API: {e}")
     raise  # Don't silently continue - we need to know if this fails

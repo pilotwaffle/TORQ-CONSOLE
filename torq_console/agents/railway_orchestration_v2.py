@@ -42,6 +42,18 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# Session Store Integration
+# ============================================================================
+
+try:
+    from supabase import create_client
+    from .session_store import SessionStore, get_session_store, set_session_store
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
+    logger.warning("Supabase client not available - session persistence disabled")
+
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
@@ -279,8 +291,20 @@ class UnifiedOrchestrator:
     Unified orchestrator with consistent contract.
     """
 
-    def __init__(self):
+    def __init__(self, session_store: Optional["SessionStore"] = None):
         self.registry = EnhancedAgentRegistry()
+        self.session_store = session_store
+
+        # Initialize session store if not provided but Supabase is available
+        if not self.session_store and SUPABASE_AVAILABLE:
+            supabase_client = None
+            try:
+                if SUPABASE_URL and SUPABASE_KEY:
+                    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+                    self.session_store = SessionStore(supabase_client)
+                    logger.info("Session store initialized with Supabase")
+            except Exception as e:
+                logger.warning(f"Failed to initialize session store: {e}")
 
         # Routing patterns
         self.routing_patterns = {
@@ -363,7 +387,12 @@ class UnifiedOrchestrator:
 
             # Execute based on mode
             if mode_to_use == ExecutionMode.SINGLE:
-                result = await self._execute_single(selected_agent, request.message, request.context)
+                result = await self._execute_single(
+                    selected_agent,
+                    request.message,
+                    request.context,
+                    session_id=request.session_id
+                )
                 agents_involved = [selected_agent.agent_id]
             else:
                 # Multi-agent orchestration
@@ -372,7 +401,8 @@ class UnifiedOrchestrator:
                     active_agents,
                     request.message,
                     mode_to_use,
-                    request.context
+                    request.context,
+                    session_id=request.session_id
                 )
                 agents_involved = result.get("agents_involved", [selected_agent.agent_id])
 
@@ -464,7 +494,8 @@ class UnifiedOrchestrator:
         self,
         agent: AgentCard,
         query: str,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        session_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Execute with single agent."""
         import httpx
@@ -474,6 +505,29 @@ class UnifiedOrchestrator:
                 "response": f"[Simulated] {agent.agent_name}: I processed '{query[:50]}...'",
                 "agents_involved": [agent.agent_id]
             }
+
+        # Build messages array with conversation history
+        messages = []
+
+        # Load session history if session store is available
+        if self.session_store and session_id:
+            try:
+                history = await self.session_store.get_session_history(session_id, max_messages=10)
+                for msg in history:
+                    messages.append({
+                        "role": msg.role,
+                        "content": msg.content
+                    })
+                logger.info(f"Loaded {len(history)} messages from session {session_id}")
+            except Exception as e:
+                logger.warning(f"Failed to load session history: {e}")
+
+        # Add current query
+        messages.append({"role": "user", "content": query})
+
+        # Add TORQ-native system context
+        system_context = self._get_system_context(agent)
+        messages.insert(0, {"role": "system", "content": system_context})
 
         try:
             async with httpx.AsyncClient(timeout=60) as client:
@@ -487,13 +541,33 @@ class UnifiedOrchestrator:
                     json={
                         "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
                         "max_tokens": 2000,
-                        "messages": [{"role": "user", "content": query}]
+                        "messages": messages
                     }
                 )
 
             if response.status_code == 200:
                 data = response.json()
                 content = data.get("content", [{}])[0].get("text", "")
+
+                # Persist messages to session store
+                if self.session_store and session_id:
+                    try:
+                        await self.session_store.add_message(
+                            session_id=session_id,
+                            role="user",
+                            content=query,
+                            agent_id=agent.agent_id
+                        )
+                        await self.session_store.add_message(
+                            session_id=session_id,
+                            role="assistant",
+                            content=content,
+                            agent_id=agent.agent_id
+                        )
+                        logger.info(f"Persisted messages to session {session_id}")
+                    except Exception as e:
+                        logger.warning(f"Failed to persist messages: {e}")
+
                 return {"response": content, "agents_involved": [agent.agent_id]}
             else:
                 return {
@@ -504,20 +578,50 @@ class UnifiedOrchestrator:
         except Exception as e:
             return {"response": f"Error: {str(e)}", "agents_involved": [agent.agent_id]}
 
+    def _get_system_context(self, agent: AgentCard) -> str:
+        """Generate TORQ-native system context for agents."""
+        return f"""You are {agent.agent_name}, an AI agent in TORQ Console.
+
+**Your Identity:**
+- Agent ID: {agent.agent_id}
+- Name: {agent.agent_name}
+- Type: {agent.agent_type}
+- Description: {agent.description or agent.agent_name}
+
+**Your Capabilities:**
+{chr(10).join(f"- {cap}" for cap in agent.capabilities)}
+
+**Tools You Can Use:**
+{chr(10).join(f"- {tool}" for tool in agent.tools) if agent.tools else "- Standard conversation tools"}
+
+**TORQ Console Context:**
+- You are part of a multi-agent AI orchestration platform
+- Other agents may be available for specialized tasks
+- Users can switch between agents or use auto-routing
+- Session continuity is enabled - you remember prior messages in the conversation
+
+**Behavior Guidelines:**
+- Be helpful, accurate, and concise
+- Leverage your specific capabilities
+- If a task would be better handled by another agent, mention it
+- Remember context from earlier in this conversation
+- Provide practical, actionable guidance"""
+
     async def _orchestrate_multi(
         self,
         primary_agent: AgentCard,
         all_agents: List[AgentCard],
         query: str,
         mode: ExecutionMode,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        session_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Orchestrate multiple agents."""
         # For now, simple parallel execution
         agents_to_use = all_agents[:3]  # Top 3 agents
 
         async def execute_agent(agent: AgentCard):
-            return await self._execute_single(agent, query, context)
+            return await self._execute_single(agent, query, context, session_id)
 
         results = await asyncio.gather(
             *[execute_agent(a) for a in agents_to_use],
@@ -546,10 +650,15 @@ class UnifiedOrchestrator:
 # API Router - Unified Endpoints
 # ============================================================================
 
-def create_unified_router() -> APIRouter:
+def create_unified_router(session_store: Optional["SessionStore"] = None) -> APIRouter:
     """Create unified API router with consistent contract."""
     router = APIRouter(prefix="/api/chat", tags=["chat"])
-    orchestrator = UnifiedOrchestrator()
+    orchestrator = UnifiedOrchestrator(session_store=session_store)
+
+    # Set global session store instance
+    if session_store:
+        set_session_store(session_store)
+        logger.info("Global session store configured")
 
     @router.post("", response_model=UnifiedChatResponse)
     async def unified_chat(request: UnifiedChatRequest, background_tasks: BackgroundTasks):
