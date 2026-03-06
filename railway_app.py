@@ -101,8 +101,9 @@ try:
     orchestration_router = create_orchestration_router()
     app.include_router(orchestration_router)
     logger.info("Multi-agent orchestration routes loaded")
-except ImportError as e:
-    logger.warning(f"Could not load orchestration routes: {e}")
+except Exception as e:
+    logger.exception(f"Failed to load orchestration routes: {e}")
+    raise  # Don't silently continue - we need to know if this fails
 
 # ============================================================================
 # Unified Chat API (v2 - Improved Contract)
@@ -113,8 +114,9 @@ try:
     unified_router = create_unified_router()
     app.include_router(unified_router)
     logger.info("Unified chat API v2 loaded")
-except ImportError as e:
-    logger.warning(f"Could not load unified chat API: {e}")
+except Exception as e:
+    logger.exception(f"Failed to load unified chat API: {e}")
+    raise  # Don't silently continue - we need to know if this fails
 
 # ============================================================================
 # Task Graph Engine Routes
@@ -128,8 +130,39 @@ try:
     )
     app.include_router(task_router)
     logger.info("Task Graph Engine routes loaded")
-except ImportError as e:
-    logger.warning(f"Could not load task graph engine: {e}")
+except Exception as e:
+    logger.exception(f"Failed to load task graph engine: {e}")
+    raise  # Don't silently continue - we need to know if this fails
+
+# ============================================================================
+# Startup Route Dump (for debugging)
+# ============================================================================
+
+@app.get("/api/debug/routes")
+async def list_routes():
+    """List all registered routes for debugging."""
+    routes = []
+    for route in app.routes:
+        try:
+            path = getattr(route, 'path', None)
+            methods = getattr(route, 'methods', None)
+            if path:
+                routes.append({"path": path, "methods": list(methods) if methods else []})
+        except Exception:
+            pass
+    return {"routes": routes, "total": len(routes)}
+
+logger.info("=" * 60)
+logger.info("REGISTERED ROUTES AT STARTUP:")
+for route in app.routes:
+    try:
+        path = getattr(route, 'path', None)
+        methods = getattr(route, 'methods', None)
+        if path:
+            logger.info(f"  {methods} {path}")
+    except Exception:
+        pass
+logger.info("=" * 60)
 
 # ============================================================================
 # Security Middleware (inline to avoid import)
