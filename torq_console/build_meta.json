@@ -1,8 +1,8 @@
 {
-  "git_sha": "745faa388bacc9f5b23bad5e9ca5c74979ae44ab",
-  "git_short_sha": "745faa388bac",
+  "git_sha": "0133c1c34411204d4e758e94482e1368c746fa4e",
+  "git_short_sha": "0133c1c34411",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T05:18:52.449292+00:00",
+  "built_at": "2026-03-06T05:19:58.818581+00:00",
   "branch": "main",
-  "commit_message": "chore: trigger Railway redeploy for session memory"
+  "commit_message": "fix: use correct Anthropic API format with system parameter"
 }
