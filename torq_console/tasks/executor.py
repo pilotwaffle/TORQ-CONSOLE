@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Set
 from uuid import UUID, uuid4
 
+from .graph_engine import TaskGraph
 from .models import (
-    TaskGraph,
     NodeDefinition,
     EdgeDefinition,
     NodeStatus,
@@ -20,10 +20,10 @@ from .models import (
     ExecutionCreate,
     ExecutionResponse,
     NodeResult,
+    TaskGraphNode,
 )
 from .dependency_resolver import DependencyResolver
 from .node_runner import NodeRunner
-from .models import TaskGraphNode
 
 
 class ExecutionEngine:
