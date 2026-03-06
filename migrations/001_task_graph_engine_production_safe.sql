@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS task_edges (
 
 CREATE INDEX IF NOT EXISTS idx_task_edges_graph_id ON task_edges(graph_id);
 CREATE INDEX IF NOT EXISTS idx_task_edges_source_key ON task_edges(source_node_key);
-CREATE INDEX IF NOT EXISTS idx_task_edges_target_key ON task_edges(target_key);
+CREATE INDEX IF NOT EXISTS idx_task_edges_target_node_key ON task_edges(target_node_key);
 
 -- ============================================================================
 -- Task Executions Table (runtime state - per-execution tracking)
