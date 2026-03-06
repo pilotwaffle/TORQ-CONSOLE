@@ -1,8 +1,8 @@
 {
-  "git_sha": "53ecbf95fd30f99442d28ca564137d2a9616986a",
-  "git_short_sha": "53ecbf95fd30",
+  "git_sha": "f1a3607e3aae3ed4270b8abc853b84ed6cba7b02",
+  "git_short_sha": "f1a3607e3aae",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T01:44:23.904783+00:00",
+  "built_at": "2026-03-06T01:48:37.603785+00:00",
   "branch": "main",
-  "commit_message": "feat: add production-safe Task Graph Engine migration"
+  "commit_message": "fix: correct PostgreSQL generated column syntax"
 }
