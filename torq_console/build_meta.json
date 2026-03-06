@@ -1,8 +1,8 @@
 {
-  "git_sha": "6982449bd6309b85f56b8e59e9d98e3603c8af09",
-  "git_short_sha": "6982449bd630",
+  "git_sha": "86c8ddac800d2e2381e4728c4bb70a53e104c187",
+  "git_short_sha": "86c8ddac800d",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T03:38:36.788416+00:00",
+  "built_at": "2026-03-06T04:18:28.650256+00:00",
   "branch": "main",
-  "commit_message": "fix: resolve import errors in task graph module"
+  "commit_message": "fix: surface router import errors and add startup route dump"
 }
