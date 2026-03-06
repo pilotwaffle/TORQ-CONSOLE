@@ -525,12 +525,22 @@ class UnifiedOrchestrator:
         # Add current query
         messages.append({"role": "user", "content": query})
 
-        # Add TORQ-native system context
+        # Get TORQ-native system context (as separate parameter for Anthropic API)
         system_context = self._get_system_context(agent)
-        messages.insert(0, {"role": "system", "content": system_context})
 
         try:
             async with httpx.AsyncClient(timeout=60) as client:
+                # Build request payload
+                payload = {
+                    "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+                    "max_tokens": 2000,
+                    "messages": messages
+                }
+
+                # Add system parameter if context exists
+                if system_context:
+                    payload["system"] = system_context
+
                 response = await client.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={
@@ -538,11 +548,7 @@ class UnifiedOrchestrator:
                         "anthropic-version": "2023-06-01",
                         "content-type": "application/json",
                     },
-                    json={
-                        "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-                        "max_tokens": 2000,
-                        "messages": messages
-                    }
+                    json=payload
                 )
 
             if response.status_code == 200:

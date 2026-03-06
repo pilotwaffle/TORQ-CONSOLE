@@ -120,7 +120,7 @@ async def test_two_turn_continuity():
 
     # Turn 1: Establish context
     print_info("Turn 1: Establishing context...")
-    print_info('  Sending: "I\\'m building an AI consulting platform for business users."')
+    print_info('  Sending: "I\'m building an AI consulting platform for business users."')
 
     response1 = await send_message(
         session_id,
@@ -326,7 +326,7 @@ async def test_session_isolation():
 
     # Session A: specific context
     print_info("Session A: Setting unique context...")
-    print_info('  Sending: "I\\'m building a real estate platform called PropTech360."')
+    print_info('  Sending: "I\'m building a real estate platform called PropTech360."')
 
     response_a = await send_message(
         session_a,
@@ -342,7 +342,7 @@ async def test_session_isolation():
     # Session B: different context
     print()
     print_info("Session B: Setting different context...")
-    print_info('  Sending: "I\\'m building a food delivery app called QuickBite."')
+    print_info('  Sending: "I\'m building a food delivery app called QuickBite."')
 
     response_b = await send_message(
         session_b,
