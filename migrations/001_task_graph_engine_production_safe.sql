@@ -342,11 +342,11 @@ SELECT
     ROUND(
         CASE
             WHEN COUNT(n.node_id) > 0
-            THEN (COUNT(n.node_id) FILTER (WHERE r.status = 'completed')::float / COUNT(n.node_id) * 100)
+            THEN (COUNT(n.node_id) FILTER (WHERE r.status = 'completed')::numeric / COUNT(n.node_id) * 100)
             ELSE 0
-        END,
+        END::numeric,
         2
-    ) AS progress_percentage,
+    )::numeric AS progress_percentage,
     jsonb_agg(
         jsonb_build_object(
             'node_id', n.node_id,
