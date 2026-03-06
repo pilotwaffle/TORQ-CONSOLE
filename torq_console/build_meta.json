@@ -1,8 +1,8 @@
 {
-  "git_sha": "86c8ddac800d2e2381e4728c4bb70a53e104c187",
-  "git_short_sha": "86c8ddac800d",
+  "git_sha": "2f8590028bf28a83cb121a3838d262cdcd559197",
+  "git_short_sha": "2f8590028bf2",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T04:18:28.650256+00:00",
+  "built_at": "2026-03-06T04:28:57.054796+00:00",
   "branch": "main",
-  "commit_message": "fix: surface router import errors and add startup route dump"
+  "commit_message": "feat: add execution graph endpoint and v2 enhancements"
 }
