@@ -80,8 +80,8 @@ CREATE TABLE IF NOT EXISTS task_nodes (
     -- Enforce size limits
     CONSTRAINT parameters_size_limit CHECK (parameters_size_bytes <= 65536), -- 64KB
     CHECK (
-        COALESCE(fallback_node_id, fallback_node_key) IS NULL OR
-        fallback_node_id IS NOT NULL OR fallback_node_key IS NOT NULL
+        (fallback_node_id IS NULL AND fallback_node_key IS NULL) OR
+        (fallback_node_id IS NOT NULL)
     )
 );
 
