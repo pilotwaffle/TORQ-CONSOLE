@@ -1,8 +1,8 @@
 {
-  "git_sha": "5cf6786dbe79cb493931e37864b2d0d5f8beafb4",
-  "git_short_sha": "5cf6786dbe79",
+  "git_sha": "745faa388bacc9f5b23bad5e9ca5c74979ae44ab",
+  "git_short_sha": "745faa388bac",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T05:01:17.944987+00:00",
+  "built_at": "2026-03-06T05:18:52.449292+00:00",
   "branch": "main",
-  "commit_message": "Add session memory persistence for chat continuity"
+  "commit_message": "chore: trigger Railway redeploy for session memory"
 }
