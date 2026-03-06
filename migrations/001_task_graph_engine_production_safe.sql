@@ -493,25 +493,3 @@ CREATE POLICY "task_webhooks_read_own_tenant" ON task_webhooks
               AND g.tenant_id = COALESCE(current_setting('request.jwt.claim.tenant_id', true), 'default')
         )
     );
-
--- ============================================================================
--- Success message
--- ============================================================================
-
-DO $$
-BEGIN
-    RAISE NOTICE 'Task Graph Engine tables created successfully with production safety features!';
-    RAISE NOTICE 'Features included:';
-    RAISE NOTICE '  - Idempotency keys scoped per-tenant for exactly-once semantics';
-    RAISE NOTICE '  - State machine with enforced transitions on runtime state tables';
-    RAISE NOTICE '  - Concurrency-safe single-runner lock (prevents duplicate node claims)';
-    RAISE NOTICE '  - Input/output size limits (64KB input, 256KB output)';
-    RAISE NOTICE '  - Tenant isolation via RLS policies';
-    RAISE NOTICE '  - Execution summary view for UI';
-    RAISE NOTICE '  - Webhook configuration table';
-    RAISE NOTICE '  ';
-    RAISE NOTICE 'Definition tables (static): task_graphs, task_nodes, task_edges, task_webhooks';
-    RAISE NOTICE 'Runtime tables (stateful): task_executions, task_node_results';
-    RAISE NOTICE 'View: execution_summary_view';
-END;
-$$;
