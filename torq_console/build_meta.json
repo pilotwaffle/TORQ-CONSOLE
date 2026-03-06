@@ -1,8 +1,8 @@
 {
-  "git_sha": "f1a3607e3aae3ed4270b8abc853b84ed6cba7b02",
-  "git_short_sha": "f1a3607e3aae",
+  "git_sha": "94675d8d07ae4d309025fa6d7eebcb4ac40bcc44",
+  "git_short_sha": "94675d8d07ae",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T01:48:37.603785+00:00",
+  "built_at": "2026-03-06T01:51:18.923232+00:00",
   "branch": "main",
-  "commit_message": "fix: correct PostgreSQL generated column syntax"
+  "commit_message": "fix: remove type mismatch in fallback constraint"
 }
