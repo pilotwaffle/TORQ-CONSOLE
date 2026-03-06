@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS task_nodes (
     parameters JSONB DEFAULT '{}',
 
     -- Size limits
-    parameters_size_bytes INTEGER DEFAULT 0 GENERATED ALWAYS AS (octet_length(parameters::text)),
+    parameters_size_bytes INTEGER GENERATED ALWAYS AS (octet_length(parameters::text)) STORED,
 
     -- Execution config (static configuration, not runtime state)
     retry_policy JSONB DEFAULT '{"max_retries": 3, "retry_delay_ms": 1000, "failure_strategy": "retry"}',
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS task_executions (
 
     -- Results with size limits
     output JSONB DEFAULT '{}',
-    output_size_bytes INTEGER DEFAULT 0 GENERATED ALWAYS AS (octet_length(output::text)),
+    output_size_bytes INTEGER GENERATED ALWAYS AS (octet_length(output::text)) STORED,
     output_ref TEXT, -- Reference to external storage if output is large
 
     error_message TEXT,
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS task_node_results (
     -- Execution result (runtime state)
     status TEXT NOT NULL,
     output JSONB DEFAULT '{}',
-    output_size_bytes INTEGER DEFAULT 0 GENERATED ALWAYS AS (octet_length(output::text)),
+    output_size_bytes INTEGER GENERATED ALWAYS AS (octet_length(output::text)) STORED,
     output_ref TEXT,
 
     error_message TEXT,
