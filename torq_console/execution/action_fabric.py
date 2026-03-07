@@ -535,22 +535,66 @@ class ExternalActionFabric:
                     execution_duration_seconds=0
                 )
 
-            # 5. Execute
+            # Auto-register connector with health monitor if not already registered
+            if not self._health_monitor.get_circuit_breaker(connector.connector_id):
+                self._health_monitor.register_connector(
+                    connector_id=connector.connector_id,
+                    connector_type=connector.config.connector_type,
+                    circuit_breaker_config=CircuitBreakerConfig(
+                        failure_threshold=5,
+                        open_timeout_seconds=60.0
+                    )
+                )
+
+            # 5. Circuit Breaker Check
+            breaker = self._health_monitor.get_circuit_breaker(connector.connector_id)
+            if breaker and not breaker.can_execute:
+                self._stats["circuit_breaker_trips"] += 1
+                action.state = ActionState.FAILED
+                action.error_message = f"Circuit breaker is open for {action.connector_type}"
+
+                self._emit_event(ActionFabricEvent(
+                    event_type="action_blocked",
+                    action_id=action.action_id,
+                    connector_type=action.connector_type,
+                    action_type=action.action_type,
+                    data={"reason": "Circuit breaker open"},
+                    workspace_id=action.workspace_id
+                ))
+
+                return ActionExecutionResult(
+                    success=False,
+                    action_id=action.action_id,
+                    connector_type=action.connector_type,
+                    action_type=action.action_type,
+                    error_message=f"Circuit breaker is open for {action.connector_type}",
+                    error_code="CIRCUIT_OPEN",
+                    retryable=False,
+                    execution_duration_seconds=0
+                )
+
+            # 6. Execute through circuit breaker
             action.state = ActionState.EXECUTING
             action.started_at = time.time()
 
-            result = await execute_with_retry(
-                connector,
-                action,
-                RetryPolicy(max_retries=action.max_retries)
-            )
+            async def execute_through_breaker():
+                return await execute_with_retry(
+                    connector,
+                    action,
+                    RetryPolicy(max_retries=action.max_retries)
+                )
 
-            # 6. Verify Result
+            if breaker:
+                result = await breaker.execute(execute_through_breaker)
+            else:
+                result = await execute_through_breaker()
+
+            # 7. Verify Result
             verified, verification_message = await self._verifier.verify(result, action)
             result.verified = verified
             result.verification_message = verification_message
 
-            # 7. Update state
+            # 8. Update state
             action.completed_at = time.time()
             action.execution_duration_seconds = action.completed_at - action.started_at
             action.result = result.result
@@ -572,6 +616,10 @@ class ExternalActionFabric:
                 action.error_message = result.error_message
                 self._stats["failed_actions"] += 1
 
+                # Record failure in circuit breaker
+                if breaker:
+                    breaker._state.record_failure()
+
                 self._emit_event(ActionFabricEvent(
                     event_type="action_failed",
                     action_id=action.action_id,
@@ -581,7 +629,7 @@ class ExternalActionFabric:
                     workspace_id=action.workspace_id
                 ))
 
-            # 8. Persist to state store
+            # 9. Persist to state store
             if self._state_store:
                 await self._save_action_record(action, result)
 
