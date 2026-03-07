@@ -1,8 +1,8 @@
 {
-  "git_sha": "db265ba56f51e5f5ecf1870af59170970d9d1107",
-  "git_short_sha": "db265ba56f51",
+  "git_sha": "7cdb5215d85bad634c7a811e4eee0bbf0d1b2113",
+  "git_short_sha": "7cdb5215d85b",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-07T14:16:54.096282+00:00",
+  "built_at": "2026-03-07T14:51:18.127994+00:00",
   "branch": "main",
-  "commit_message": "Add Phase 8 E2E Smoke Tests"
+  "commit_message": "Phase 8: Integrate Circuit Breaker into Action Fabric"
 }
