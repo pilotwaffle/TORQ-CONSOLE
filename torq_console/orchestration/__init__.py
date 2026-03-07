@@ -25,8 +25,12 @@ Phase 4: Production Optimization
 - Documentation
 """
 
-from .integration import TorqControlFlowIntegration
-
-__all__ = ['TorqControlFlowIntegration']
+# Make integration optional since controlflow module may not be available
+try:
+    from .integration import TorqControlFlowIntegration
+    __all__ = ['TorqControlFlowIntegration']
+except ImportError:
+    __all__ = []
+    TorqControlFlowIntegration = None
 
 __version__ = '0.1.0'  # Phase 1: Core Integration
