@@ -40,6 +40,12 @@ from enum import Enum
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel, Field
 
+# Phase 2: Routing Override Import
+from .routing.realtime_override import detect_routing_override, RoutingOverride
+
+# Phase 3: Tool Policy Engine Import
+from .tools.tool_policy_engine import ToolPolicyEngine, ToolPolicy
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -70,6 +76,7 @@ class ExecutionMode(str, Enum):
     PARALLEL = "parallel"      # Agents work simultaneously
     HIERARCHICAL = "hierarchical"  # Lead agent delegates
     CONSENSUS = "consensus"    # Agents collaborate and vote
+    RESEARCH = "research"      # Deep research with web search tools (Phase 2)
 
 
 class AgentSpeed(str, Enum):
@@ -320,13 +327,33 @@ class UnifiedOrchestrator:
         Unified chat endpoint.
 
         Contract:
-        - agent_id provided → use that agent
+        - agent_id provided → use that agent (routing override still applies for mode selection)
         - agent_id null → auto-route based on query
         - mode AUTO → system chooses best approach
         - mode multi-agent → orchestrate
+
+        Phase 2 Enhancement:
+        - Routing override runs FIRST, before agent selection
+        - Forces RESEARCH mode for real-time queries (finance, news, lookups)
+        - Ensures web search tools are available for override queries
         """
         task_id = str(uuid.uuid4())
         start_time = time.time()
+
+        # ======================================================================
+        # PHASE 2: Routing Override Detection (HIGHEST PRIORITY)
+        # ======================================================================
+        # This runs BEFORE any agent selection or mode decision.
+        # Real-time queries (finance, news, current events) get hard-routed
+        # to RESEARCH mode with web search tools.
+        routing_override: RoutingOverride = detect_routing_override(request.message)
+
+        if routing_override.force_research:
+            logger.info(
+                f"Routing override triggered: query='{request.message[:100]}', "
+                f"reason={routing_override.reason}, "
+                f"matched_terms={routing_override.matched_terms}"
+            )
 
         try:
             # Get available agents
@@ -352,7 +379,7 @@ class UnifiedOrchestrator:
             routing_confidence = 0.0
 
             if request.agent_id:
-                # Explicit agent selection
+                # Explicit agent selection (but override still affects mode/tools)
                 selected_agent = await self.registry.get_agent(request.agent_id)
                 if not selected_agent:
                     return UnifiedChatResponse(
@@ -370,27 +397,121 @@ class UnifiedOrchestrator:
                 routing_confidence = 1.0
             else:
                 # Auto-routing
-                routing = await self._route_request(request.message, active_agents)
-                selected_agent = await self.registry.get_agent(routing["agent_id"])
-                routed_to = routing["agent_id"]
-                routing_confidence = routing["confidence"]
+                # Phase 2: If override active, prioritize research-capable agents
+                if routing_override.force_research:
+                    # Prefer agents with web search capability
+                    for agent in active_agents:
+                        if "web search" in [t.lower() for t in agent.tools]:
+                            selected_agent = agent
+                            routed_to = agent.agent_id
+                            routing_confidence = 1.0
+                            logger.info(f"Routing override selected agent: {agent.agent_id} (has web_search)")
+                            break
+
+                # Fallback to normal routing if no agent matched or no override
+                if not selected_agent:
+                    routing = await self._route_request(request.message, active_agents)
+                    selected_agent = await self.registry.get_agent(routing["agent_id"])
+                    routed_to = routing["agent_id"]
+                    routing_confidence = routing["confidence"]
 
             if not selected_agent:
                 selected_agent = active_agents[0]
                 routed_to = selected_agent.agent_id
 
             # Determine execution mode
+            # Phase 2: Override forces RESEARCH mode
             mode_to_use = request.mode
-            if mode_to_use == ExecutionMode.AUTO:
+            if routing_override.force_research:
+                # Hard-route to RESEARCH mode
+                mode_to_use = ExecutionMode.RESEARCH if hasattr(ExecutionMode, 'RESEARCH') else ExecutionMode.SINGLE
+                logger.info(f"Routing override forced mode: {mode_to_use}")
+            elif mode_to_use == ExecutionMode.AUTO:
                 # System chooses based on query complexity
                 mode_to_use = await self._select_mode(request.message, routing_confidence)
+
+            # ======================================================================
+            # PHASE 3: Tool Policy Enforcement
+            # ======================================================================
+            # When routing override is active, execute tools BEFORE LLM call
+            # This ensures live data is retrieved and prevents "I don't have live data" responses
+            tool_results = []
+            tool_policy_engine = ToolPolicyEngine()
+            tool_attempted = False
+            tool_success = False
+
+            if routing_override.force_research:
+                # Determine tool policy based on routing override
+                policy_decision = tool_policy_engine.decide_policy(
+                    routing_override.reason,
+                    request.message
+                )
+
+                logger.info(
+                    f"Tool policy decision: policy={policy_decision.policy}, "
+                    f"tools={policy_decision.tool_classes}, reason={policy_decision.reason}"
+                )
+
+                # Execute tools if policy requires it
+                if policy_decision.policy == ToolPolicy.REQUIRED:
+                    tool_attempted = True
+                    tool_results = await tool_policy_engine.execute_tool_chain(
+                        policy_decision,
+                        request.message
+                    )
+
+                    # Check if any tool succeeded
+                    tool_success = any(r.success for r in tool_results)
+
+                    logger.info(
+                        f"Tool execution results: attempted={tool_attempted}, "
+                        f"success={tool_success}, results={len(tool_results)}"
+                    )
+
+                    # Format tool results for LLM context
+                    if tool_results:
+                        tool_context = tool_policy_engine.format_tool_results_for_llm(
+                            tool_results,
+                            request.message
+                        )
+
+                        if tool_context:
+                            logger.info(f"Tool context for LLM: {tool_context[:200]}...")
+
+            # Prepare context with routing override info
+            enhanced_context = dict(request.context)
+
+            if routing_override.force_research:
+                override_info = {
+                    "active": True,
+                    "reason": routing_override.reason,
+                    "force_tools": routing_override.force_tools,
+                    "matched_terms": routing_override.matched_terms,
+                    "tool_attempted": tool_attempted,
+                    "tool_success": tool_success,
+                }
+
+                # Add tool results to context
+                if tool_results:
+                    successful_results = [r for r in tool_results if r.success]
+                    if successful_results:
+                        override_info["tool_results"] = [
+                            {
+                                "tool_class": r.tool_class,
+                                "data": r.data,
+                                "raw_response": r.raw_response
+                            }
+                            for r in successful_results
+                        ]
+
+                enhanced_context.update({"routing_override": override_info})
 
             # Execute based on mode
             if mode_to_use == ExecutionMode.SINGLE:
                 result = await self._execute_single(
                     selected_agent,
                     request.message,
-                    request.context,
+                    enhanced_context,
                     session_id=request.session_id
                 )
                 agents_involved = [selected_agent.agent_id]
@@ -401,12 +522,38 @@ class UnifiedOrchestrator:
                     active_agents,
                     request.message,
                     mode_to_use,
-                    request.context,
+                    enhanced_context,
                     session_id=request.session_id
                 )
                 agents_involved = result.get("agents_involved", [selected_agent.agent_id])
 
             duration_ms = int((time.time() - start_time) * 1000)
+
+            # Build routing metadata
+            routing_metadata = {
+                "selected_agent": routed_to,
+                "confidence": routing_confidence,
+                "override_active": routing_override.force_research,
+            }
+
+            # Phase 3: Add tool execution metadata
+            if tool_attempted:
+                routing_metadata["tool_attempted"] = True
+                routing_metadata["tool_success"] = tool_success
+                if tool_results:
+                    successful_tools = [r.tool_class for r in tool_results if r.success]
+                    if successful_tools:
+                        routing_metadata["tools_used"] = successful_tools
+
+            # Add override info to routing metadata
+            if routing_override.force_research:
+                routing_metadata.update({
+                    "override_reason": routing_override.reason,
+                    "override_matched_terms": routing_override.matched_terms,
+                    "reasoning": f"Routing override: {routing_override.reason}"
+                })
+            else:
+                routing_metadata["reasoning"] = "Explicit agent selection" if request.agent_id else "Agent selected based on query analysis"
 
             return UnifiedChatResponse(
                 text=result.get("response", ""),
@@ -416,15 +563,14 @@ class UnifiedOrchestrator:
                 agent_id=routed_to,  # Legacy compatibility
                 mode_used=mode_to_use,
                 agents_involved=agents_involved,
-                routing={
-                    "selected_agent": routed_to,
-                    "confidence": routing_confidence,
-                    "reasoning": "Explicit agent selection" if request.agent_id else "Agent selected based on query analysis"
-                },
+                routing=routing_metadata,
                 metadata={
                     "task_id": task_id,
                     "duration_ms": duration_ms,
-                    "agent_count": len(agents_involved)
+                    "agent_count": len(agents_involved),
+                    "routing_override": routing_override.force_research,
+                    "tool_attempted": tool_attempted,
+                    "tool_success": tool_success,
                 },
                 latency_ms=duration_ms,
                 duration_ms=duration_ms  # Legacy compatibility
@@ -506,8 +652,41 @@ class UnifiedOrchestrator:
                 "agents_involved": [agent.agent_id]
             }
 
+        # Use actual TORQ Prince Flowers agent with web search for research queries
+        if agent.agent_id == "torq_prince_flowers":
+            return await self._execute_with_torq_agent(query, context, session_id)
+
         # Build messages array with conversation history
         messages = []
+
+        # Phase 3: Inject tool results into message context
+        # This ensures the LLM has access to live data when tools were executed
+        routing_override = context.get("routing_override", {})
+        if routing_override.get("tool_results"):
+            tool_context_parts = []
+            for tool_result in routing_override["tool_results"]:
+                tool_class = tool_result.get("tool_class")
+                data = tool_result.get("data")
+
+                if tool_class == "weather":
+                    tool_context_parts.append(
+                        f"Current weather data for {data.get('location')}: "
+                        f"{data.get('temperature_f')}F ({data.get('temperature_c')}C), "
+                        f"{data.get('condition')}, Humidity: {data.get('humidity')}%"
+                    )
+                elif tool_class == "finance":
+                    if data.get("asset_type") == "crypto":
+                        tool_context_parts.append(
+                            f"Current {data.get('symbol')} price: ${data.get('price_us'):,.2f} "
+                            f"({data.get('change_24h_percent'):+.2f}% change)"
+                        )
+                    else:
+                        tool_context_parts.append(f"Finance data: {tool_result.get('raw_response')}")
+
+            if tool_context_parts:
+                # Add as system message with tool context
+                tool_context = "\n".join(tool_context_parts)
+                logger.info(f"Injecting tool results into conversation: {tool_context[:100]}...")
 
         # Load session history if session store is available
         if self.session_store and session_id:
@@ -522,8 +701,30 @@ class UnifiedOrchestrator:
             except Exception as e:
                 logger.warning(f"Failed to load session history: {e}")
 
-        # Add current query
-        messages.append({"role": "user", "content": query})
+        # Phase 3: If tool results exist, prepend them to the user query
+        user_content = query
+        if routing_override.get("tool_results"):
+            tool_context_parts = []
+            for tool_result in routing_override["tool_results"]:
+                tool_class = tool_result.get("tool_class")
+                data = tool_result.get("data")
+
+                if tool_class == "weather":
+                    tool_context_parts.append(
+                        f"[Current Data] The weather in {data.get('location')} is "
+                        f"{data.get('temperature_f')}F and {data.get('condition')}."
+                    )
+                elif tool_class == "finance" and data.get("asset_type") == "crypto":
+                    tool_context_parts.append(
+                        f"[Current Data] {data.get('symbol')} is trading at "
+                        f"${data.get('price_usd'):,.2f} ({data.get('change_24h_percent'):+.2f}%)."
+                    )
+
+            if tool_context_parts:
+                user_content = "\n\n".join(tool_context_parts) + f"\n\nUser question: {query}"
+
+        # Add current query (with tool context if available)
+        messages.append({"role": "user", "content": user_content})
 
         # Get TORQ-native system context (as separate parameter for Anthropic API)
         system_context = self._get_system_context(agent)
@@ -583,6 +784,113 @@ class UnifiedOrchestrator:
 
         except Exception as e:
             return {"response": f"Error: {str(e)}", "agents_involved": [agent.agent_id]}
+
+    async def _execute_with_torq_agent(
+        self,
+        query: str,
+        context: Dict[str, Any],
+        session_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Execute using actual TORQ Prince Flowers agent with web search."""
+        try:
+            # Import the actual TORQ agent and LLM provider
+            from .torq_prince_flowers import TORQPrinceFlowers
+            from ..llm.providers.claude import ClaudeProvider
+
+            # Create LLM provider with API key from environment
+            llm_provider = ClaudeProvider()
+
+            # Create agent instance with LLM provider
+            torq_agent = TORQPrinceFlowers(llm_provider=llm_provider)
+
+            # Process query with full web search capabilities
+            result = await torq_agent.process_query(
+                query=query,
+                context=context or {}
+            )
+
+            # Format response
+            response_text = result.response if result.success else result.error_message
+
+            # Persist to session store
+            if self.session_store and session_id:
+                try:
+                    await self.session_store.add_message(
+                        session_id=session_id,
+                        role="user",
+                        content=query,
+                        agent_id="torq_prince_flowers"
+                    )
+                    await self.session_store.add_message(
+                        session_id=session_id,
+                        role="assistant",
+                        content=response_text,
+                        agent_id="torq_prince_flowers"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to persist messages: {e}")
+
+            return {
+                "response": response_text,
+                "agents_involved": ["torq_prince_flowers"],
+                "metadata": {
+                    "search_performed": result.metadata.get("search_performed", False),
+                    "search_results": result.metadata.get("search_results", []),
+                    "reasoning_steps": result.metadata.get("reasoning_steps", [])
+                }
+            }
+
+        except ImportError as e:
+            logger.error(f"Failed to import TORQ agent: {e}")
+            # Fallback to direct API call
+            return await self._execute_single_fallback(query, session_id)
+        except Exception as e:
+            logger.error(f"TORQ agent execution failed: {e}")
+            return {"response": f"Agent Error: {str(e)}", "agents_involved": ["torq_prince_flowers"]}
+
+    async def _execute_single_fallback(
+        self,
+        query: str,
+        session_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Fallback to direct API call when TORQ agent is unavailable."""
+        import httpx
+
+        system_context = """You are TORQ Prince Flowers, an AI agent with web search capabilities.
+
+When asked questions that require current information or research:
+1. Acknowledge that you would search the web for this information
+2. Provide your general knowledge on the topic
+3. Mention that for the most accurate, up-to-date information, web search would be used"""
+
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                payload = {
+                    "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+                    "max_tokens": 2000,
+                    "messages": [{"role": "user", "content": query}],
+                    "system": system_context
+                }
+
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": ANTHROPIC_API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json=payload
+                )
+
+            if response.status_code == 200:
+                data = response.json()
+                content = data.get("content", [{}])[0].get("text", "")
+                return {"response": content, "agents_involved": ["torq_prince_flowers"]}
+            else:
+                return {"response": f"API Error: {response.status_code}", "agents_involved": ["torq_prince_flowers"]}
+
+        except Exception as e:
+            return {"response": f"Error: {str(e)}", "agents_involved": ["torq_prince_flowers"]}
 
     def _get_system_context(self, agent: AgentCard) -> str:
         """Generate TORQ-native system context for agents."""
@@ -687,12 +995,20 @@ def create_unified_router(session_store: Optional["SessionStore"] = None) -> API
         - mode "auto" → system chooses best approach
         - mode multi-agent → orchestrate multiple agents
         """
+        # Phase 2: Sanity log for routing audit
         logger.info(
-            f"Chat request: agent={request.agent_id}, mode={request.mode}, "
-            f"message={request.message[:50]}..."
+            f"/api/chat request - agent_id={request.agent_id or 'auto'}, "
+            f"mode={request.mode}, message={request.message[:50]}..."
         )
 
         result = await orchestrator.chat(request)
+
+        # Phase 2: Sanity log for routing result
+        logger.info(
+            f"/api/chat routing result - agent_id_used={result.agent_id_used}, "
+            f"mode_used={result.mode_used}, "
+            f"routing_override={result.metadata.get('routing_override', False)}"
+        )
 
         # Emit telemetry
         background_tasks.add_task(emit_telemetry, "chat.unified", {

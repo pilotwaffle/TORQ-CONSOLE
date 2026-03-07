@@ -207,8 +207,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       }
     });
 
-    // Connect to WebSocket
-    websocketManager.connect();
+    // Connect to WebSocket - DISABLED: Using HTTP fallback only
+    // websocketManager.connect();
 
     // Immediate health check
     fetch('/health').then((res) => {

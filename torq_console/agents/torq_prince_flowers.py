@@ -631,7 +631,7 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
                 'complexity_threshold': 0.6,
                 'success_rate': 0.85,
                 'avg_tools': 2.5,
-                'preferred_domains': ['current_events', 'factual_research', 'news']
+                'preferred_domains': ['current_events', 'factual_research', 'news', 'finance', 'business']
             },
             ReasoningMode.ANALYSIS: {
                 'description': 'Deep analysis with multi-source synthesis',
@@ -951,6 +951,7 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             'technology': ['ai', 'artificial intelligence', 'computer', 'software', 'tech', 'programming', 'code'],
             'science': ['research', 'study', 'experiment', 'scientific', 'theory', 'analysis'],
             'business': ['market', 'company', 'business', 'economy', 'financial', 'enterprise'],
+            'finance': ['price', 'cost', 'stock', 'bitcoin', 'crypto', 'currency', 'trading', 'investment', 'value', 'rate'],
             'news': ['news', 'latest', 'recent', 'current events', 'today', 'breaking'],
             'education': ['learn', 'understand', 'explain', 'teach', 'education', 'tutorial'],
             'personal': ['help', 'advice', 'recommend', 'suggest', 'opinion']
@@ -1008,10 +1009,10 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
             # Intent compatibility
             intent_bonus = 0.2 if intent in strategy_info.get('preferred_domains', []) else 0.0
 
-            # Resource alignment
+            # Resource alignment - stronger bias for RESEARCH when web search is needed
             resource_bonus = 0.0
             if mode == ReasoningMode.RESEARCH and resources['needs_web_search']:
-                resource_bonus += 0.3
+                resource_bonus += 0.5  # Increased from 0.3 to prioritize search for current/latest queries
             elif mode == ReasoningMode.ANALYSIS and resources['needs_deep_analysis']:
                 resource_bonus += 0.3
             elif mode == ReasoningMode.COMPOSITION and resources['needs_multi_step']:
@@ -1022,8 +1023,16 @@ Remember: Your goal is to be maximally helpful while maintaining the highest sta
 
             mode_scores[mode] = base_score + complexity_match + intent_bonus + resource_bonus + exploration_bonus
 
-        # Select mode with highest score
-        selected_mode = max(mode_scores, key=mode_scores.get)
+        # HARD OVERRIDE: If web search is needed, force RESEARCH mode
+        # This ensures queries about prices, news, current events always trigger search
+        if resources['needs_web_search'] and ReasoningMode.RESEARCH in mode_scores:
+            selected_mode = ReasoningMode.RESEARCH
+
+            # Log the override for transparency
+            self.logger.info(f"[ROUTING OVERRIDE] Forcing RESEARCH mode due to needs_web_search=True for query: {query[:50]}...")
+        else:
+            # Select mode with highest score
+            selected_mode = max(mode_scores, key=mode_scores.get)
 
         # Record action for learning
         action = AgenticAction(

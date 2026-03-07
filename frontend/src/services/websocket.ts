@@ -28,6 +28,11 @@ class WebSocketManager {
   constructor(private url: string = '') { }
 
   private async getStreamingEnabled(): Promise<boolean> {
+    // TODO: Re-enable streaming once /api/chat/stream uses agent orchestration
+    // For now, use REST endpoint which has full TORQ agent support
+    return false;
+
+    /*
     const now = Date.now();
     // Cache valid for 30 seconds
     if (this.statusCache && now - this.statusCache.ts < 30000) {
@@ -46,6 +51,7 @@ class WebSocketManager {
       console.warn('Failed to check streaming status:', e);
     }
     return false; // Default off if check fails
+    */
   }
 
   async connect(): Promise<void> {
@@ -70,19 +76,31 @@ class WebSocketManager {
       return;
     }
 
-    this.isManualDisconnect = false;
-    this.connectionStatus = 'connecting';
+    try {
+      this.isManualDisconnect = false;
+      this.connectionStatus = 'connecting';
 
-    this.socket = io(this.url, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: this.maxReconnectAttempts,
-      reconnectionDelay: this.reconnectDelay,
-      reconnectionDelayMax: 5000,
-      timeout: 20000,
-    });
+      this.socket = io(this.url, {
+        autoConnect: false,  // Prevent auto-connect - allow UI to render without WebSocket
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        reconnectionDelay: this.reconnectDelay,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+      });
 
-    this.setupEventListeners();
+      this.setupEventListeners();
+
+      // Explicitly connect since autoConnect is false
+      if (this.socket && !this.socket.connected) {
+        this.socket.connect();
+      }
+    } catch (error) {
+      console.error('WebSocket connection failed:', error);
+      this.connectionStatus = 'disconnected';
+      // Don't throw - allow app to function with HTTP polling fallback
+    }
   }
 
   disconnect(): void {
@@ -232,7 +250,7 @@ class WebSocketManager {
         role: 'assistant',
         content: data.response || data.error || 'No response',
         timestamp: Date.now(),
-        agentId: data.agent_id || agentId || 'prince_flowers',
+        agentId: data.agent_id || agentId || 'torq_prince_flowers',
       };
 
       // Log routing info for debugging
@@ -260,8 +278,10 @@ class WebSocketManager {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: content,
+          session_id: sessionId,
+          agent_id: agentId || null,
           mode: 'single_agent',
-          model: 'claude-3-5-sonnet-20240620',
+          model: 'claude-sonnet-4-6',
         }),
       });
 
@@ -282,7 +302,7 @@ class WebSocketManager {
           role: 'assistant',
           content: text,
           timestamp: Date.now(),
-          agentId: agentId || 'prince_flowers',
+          agentId: agentId || 'torq_prince_flowers',
         };
         // Emit via onAgentResponse for store upsert (with sessionId)
         this.eventHandlers.onAgentResponse?.({ sessionId, message: msg });

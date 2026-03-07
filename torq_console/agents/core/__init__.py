@@ -9,7 +9,10 @@ all functionality and eliminating code duplication.
 """
 
 # Core Components
-from .base_agent import BaseAgent, AgentCapability, AgentStatus
+from .base_agent import (
+    BaseAgent, AgentCapability, AgentStatus,
+    AgentContext, AgentResult, AgentMetrics
+)
 from .registry import AgentRegistry, get_agent_registry
 from .interfaces import (
     IAgent,
@@ -41,6 +44,9 @@ __all__ = [
     'BaseAgent',
     'AgentCapability',
     'AgentStatus',
+    'AgentContext',
+    'AgentResult',
+    'AgentMetrics',
     'AgentRegistry',
     'get_agent_registry',
 

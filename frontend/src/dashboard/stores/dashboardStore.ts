@@ -60,7 +60,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   activeSessionId: null,
   systemStatus: null,
   selectedMode: 'single_agent',
-  selectedAgentId: 'prince_flowers',
+  selectedAgentId: 'torq_prince_flowers',
   isLoading: false,
   isSending: false,
   error: null,
@@ -78,7 +78,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       set({
         agents: [
           {
-            id: 'prince_flowers',
+            id: 'torq_prince_flowers',
             name: 'Prince Flowers',
             description: 'Enhanced conversational AI with code, task, and general chat',
             capabilities: ['general_chat', 'code_generation', 'task_planning', 'documentation'],
