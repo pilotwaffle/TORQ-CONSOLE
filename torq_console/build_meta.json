@@ -1,8 +1,8 @@
 {
-  "git_sha": "ad727131891ba0ba84b7e663005d28b9725aaed3",
-  "git_short_sha": "ad727131891b",
+  "git_sha": "c8ae0c15dca7dcaaedc918c766f46d5383b5af1f",
+  "git_short_sha": "c8ae0c15dca7",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-07T06:50:46.838538+00:00",
+  "built_at": "2026-03-07T07:12:50.866409+00:00",
   "branch": "main",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "Phase 8 Hardening: Idempotency, Circuit Breaking, Provenance"
 }
