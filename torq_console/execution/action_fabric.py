@@ -40,6 +40,18 @@ from ..connectors.base import (
 )
 from ..autonomy.models import ApprovalRequest, ApprovalStatus, PolicyDecision, PolicyLevel
 from ..autonomy.state_store import StateStore
+from .provenance import (
+    ProvenanceStore,
+    ExecutionProvenance,
+    ProvenanceEventType,
+    get_provenance_store,
+)
+from .circuit_breaker import (
+    CircuitBreaker,
+    CircuitOpenError,
+    HealthMonitor,
+    get_health_monitor,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -226,7 +238,9 @@ class ExternalActionFabric:
     def __init__(
         self,
         connector_registry: Optional[ConnectorRegistry] = None,
-        state_store: Optional[StateStore] = None
+        state_store: Optional[StateStore] = None,
+        provenance_store: Optional[ProvenanceStore] = None,
+        health_monitor: Optional[HealthMonitor] = None
     ):
         """
         Initialize the Action Fabric.
@@ -234,9 +248,13 @@ class ExternalActionFabric:
         Args:
             connector_registry: Registry of available connectors
             state_store: State store for persistence
+            provenance_store: Provenance store for traceability
+            health_monitor: Health monitor for circuit breaking
         """
         self._registry = connector_registry or get_connector_registry()
         self._state_store = state_store
+        self._provenance = provenance_store or get_provenance_store()
+        self._health_monitor = health_monitor or get_health_monitor()
 
         # Action queue
         self._queue = ActionQueue()
@@ -262,6 +280,8 @@ class ExternalActionFabric:
             "failed_actions": 0,
             "approval_required": 0,
             "approval_denied": 0,
+            "idempotency_hits": 0,
+            "circuit_breaker_trips": 0,
         }
 
         self.logger = logging.getLogger(__name__)
@@ -313,7 +333,9 @@ class ExternalActionFabric:
         environment: Optional[str] = None,
         requested_by: Optional[str] = None,
         risk_level: RiskLevel = RiskLevel.MEDIUM,
-        task_id: Optional[str] = None
+        task_id: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        idempotency_key: Optional[str] = None
     ) -> ExternalAction:
         """
         Submit an external action for execution.
@@ -327,10 +349,50 @@ class ExternalActionFabric:
             requested_by: User or agent requesting the action
             risk_level: Risk level of the action
             task_id: Associated task ID
+            trace_id: Root trace ID for provenance
+            idempotency_key: Unique key for deduplication
 
         Returns:
             The created ExternalAction
         """
+        # Generate idempotency key if not provided
+        if not idempotency_key:
+            # Create from workspace, connector, type, and params hash
+            import hashlib
+            params_str = json.dumps(parameters, sort_keys=True)
+            params_hash = hashlib.sha256(params_str.encode()).hexdigest()[:16]
+            idempotency_key = f"{workspace_id}:{connector_type}:{action_type}:{params_hash}"
+
+        # Check for existing provenance (idempotency)
+        existing = self._provenance.get_by_idempotency_key(idempotency_key)
+        if existing:
+            self._stats["idempotency_hits"] += 1
+            self.logger.info(f"Idempotency hit: {idempotency_key}")
+            # Return existing action's info
+            action = ExternalAction(
+                action_id=existing.action_id,
+                action_type=action_type,
+                connector_type=connector_type,
+                parameters=parameters,
+                state=ActionState(existing.status.upper()),
+                result=existing.result
+            )
+            return action
+
+        # Create provenance record
+        provenance = self._provenance.create_provenance(
+            action_id="",  # Will be set when action is created
+            connector_type=connector_type,
+            action_type=action_type,
+            trace_id=trace_id,
+            idempotency_key=idempotency_key,
+            workspace_id=workspace_id,
+            environment=environment,
+            requested_by=requested_by,
+            risk_level=risk_level.value,
+            task_id=task_id
+        )
+
         action = ExternalAction(
             action_type=action_type,
             connector_type=connector_type,
@@ -342,6 +404,9 @@ class ExternalActionFabric:
             task_id=task_id
         )
 
+        # Link action to provenance
+        provenance.action_id = action.action_id
+
         self._stats["total_actions"] += 1
 
         # Emit action created event
@@ -350,7 +415,7 @@ class ExternalActionFabric:
             action_id=action.action_id,
             connector_type=connector_type,
             action_type=action_type,
-            data={"risk_level": risk_level},
+            data={"risk_level": risk_level, "idempotency_key": idempotency_key},
             workspace_id=workspace_id,
             environment=environment,
             requested_by=requested_by
