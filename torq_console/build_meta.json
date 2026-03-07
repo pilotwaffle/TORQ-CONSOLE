@@ -1,8 +1,8 @@
 {
-  "git_sha": "b29173c44a90be32e3b4d1a51dd77940b8a17d3e",
-  "git_short_sha": "b29173c44a90",
+  "git_sha": "764517745c8377464e924a664e446bd3cc4477d1",
+  "git_short_sha": "764517745c83",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-07T06:31:52.746333+00:00",
+  "built_at": "2026-03-07T06:31:58.627049+00:00",
   "branch": "main",
   "commit_message": "chore: update build metadata [skip ci]"
 }
