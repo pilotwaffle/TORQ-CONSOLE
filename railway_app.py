@@ -18,6 +18,19 @@ import json
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
 import sys
+from pathlib import Path
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        logging.info(f"Loaded environment variables from {env_path}")
+    else:
+        logging.warning(f".env file not found at {env_path}")
+except ImportError:
+    logging.warning("python-dotenv not installed - environment variables from system only")
 
 # Configure logging - INFO to stdout, ERROR to stderr
 # This prevents Railway from misclassifying INFO logs as errors
@@ -61,7 +74,7 @@ APP_VERSION = os.getenv('APP_VERSION', '1.1.0-knowledge-plane')
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 logger.info("Creating Railway standalone app...")
@@ -127,8 +140,13 @@ except ImportError:
 except Exception as e:
     logger.warning(f"Failed to initialize session store: {e}")
 
+# Store reference to unified orchestrator for streaming endpoint
+_unified_orchestrator = None
+
 try:
-    from torq_console.agents.railway_orchestration_v2 import create_unified_router
+    from torq_console.agents.railway_orchestration_v2 import create_unified_router, UnifiedOrchestrator
+    # Create orchestrator instance for shared use
+    _unified_orchestrator = UnifiedOrchestrator(session_store=_session_store)
     unified_router = create_unified_router(session_store=_session_store)
     app.include_router(unified_router)
     logger.info("Unified chat API v2 loaded with session support")
@@ -151,6 +169,54 @@ try:
 except Exception as e:
     logger.exception(f"Failed to load task graph engine: {e}")
     raise  # Don't silently continue - we need to know if this fails
+
+# ============================================================================
+# Workflow Planning Copilot Routes
+# ============================================================================
+
+try:
+    from torq_console.workflow_planner import router as workflow_planner_router
+    app.include_router(workflow_planner_router)
+    logger.info("Workflow Planning Copilot routes loaded")
+except Exception as e:
+    logger.exception(f"Failed to load workflow planner: {e}")
+    # Non-fatal - log and continue
+    logger.warning("Workflow Planning Copilot not available")
+
+# ============================================================================
+# Demo Workflow Seeding on Startup
+# ============================================================================
+
+@app.on_event("startup")
+async def seed_demo_workflows_on_startup():
+    """Seed demo workflows if none exist."""
+    try:
+        from supabase import create_client
+        from torq_console.tasks.seed_workflows import seed_demo_workflows
+
+        supabase_url = os.environ.get("SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+        if not supabase_url or not supabase_key:
+            logger.info("Supabase credentials not configured - skipping demo workflow seeding")
+            return
+
+        client = create_client(supabase_url, supabase_key)
+
+        # Check if any workflows exist
+        existing = client.table("task_graphs").select("graph_id", count="exact").execute()
+
+        if existing.count == 0:
+            logger.info("No workflows found - seeding demo workflows...")
+            await seed_demo_workflows(client)
+            logger.info("Demo workflows seeded successfully")
+        else:
+            logger.info(f"Found {existing.count} existing workflows - skipping seeding")
+
+    except ImportError:
+        logger.info("Supabase client not available - skipping workflow seeding")
+    except Exception as e:
+        logger.warning(f"Failed to seed demo workflows: {e}")
 
 # ============================================================================
 # Startup Route Dump (for debugging)
@@ -229,10 +295,12 @@ async def proxy_auth_middleware(request: Request, call_next):
 
 class ChatRequest(BaseModel):
     message: str
-    session_id: str
+    session_id: Optional[str] = None  # Made optional for streaming
     agent_id: Optional[str] = None
     trace_id: Optional[str] = None
     context: Optional[Dict[str, Any]] = None
+    mode: Optional[str] = None  # For frontend compatibility
+    model: Optional[str] = None  # For frontend compatibility
 
 class TelemetryIngest(BaseModel):
     trace: Dict[str, Any]
@@ -308,6 +376,17 @@ async def health_check():
         "proxy_secret_required": bool(PROXY_SECRET)
     }
 
+
+@app.get("/api/status")
+async def status_check():
+    """Status endpoint for frontend - matches expected response format."""
+    return {
+        "status": "healthy",
+        "service": "torq-console-railway",
+        "version": APP_VERSION,
+        "streaming_enabled": True,  # For Phase 1 streaming feature flag
+    }
+
 # ============================================================================
 # Environment Debug
 # ============================================================================
@@ -359,7 +438,13 @@ async def chat(request: ChatRequest):
     trace_id = request.trace_id or f"chat-{int(time.time() * 1000)}"
     start_time = time.time()
 
-    logger.info(f"[{trace_id}] Chat request: {request.message[:100]}...")
+    # Phase 2: Sanity log for routing audit
+    logger.info(
+        f"[{trace_id}] /api/chat request - "
+        f"agent_id={request.agent_id or 'auto'}, "
+        f"mode={request.mode or 'auto'}, "
+        f"message={request.message[:100]}..."
+    )
 
     # Check Anthropic API key
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -631,6 +716,130 @@ async def chat(request: ChatRequest):
     except Exception as e:
         logger.error(f"[{trace_id}] Chat error: {type(e).__name__}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)[:200]}")
+
+# ============================================================================
+# Streaming Chat Endpoint (SSE for frontend streaming)
+# ============================================================================
+
+@app.post("/api/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """
+    Streaming chat endpoint using TORQ orchestration.
+
+    NOW USES: UnifiedOrchestrator for consistent agent behavior
+    Previously: Direct Anthropic API (bypassed tools/orchestration)
+
+    Returns a streaming response with tokens as they're generated.
+    Compatible with the frontend's streaming chat implementation.
+    """
+    import httpx
+    import asyncio
+    import json
+
+    # Generate session_id if not provided
+    session_id = request.session_id or f"session-{int(time.time() * 1000)}"
+    trace_id = request.trace_id or f"stream-{int(time.time() * 1000)}"
+    start_time = time.time()
+
+    logger.info(f"[{trace_id}] Stream chat request: {request.message[:100]}...")
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        logger.error(f"[{trace_id}] ANTHROPIC_API_KEY not configured")
+        async def error_stream():
+            yield f"data: {json.dumps({'error': 'ANTHROPIC_API_KEY not configured'})}\n\n"
+            yield f"data: [DONE]\n\n"
+        return StreamingResponse(error_stream(), media_type="text/event-stream")
+
+    async def event_generator():
+        """Generate SSE events for streaming response using TORQ orchestration."""
+        try:
+            # Use unified orchestrator for consistent behavior with /api/chat
+            if _unified_orchestrator:
+                from torq_console.agents.railway_orchestration_v2 import UnifiedChatRequest, ExecutionMode
+
+                # Create unified request
+                unified_request = UnifiedChatRequest(
+                    message=request.message,
+                    session_id=session_id,
+                    agent_id=request.agent_id,
+                    mode=ExecutionMode.AUTO if request.mode == "auto" else ExecutionMode.SINGLE,
+                    context=request.context or {},
+                    timeout_seconds=120
+                )
+
+                # Get response from orchestrator (non-streaming for now)
+                result = await _unified_orchestrator.chat(unified_request)
+
+                # Phase 2: Sanity log for routing audit - log what was actually used
+                logger.info(
+                    f"[{trace_id}] /api/chat/stream routing result - "
+                    f"agent_id_used={result.agent_id_used}, "
+                    f"mode_used={result.mode_used}, "
+                    f"routing_override={result.metadata.get('routing_override', False)}"
+                )
+
+                # Stream the response as character chunks for frontend compatibility
+                response_text = result.text or result.response or ""
+                chunk_size = 5  # Send small chunks for "streaming" feel
+
+                for i in range(0, len(response_text), chunk_size):
+                    chunk = response_text[i:i + chunk_size]
+                    yield f"data: {json.dumps({'token': chunk})}\n\n"
+                    await asyncio.sleep(0.01)  # Small delay for streaming effect
+
+                yield f"data: [DONE]\n\n"
+                logger.info(f"[{trace_id}] TORQ stream completed in {time.time() - start_time:.2f}s")
+
+            else:
+                # Fallback to direct API if orchestrator not available (should not happen)
+                logger.warning(f"[{trace_id}] Orchestrator not available, using direct API")
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        "https://api.anthropic.com/v1/messages",
+                        headers={
+                            "x-api-key": api_key,
+                            "anthropic-version": "2023-06-01",
+                            "content-type": "application/json",
+                        },
+                        json={
+                            "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+                            "max_tokens": 2000,
+                            "stream": True,
+                            "messages": [{"role": "user", "content": request.message}]
+                        },
+                    )
+
+                    if response.status_code >= 400:
+                        error_msg = f"Anthropic API error: {response.status_code}"
+                        yield f"data: {json.dumps({'error': error_msg})}\n\n"
+                        yield f"data: [DONE]\n\n"
+                        return
+
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        if line.startswith("data: "):
+                            data_str = line[6:]
+                            if data_str == "[DONE]":
+                                yield f"data: [DONE]\n\n"
+                                break
+                            try:
+                                event = json.loads(data_str)
+                                if event.get("type") == "content_block_delta":
+                                    delta = event.get("delta", {})
+                                    if delta.get("type") == "text_delta":
+                                        text = delta.get("text", "")
+                                        yield f"data: {json.dumps({'token': text})}\n\n"
+                            except json.JSONDecodeError:
+                                continue
+
+        except Exception as e:
+            logger.error(f"[{trace_id}] Stream error: {type(e).__name__}: {str(e)}")
+            yield f"data: {json.dumps({'error': str(e)[:200]})}\n\n"
+            yield f"data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 # ============================================================================
 # Telemetry Endpoints
