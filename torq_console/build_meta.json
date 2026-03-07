@@ -1,8 +1,8 @@
 {
-  "git_sha": "0133c1c34411204d4e758e94482e1368c746fa4e",
-  "git_short_sha": "0133c1c34411",
+  "git_sha": "77249222aed3c78bc40a926895b09f5dec936c29",
+  "git_short_sha": "77249222aed3",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-06T05:19:58.818581+00:00",
+  "built_at": "2026-03-07T06:30:32.121585+00:00",
   "branch": "main",
-  "commit_message": "fix: use correct Anthropic API format with system parameter"
+  "commit_message": "Add Phases 5, 6, 7: Complete Autonomous Operations & Governance"
 }
