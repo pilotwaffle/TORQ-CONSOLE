@@ -1,8 +1,8 @@
 {
-  "git_sha": "3c27b187828917ebf6dda7e186cc411520efc24d",
-  "git_short_sha": "3c27b1878289",
+  "git_sha": "b29173c44a90be32e3b4d1a51dd77940b8a17d3e",
+  "git_short_sha": "b29173c44a90",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-07T06:31:27.761992+00:00",
+  "built_at": "2026-03-07T06:31:52.746333+00:00",
   "branch": "main",
-  "commit_message": "Update frontend dependencies and configuration"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
