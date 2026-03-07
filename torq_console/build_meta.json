@@ -1,8 +1,8 @@
 {
-  "git_sha": "cd79505bc77a51c0501dd3ab4365e6cba6605e3f",
-  "git_short_sha": "cd79505bc77a",
+  "git_sha": "ad727131891ba0ba84b7e663005d28b9725aaed3",
+  "git_short_sha": "ad727131891b",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-07T06:50:29.993849+00:00",
+  "built_at": "2026-03-07T06:50:46.838538+00:00",
   "branch": "main",
-  "commit_message": "Add Phase 8: External Action Fabric, Connectors & Enterprise Workflow Execution"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
