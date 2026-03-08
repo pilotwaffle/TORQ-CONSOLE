@@ -1,8 +1,8 @@
 {
-  "git_sha": "304af2f942e6b405b4523fe35f72ab72c8e9dfeb",
-  "git_short_sha": "304af2f942e6",
+  "git_sha": "ced04ece057f9bd22bdb6e719d8a34f99d6844d0",
+  "git_short_sha": "ced04ece057f",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-08T06:39:39.147440+00:00",
+  "built_at": "2026-03-08T06:47:47.237258+00:00",
   "branch": "release/v0.9.0-beta",
-  "commit_message": "docs: add TORQ_VISION narrative"
+  "commit_message": "docs: add Phase 5.3 Organizational Learning Loop PRD"
 }
