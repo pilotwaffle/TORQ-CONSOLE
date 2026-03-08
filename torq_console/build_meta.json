@@ -1,8 +1,8 @@
 {
-  "git_sha": "a26b2b4185f859c9157ac9e4c24e0eba965f98c5",
-  "git_short_sha": "a26b2b4185f8",
+  "git_sha": "304af2f942e6b405b4523fe35f72ab72c8e9dfeb",
+  "git_short_sha": "304af2f942e6",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-08T06:31:20.873854+00:00",
+  "built_at": "2026-03-08T06:39:39.147440+00:00",
   "branch": "release/v0.9.0-beta",
-  "commit_message": "docs: add Phase 5.2 PRD and architecture roadmap"
+  "commit_message": "docs: add TORQ_VISION narrative"
 }
