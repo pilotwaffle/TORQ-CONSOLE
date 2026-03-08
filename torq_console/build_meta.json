@@ -1,8 +1,8 @@
 {
-  "git_sha": "fda8dd42ba02846870ae6d72fc6b4deaf7564173",
-  "git_short_sha": "fda8dd42ba02",
+  "git_sha": "b2c99abd9e98659bda67f284ebc78a1f1029a525",
+  "git_short_sha": "b2c99abd9e98",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-08T06:25:28.205422+00:00",
+  "built_at": "2026-03-08T06:25:30.054344+00:00",
   "branch": "release/v0.9.0-beta",
-  "commit_message": "feat: hardened mission execution runtime"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
