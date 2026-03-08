@@ -16,18 +16,26 @@ parts/
 sdist/
 var/
 wheels/
+pip-log.txt
+pip-delete-this-directory.txt
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environment
 venv/
 ENV/
 env/
+.venv
+envs/
 
 # Environment Variables
 .env
 .env.local
+.env.production
+.env.vercel
+.env.n8n-mcp
 
 # IDE
 .vscode/
@@ -35,18 +43,37 @@ env/
 *.swp
 *.swo
 *~
+.vs/
+*.code-workspace
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Logs
 *.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+test_output.txt
+test_results.log
+test-results/
+pytestdebug.txt
+.cache/
+nohup.out
 
 # Workspace
 demo_workspace/
@@ -55,12 +82,15 @@ demo_workspace/
 frontend/node_modules/
 frontend/.vite/
 frontend/dist/
+frontend/.vercel/
+frontend/build/
 
 # Test output
-test_output.txt
+cognitive_loop_test_results.log
 
 # Runtime data
 .torq/
+.torq_console/
 
 # Credentials and secrets
 *.pem
@@ -71,14 +101,199 @@ credentials.json
 secrets.json
 service-account*.json
 *_secret.json
+*_SECRET.json
+gmail-credentials-*.json
+*.credentials.json
+.firebase/
+firebase-credentials-*.json
 
 # Vercel
 .vercel/
 
+# Railway
+railway.app
+*. railway_app
+
 # Node (root level)
 node_modules/
-# Local IDE / test artifacts
-.vs/
-test-results/
-.vercel
-.env*.local
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+telemetry.db
+n8n_database*.sqlite
+n8n_database*.sqlite-shm
+n8n_database*.sqlite-wal
+diagnose.sqlite
+*.sqlite
+*.sqlite3
+
+# Local cache and state
+.pytest_cache/
+*.bak
+*.backup
+*_OLD.*
+*_ARCHIVE.*
+*_backup*
+
+# Null device artifact (Windows Git Bash issue)
+nul
+
+# Backup and archive files
+README_v*.md_ARCHIVE.md
+
+# Local MCP config
+.torq_console/
+.mcp.json.backup
+.mcp.json.backup.*
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# PyCharm
+.idea/
+
+# VS Code
+.history/
+.history.*
+
+# Local data
+data/
+local_data/
+user_data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~.nib
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+.pytype/
+.pytype_cache/
+
+# Cython
+cython_debug/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# JetBrains
+.idea/
+
+# Vim
+[._]*.swa
+[._]*.swo
+*.swp
+*.swo
+
+# MPS
+*.ipy
+
+# Environments
+.envs
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Rope
+.ropeproject
+.ropeproject_cache/
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IPython
+profile_default/
+ipython_config.py
+
+#本地环境变量文件
+.env.local
+.env.*.local
+
+# 测试覆盖率
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# 法国
+.pytest_cache/
+demo_workspace/
+
+# Railway部署相关
+railway.app
+*.railway_app
+
+# 本地数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# MCP相关配置（包含敏感信息）
+.mcp.json.backup
+
+# 本地运行时状态
+torq_console/__pycache__/
+
+# Validation artifacts (local testing)
+logs/validation_snapshots/
+
+# Local telemetry and state databases
+telemetry*.db
+telemetry*.sqlite
+*_database.sqlite
+
+# Local TORQ console state
+.torq/
+.torq_console/
+
+# Mission snapshots (local development)
+*_snapshot.json
+*_report.json
+
+# Backup files from migrations
+*_backup.sql
+*_OLD.sql
+
+# Mission execution artifacts
+mission_*.json
+mission_*_report.json
