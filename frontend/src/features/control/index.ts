@@ -15,6 +15,8 @@ export { MissionGraphPanel } from "./components/MissionGraphPanel";
 export { WorkstreamHealthPanel } from "./components/WorkstreamHealthPanel";
 export { MissionEventStream } from "./components/MissionEventStream";
 export { HandoffList } from "./components/HandoffList";
+export { MissionReplay } from "./components/MissionReplay";
+export { NodeTimeline } from "./components/NodeTimeline";
 
 // Hooks
 export {

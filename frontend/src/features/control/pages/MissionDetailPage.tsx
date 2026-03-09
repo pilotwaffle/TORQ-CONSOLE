@@ -12,12 +12,13 @@ import { MissionGraphPanel } from "../components/MissionGraphPanel";
 import { WorkstreamHealthPanel } from "../components/WorkstreamHealthPanel";
 import { MissionEventStream } from "../components/MissionEventStream";
 import { HandoffList } from "../components/HandoffList";
+import { MissionReplay } from "../components/MissionReplay";
 
 // ============================================================================
 // Tab Type
 // ============================================================================
 
-type TabType = "graph" | "workstreams" | "events" | "handoffs";
+type TabType = "graph" | "workstreams" | "events" | "handoffs" | "replay";
 
 // ============================================================================
 // Tab Navigation Component
@@ -38,6 +39,7 @@ function TabNav({ activeTab, onTabChange, counts }: TabNavProps) {
     { id: "workstreams", label: "Workstreams", icon: "🔄" },
     { id: "events", label: "Events", icon: "⚡" },
     { id: "handoffs", label: "Handoffs", icon: "🤝" },
+    { id: "replay", label: "Replay", icon: "▶️" },
   ];
 
   return (
@@ -148,6 +150,10 @@ export default function MissionDetailPage() {
 
         {activeTab === "handoffs" && (
           <HandoffList missionId={missionId} />
+        )}
+
+        {activeTab === "replay" && (
+          <MissionReplay missionId={missionId} />
         )}
       </div>
     </div>

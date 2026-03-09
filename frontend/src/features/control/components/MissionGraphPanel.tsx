@@ -22,6 +22,7 @@ import "reactflow/dist/style.css";
 import { useMissionGraph, useNodeDetail } from "../hooks/useControlMissions";
 import { NODE_STATUS_COLORS, type NodeState } from "../types/mission";
 import { formatNodeType } from "../utils/formatters";
+import { NodeTimeline } from "./NodeTimeline";
 
 // ============================================================================
 // Types
@@ -243,6 +244,9 @@ function NodeDetailDrawer({ missionId, nodeId, onClose }: NodeDetailDrawerProps)
                   )}
                 </div>
               </div>
+
+              {/* Node Timeline */}
+              <NodeTimeline missionId={missionId} nodeId={nodeId} />
 
               {/* Counts */}
               <div className="flex gap-4 py-2">
