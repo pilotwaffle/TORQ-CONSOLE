@@ -11,59 +11,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Free up runner disk space
-      run: |
-        sudo apt-get clean -y || true
-        # Remove common large SDKs/tools that are safe to remove on hosted runners
-        sudo rm -rf /usr/share/dotnet || true
-        sudo rm -rf /usr/local/lib/android || true
-        sudo rm -rf /opt/ghc || true
-        sudo rm -rf /home/runner/.cache/ghcup || true
-        sudo rm -rf /home/runner/.cache/cargo || true
-        # Prune docker images and unused data
-        docker system prune -af || true
+      - name: Free up runner disk space
+        run: |
+          sudo apt-get clean -y || true
+          # Remove common large SDKs/tools that are safe to remove on hosted runners
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /home/runner/.cache/ghcup || true
+          sudo rm -rf /home/runner/.cache/cargo || true
+          # Prune docker images and unused data
+          docker system prune -af || true
 
-    - name: Cache pip cache and wheels
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.cfg', '**/setup.py') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      - name: Cache pip cache and wheels
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.cfg', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-    - name: Install dependencies
-      env:
-        PIP_DISABLE_PIP_VERSION_CHECK: '1'
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-        # Prefer pre-built binaries and use the cached wheel dir to avoid repeated local builds
-        pip install --prefer-binary --cache-dir ~/.cache/pip -e .
+      - name: Install dependencies
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: '1'
+        run: |
+          python -m pip install --upgrade pip "setuptools>=61.0,<80.0.0" wheel
+          # Use non-editable install to avoid setuptools egg-info issues
+          pip install --prefer-binary --cache-dir ~/.cache/pip .
 
-    - name: Lint check
-      run: |
-        pip install ruff
-        ruff check torq_console/
+      - name: Lint check
+        run: |
+          pip install ruff
+          ruff check torq_console/
 
-    - name: Type check
-      run: |
-        pip install mypy
-        mypy torq_console/ --ignore-missing-imports
+      - name: Type check
+        run: |
+          pip install mypy
+          mypy torq_console/ --ignore-missing-imports
 
-    - name: Check for hardcoded secrets
-      run: |
-        # Fail if API keys are found in deployment configs
-        if grep -rE "sk-ant-|sk-proj-|AKIA[0-9A-Z]{16}" vercel.json Dockerfile* render.yaml 2>/dev/null; then
-          echo "ERROR: Hardcoded secrets detected in deployment configs!"
-          exit 1
-        fi
-        echo "No hardcoded secrets found."
+      - name: Check for hardcoded secrets
+        run: |
+          # Fail if API keys are found in deployment configs
+          if grep -rE "sk-ant-|sk-proj-|AKIA[0-9A-Z]{16}" vercel.json Dockerfile* render.yaml 2>/dev/null; then
+            echo "ERROR: Hardcoded secrets detected in deployment configs!"
+            exit 1
+          fi
+          echo "No hardcoded secrets found."
 
-    - name: Success
-      run: echo "CI checks passed!"
+      - name: Success
+        run: echo "CI checks passed!"
