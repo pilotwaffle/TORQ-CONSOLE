@@ -1,4 +1,0 @@
-[console_scripts]
-torq = torq_console.cli:main
-torq-bench = torq_console.benchmarking.bcli:main
-torq-console = torq_console.cli:main
