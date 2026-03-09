@@ -1,8 +1,8 @@
 {
-  "git_sha": "110d59cf286f164ce5ea9afd78e369cc6586fc67",
-  "git_short_sha": "110d59cf286f",
+  "git_sha": "8f977e23501722d525585df3ba7b2ade16a6e873",
+  "git_short_sha": "8f977e235017",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-09T01:36:02.488986+00:00",
+  "built_at": "2026-03-09T02:23:41.005007+00:00",
   "branch": "release/v0.9.0-beta",
-  "commit_message": "docs: add implementation status matrix"
+  "commit_message": "docs: reorganize documentation into current / architecture / prd layers"
 }
