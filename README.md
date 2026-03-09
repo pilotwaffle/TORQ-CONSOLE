@@ -11,7 +11,9 @@
 
 ## Overview
 
-TORQ Console is an **adaptive multi-agent reasoning platform** that structures complex missions the way a strong consulting team would. It combines institutional memory, mission graph planning, and hardened execution fabric for coordinated AI teamwork.
+TORQ Console v0.9.0-beta provides a **validated beta architecture** for mission-structured multi-agent reasoning, featuring Mission Graph Planning and a hardened Execution Fabric with idempotent coordination.
+
+> **Honest Positioning**: TORQ v0.9.0-beta ships with validated Mission Graph Planning and Hardened Execution Fabric. It also includes implemented strategic memory and synthesis layers. Additional capabilities such as Agent Teams, Organizational Learning, and Firm-Scale Operations are defined in the [roadmap](docs/architecture/ARCHITECTURE_ROADMAP.md) and [PRDs](docs/prd/) but are **not yet implemented**.
 
 ### What TORQ Provides
 
@@ -128,7 +130,7 @@ The hardened execution path is validated across multiple mission shapes:
 | Rich handoff standardization | ✅ Pass | 100% rich format, no minimal |
 | Cross-mission generalization | ✅ Pass | Linear, decision-gate, risk-first missions |
 
-**Validation Report**: See [docs/PHASE_5_1_VALIDATION_REPORT.md](docs/PHASE_5_1_VALIDATION_REPORT.md)
+**Validation Report**: See [docs/current/PHASE_5_1_VALIDATION_REPORT.md](docs/current/PHASE_5_1_VALIDATION_REPORT.md)
 
 ---
 
@@ -150,11 +152,11 @@ The hardened execution path is validated across multiple mission shapes:
 
 ## Documentation
 
-- [Architecture Index](docs/ARCHITECTURE_INDEX.md) — Complete system overview
-- [Phase 5.1 Validation Report](docs/PHASE_5_1_VALIDATION_REPORT.md) — Hardened execution validation
-- [Adaptive Cognition Loop](docs/PHASE_4F_ADAPTIVE_COGNITION_LOOP.md) — Learning system design
-- [Strategic Memory](docs/PHASE_4H_STRATEGIC_MEMORY.md) — Memory architecture
-- [Mission Graph Planning](docs/PHASE_5_MISSION_GRAPH_PLANNING.md) — Dependency execution
+- [Documentation Index](docs/index.md) — Complete documentation hub
+- [Architecture Index](docs/architecture/ARCHITECTURE_INDEX.md) — Complete system overview
+- [Phase 5.1 Validation Report](docs/current/PHASE_5_1_VALIDATION_REPORT.md) — Hardened execution validation
+- [Strategic Memory](docs/architecture/PHASE_4H_STRATEGIC_MEMORY.md) — Memory architecture
+- [Mission Graph Planning](docs/architecture/PHASE_5_MISSION_GRAPH_PLANNING.md) — Dependency execution
 
 ---
 
