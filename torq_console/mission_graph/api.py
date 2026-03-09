@@ -326,7 +326,7 @@ async def get_workstreams(
     supabase=Depends(get_supabase)
 ):
     """Get workstreams for a mission."""
-    result = supabase.table("workstreams").select("*").eq("mission_id", mission_id).execute()
+    result = supabase.table("workstream_states").select("*").eq("mission_id", mission_id).execute()
 
     return {
         "workstreams": result.data if result.data else [],
