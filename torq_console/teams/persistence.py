@@ -231,7 +231,7 @@ class TeamPersistence:
         if round_number:
             query = query.eq("round_number", round_number)
 
-        query = query.order("created_at", asc=True)
+        query = query.order("created_at", nullsfirst=True)
         result = query.execute()
 
         return [self._parse_message(row) for row in result.data]

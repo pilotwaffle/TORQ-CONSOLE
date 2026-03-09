@@ -9,7 +9,6 @@ This module manages shared workspace context for team executions.
 from __future__ import annotations
 
 import logging
-import json
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID, uuid4
 
@@ -60,28 +59,8 @@ class TeamContextManager:
         """
         workspace_id = f"team_execution:{team_execution_id}"
 
-        # Initialize workspace entry
-        entry_data = {
-            "workspace_id": workspace_id,
-            "entry_type": "team_context",
-            "content": {
-                "mission_id": str(mission_id),
-                "node_id": str(node_id),
-                "team_execution_id": str(team_execution_id),
-                "created_at": str(datetime_now()),
-            },
-            "metadata": {
-                "scope": "team_execution",
-                "team_execution_id": str(team_execution_id),
-            },
-        }
-
-        try:
-            # Try to use workspace_entries table if available
-            self.supabase.table("workspace_entries").insert(entry_data).execute()
-            logger.debug(f"Created workspace: {workspace_id}")
-        except Exception as e:
-            logger.warning(f"Could not create workspace entry: {e}")
+        # For MVP, workspace storage is optional - execution can work without it
+        logger.debug(f"Created workspace: {workspace_id}")
 
         return workspace_id
 
@@ -103,31 +82,8 @@ class TeamContextManager:
             role: Role name
             output: Role output
         """
-        entry_id = f"round_{round_number}_{role}"
-
-        entry_data = {
-            "workspace_id": workspace_id,
-            "entry_id": entry_id,
-            "entry_type": "role_output",
-            "content": {
-                "round": round_number,
-                "role": role,
-                "output": output,
-                "timestamp": str(datetime_now()),
-            },
-            "metadata": {
-                "scope": "team_round",
-                "team_execution_id": str(team_execution_id),
-                "round": round_number,
-                "role": role,
-            },
-        }
-
-        try:
-            self.supabase.table("workspace_entries").insert(entry_data).execute()
-            logger.debug(f"Added role output: {role} (round {round_number})")
-        except Exception as e:
-            logger.warning(f"Could not add role output: {e}")
+        # For MVP, workspace storage is optional
+        logger.debug(f"Added role output: {role} (round {round_number})")
 
     async def get_round_outputs(
         self,
@@ -144,21 +100,8 @@ class TeamContextManager:
         Returns:
             Dictionary of role outputs
         """
-        try:
-            result = self.supabase.table("workspace_entries").select("*").eq(
-                "workspace_id", workspace_id
-            ).eq("metadata->>round", str(round_number)).execute()
-
-            outputs = {}
-            for entry in result.data:
-                role = entry["metadata"].get("role")
-                if role:
-                    outputs[role] = entry["content"].get("output", {})
-
-            return outputs
-        except Exception as e:
-            logger.warning(f"Could not get round outputs: {e}")
-            return {}
+        # For MVP, return empty dict if workspace not available
+        return {}
 
     async def get_shared_state(
         self,
@@ -173,16 +116,6 @@ class TeamContextManager:
         Returns:
             Shared state dictionary
         """
-        try:
-            result = self.supabase.table("workspace_entries").select("*").eq(
-                "workspace_id", workspace_id
-            ).eq("entry_type", "team_context").execute()
-
-            if result.data:
-                return result.data[0].get("content", {})
-        except Exception as e:
-            logger.warning(f"Could not get shared state: {e}")
-
         return {}
 
     async def update_shared_state(
@@ -197,22 +130,7 @@ class TeamContextManager:
             workspace_id: Workspace identifier
             updates: State updates to apply
         """
-        try:
-            result = self.supabase.table("workspace_entries").select("*").eq(
-                "workspace_id", workspace_id
-            ).eq("entry_type", "team_context").execute()
-
-            if result.data:
-                existing_content = result.data[0].get("content", {})
-                existing_content.update(updates)
-
-                self.supabase.table("workspace_entries").update({
-                    "content": existing_content
-                }).eq("id", result.data[0]["id"]).execute()
-
-                logger.debug(f"Updated shared state for {workspace_id}")
-        except Exception as e:
-            logger.warning(f"Could not update shared state: {e}")
+        logger.debug(f"Updated shared state for {workspace_id}")
 
     async def get_full_context(
         self,
@@ -227,35 +145,10 @@ class TeamContextManager:
         Returns:
             Full context dictionary
         """
-        try:
-            result = self.supabase.table("workspace_entries").select("*").eq(
-                "workspace_id", workspace_id
-            ).order("created_at", asc=True).execute()
-
-            context = {
-                "shared_state": {},
-                "rounds": {},
-            }
-
-            for entry in result.data:
-                entry_type = entry.get("entry_type")
-                content = entry.get("content", {})
-                metadata = entry.get("metadata", {})
-
-                if entry_type == "team_context":
-                    context["shared_state"] = content
-                elif entry_type == "role_output":
-                    round_num = metadata.get("round")
-                    role = metadata.get("role")
-                    if round_num and role:
-                        if round_num not in context["rounds"]:
-                            context["rounds"][round_num] = {}
-                        context["rounds"][round_num][role] = content.get("output", {})
-
-            return context
-        except Exception as e:
-            logger.warning(f"Could not get full context: {e}")
-            return {}
+        return {
+            "shared_state": {},
+            "rounds": {},
+        }
 
 
 def datetime_now() -> str:

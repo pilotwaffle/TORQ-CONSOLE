@@ -33,7 +33,7 @@ from .models import (
     RoleTask,
     RoleTaskState,
 )
-from .registry import TeamDefinitionRegistry, get_registry
+from .registry import TeamDefinitionRegistry, get_registry, initialize_registry
 from .role_runner import RoleRunner
 from .decision_engine import DecisionEngine
 from .persistence import TeamPersistence
@@ -136,7 +136,8 @@ class AgentTeamOrchestrator:
             execution.status = TeamExecutionStatus.COMPLETED
             execution.completed_at = datetime.utcnow()
             execution.final_confidence = result.confidence_score
-            execution.decision_outcome = DecisionOutcome(result.decision_policy.split("_")[0])
+            # Map validator_status to decision_outcome
+            execution.decision_outcome = self._map_validator_to_outcome(result.validator_status)
             execution.result = result
 
             await self.persistence.update_execution(execution)
@@ -492,6 +493,16 @@ class AgentTeamOrchestrator:
         """Check if this is a validation round."""
         # Validate on final round or middle round
         return round_num == max_rounds or (round_num % 2 == 0)
+
+    def _map_validator_to_outcome(self, validator_status: ValidatorStatus) -> DecisionOutcome:
+        """Map validator status to decision outcome."""
+        status_map = {
+            ValidatorStatus.APPROVED: DecisionOutcome.APPROVED,
+            ValidatorStatus.BLOCKED: DecisionOutcome.BLOCKED,
+            ValidatorStatus.ESCALATED: DecisionOutcome.ESCALATED,
+            ValidatorStatus.PENDING: DecisionOutcome.ESCALATED,
+        }
+        return status_map.get(validator_status, DecisionOutcome.ESCALATED)
 
 
 # ============================================================================

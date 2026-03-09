@@ -88,9 +88,11 @@ async def verify_team_templates():
     """Verify team templates are loaded."""
     print_header("STEP 2: Verify Team Templates")
 
+    supabase = get_supabase_client()
+
     try:
         registry = TeamDefinitionRegistry()
-        await registry.initialize(supabase_client(), load_from_db=True)
+        await registry.initialize(supabase, load_from_db=True)
 
         teams_to_check = ["planning_team", "research_team", "build_team"]
         all_found = True
