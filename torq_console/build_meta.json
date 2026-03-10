@@ -1,8 +1,8 @@
 {
-  "git_sha": "011a61328c3def867cd9aab849fa8819e99e9b59",
-  "git_short_sha": "011a61328c3d",
+  "git_sha": "ce8b5d15d9ce5160cfc9b14f1a5fbbb8cb435836",
+  "git_short_sha": "ce8b5d15d9ce",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-10T03:07:57.258348+00:00",
+  "built_at": "2026-03-10T03:35:12.172560+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "docs: add phase 5.2 operational status and phase 5.3 workspace integration PRD"
+  "commit_message": "docs: add TORQ roadmap status tracker"
 }
