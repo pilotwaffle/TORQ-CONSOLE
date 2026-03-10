@@ -498,7 +498,18 @@ async def stream_team_events(
     execution_id: str,
     persistence: TeamPersistence = Depends(get_persistence),
 ):
-    """Stream team execution events via Server-Sent Events."""
+    """
+    Stream team execution events via Server-Sent Events.
+
+    Phase 5.2B: Real-time observability for team executions.
+
+    Events:
+    - status: Execution status update
+    - complete: Final decision when execution completes
+    - error: Error occurred
+
+    Connect with EventSource to receive live updates.
+    """
     return StreamingResponse(
         team_event_streamer(execution_id, persistence),
         media_type="text/event-stream",
@@ -508,3 +519,184 @@ async def stream_team_events(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ============================================================================
+# Phase 5.2B: Observability Endpoints
+# ============================================================================
+
+@router.get("/executions/{execution_id}/detail")
+async def get_team_execution_detail(
+    execution_id: str,
+    registry: TeamDefinitionRegistry = Depends(get_team_registry),
+    persistence: TeamPersistence = Depends(get_persistence),
+):
+    """
+    Get complete team execution detail for historical view.
+
+    Phase 5.2B: Returns execution card, role roster, timeline, and decision summary.
+    """
+    from .view_models import HistoricalExecutionView
+
+    execution_uuid = UUID(execution_id)
+
+    # Get execution
+    execution = await persistence.get_execution(execution_uuid)
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    # Get messages
+    messages = await persistence.get_messages(execution_uuid)
+
+    # Get decision
+    decision = await persistence.get_decision(execution_uuid)
+
+    # Get team name
+    team = registry.get_by_id(execution.team_id)
+    team_name = team.name if team else "Unknown Team"
+
+    # Build complete view
+    view = await HistoricalExecutionView.create(
+        execution, messages, decision, team_name
+    )
+
+    return view
+
+
+@router.get("/executions/{execution_id}/card")
+async def get_team_execution_card(
+    execution_id: str,
+    registry: TeamDefinitionRegistry = Depends(get_team_registry),
+    persistence: TeamPersistence = Depends(get_persistence),
+):
+    """
+    Get team execution card for control surface display.
+
+    Phase 5.2B: Lightweight card view for dashboard.
+    """
+    from .view_models import TeamExecutionCard
+
+    execution_uuid = UUID(execution_id)
+
+    execution = await persistence.get_execution(execution_uuid)
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    # Get team name
+    team = registry.get_by_id(execution.team_id)
+    team_name = team.name if team else "Unknown Team"
+
+    return TeamExecutionCard.from_execution(execution, team_name)
+
+
+@router.get("/executions/{execution_id}/roles")
+async def get_team_role_roster(
+    execution_id: str,
+    persistence: TeamPersistence = Depends(get_persistence),
+):
+    """
+    Get role roster for team execution.
+
+    Phase 5.2B: Shows status of each role (Lead, Researcher, Critic, Validator).
+    """
+    from .view_models import RoleRosterItem
+    from .models import TeamRole
+
+    execution_uuid = UUID(execution_id)
+
+    messages = await persistence.get_messages(execution_uuid)
+
+    all_roles = [TeamRole.LEAD, TeamRole.RESEARCHER, TeamRole.CRITIC, TeamRole.VALIDATOR]
+
+    return [
+        RoleRosterItem.create(role, messages)
+        for role in all_roles
+    ]
+
+
+@router.get("/executions/{execution_id}/timeline")
+async def get_team_execution_timeline(
+    execution_id: str,
+    persistence: TeamPersistence = Depends(get_persistence),
+):
+    """
+    Get full event timeline for team execution.
+
+    Phase 5.2B: Ordered list of all events by round.
+    """
+    from .view_models import RoundTimelineEvent
+
+    execution_uuid = UUID(execution_id)
+
+    messages = await persistence.get_messages(execution_uuid)
+
+    timeline = [
+        RoundTimelineEvent.from_message(msg)
+        for msg in messages
+    ]
+    timeline.sort(key=lambda e: e.timestamp)
+
+    return timeline
+
+
+@router.get("/executions/{execution_id}/decision")
+async def get_team_execution_decision(
+    execution_id: str,
+    persistence: TeamPersistence = Depends(get_persistence),
+):
+    """
+    Get decision summary for team execution.
+
+    Phase 5.2B: Final decision with confidence breakdown and dissent info.
+    """
+    from .view_models import DecisionSummary
+
+    execution_uuid = UUID(execution_id)
+
+    # Get execution and messages
+    execution = await persistence.get_execution(execution_uuid)
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    messages = await persistence.get_messages(execution_uuid)
+    decision = await persistence.get_decision(execution_uuid)
+
+    if decision:
+        return DecisionSummary.from_result(decision, messages)
+    else:
+        # Fallback for executions without decisions
+        return DecisionSummary(
+            execution_id=execution_id,
+            decision_policy="weighted_consensus",
+            final_confidence=execution.final_confidence or 0.0,
+            validator_status="pending",
+            has_dissent=False,
+            dissenting_roles=[],
+            revision_count=0,
+            escalation_count=0,
+        )
+
+
+@router.get("/executions/{execution_id}/confidence")
+async def get_team_confidence_breakdown(
+    execution_id: str,
+    persistence: TeamPersistence = Depends(get_persistence),
+):
+    """
+    Get per-role confidence breakdown.
+
+    Phase 5.2B: Shows individual role contributions to final confidence.
+    """
+    from .view_models import PerRoleConfidence
+    from .models import TeamRole
+
+    execution_uuid = UUID(execution_id)
+
+    messages = await persistence.get_messages(execution_uuid)
+
+    all_roles = [TeamRole.LEAD, TeamRole.RESEARCHER, TeamRole.CRITIC, TeamRole.VALIDATOR]
+
+    return [
+        PerRoleConfidence.from_messages(role, messages)
+        for role in all_roles
+    ]

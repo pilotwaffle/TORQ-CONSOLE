@@ -102,6 +102,14 @@ except ImportError:
     CONTROL_SURFACE_AVAILABLE = False
     control_surface_router = None
 
+# Try to import agent teams routes if available
+try:
+    from torq_console.teams.api import router as teams_router
+    TEAMS_AVAILABLE = True
+except ImportError:
+    TEAMS_AVAILABLE = False
+    teams_router = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -193,6 +201,12 @@ if MISSION_GRAPH_AVAILABLE and mission_graph_router:
 if CONTROL_SURFACE_AVAILABLE and control_surface_router:
     app.include_router(control_surface_router, prefix="/api")
     logger.info("Operator Control Surface routes included")
+
+# Include agent teams routes if available
+if TEAMS_AVAILABLE and teams_router:
+    # Teams router already has /api/teams prefix
+    app.include_router(teams_router)
+    logger.info("Agent Teams routes included")
 
 # Initialize Socket.IO handler
 socketio_handler = SocketIOHandler(sio)
