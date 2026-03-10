@@ -1,88 +1,94 @@
-#!/usr/bin/env python3
-"""
-TORQ Console Setup Script
+Go ahead with Phase 5.2B.
 
-Installs TORQ Console in development/editable mode with all dependencies.
-"""
-import os
-import sys
-import subprocess
+Your sequence is right, the freeze discipline is right, and 294258fc is the correct anchor point.
 
-# Add project root to Python path
-project_root = os.path.dirname(os.path.abspath(__file__))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+For 5.2B, keep the scope tight:
 
-def run_command(cmd, description=""):
-    """Run a command and display output."""
-    print(f"\n{description}")
-    print(f"  Running: {cmd}")
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=project_root,
-            check=True,
-            text=True,
-            capture_output=True,
-            shell=True
-        )
-        if result.returncode == 0:
-            print(f"  Success: True")
-            if result.stdout:
-                print(result.stdout.strip())
-            if result.stderr:
-                print(result.stderr.strip())
-        else:
-            print(f"  Error code: {result.returncode}")
-    except Exception as e:
-        print(f"  Error: {str(e)}")
+Build
 
-def main():
-    """Main setup process."""
-    print("TORQ Console Setup")
-    print("=" * 50)
+SSE stream for live team execution events
 
-    # 1. Install dependencies
-    cmd = "pip install -e ."
-    run_command(cmd, "Install TORQ Console in editable mode")
+round-by-round progress view
 
-    # 2. Verify installation
-    cmd = "python -c 'from torq_console import TorqConsole; print(\"OK\")'"
-    run_command(cmd, "Verify TORQ Console imports")
+per-role confidence display
 
-    # 3. Check environment variables
-    cmd = "python -c 'import os; print(\"API Key:\", os.getenv(\"ANTHROPIC_API_KEY\", \"Not set\"))'"
-    run_command(cmd, "Check for API keys")
+team execution control-surface card
 
-    # 4. Create .env file if needed
-    env_content = """
-# TORQ Console Environment Variables
+historical execution inspection view
 
-# AI Provider Keys
-ANTHROPIC_API_KEY=your_key_here
-DEEPSEEK_API_KEY=your_key_here
-OPENAI_API_KEY=your_key_here
-GLM_API_KEY=your_key_here
+telemetry wiring for display only
 
-# TORQ Console Settings
-TORQ_CONSOLE_PRODUCTION=false
-TORQ_DISABLE_LOCAL_LLM=false
-TORQ_DISABLE_GPU=false
-"""
+Do not change
 
-    env_path = os.path.join(project_root, ".env")
-    if not os.path.exists(env_path):
-        with open(env_path, "w") as env_file:
-            env_file.write(env_content)
-            print(f"Created .env file at {env_path}")
+AgentTeamOrchestrator
 
-    # 5. Summary
-    print("\n" + "=" * 50)
-    print("Setup complete!")
-    print("\nNext steps:")
-    print("1. Run: python setup.py")
-    print("2. Start local server: python torq_console/startup_simple.py")
-    print("3. Test at: http://localhost:8888")
+RoleRunner
 
-if __name__ == "__main__":
-    main()
+DecisionEngine
+
+team persistence schema
+
+team context behavior unless required only for display/read access
+
+Use these event types as the baseline:
+
+TEAM_EXECUTION_STARTED
+
+TEAM_ROUND_STARTED
+
+ROLE_COMPLETED
+
+CRITIQUE_SUBMITTED
+
+VALIDATOR_DECISION
+
+TEAM_DECISION_FINALIZED
+
+The minimum UI set should be:
+
+Team Execution Card: team, pattern, rounds, confidence, status
+
+Role Roster: role, current state, last action
+
+Round Timeline: ordered events by round
+
+Decision Summary: final confidence, validator result, decision outcome
+
+Acceptance criteria for 5.2B:
+
+live executions stream correctly over SSE
+
+no duplicate UI events
+
+event ordering matches persisted order
+
+historical team execution view loads from persisted data
+
+existing 5.2A regression passes unchanged
+
+concurrent stress test still passes after observability layer is added
+
+no runtime behavior drift
+
+GitHub checkpoint after completion:
+feat(agent-teams): phase 5.2b observability and control surface
+
+Best implementation order:
+
+SSE emitter + endpoint verification
+
+event normalization / ordering
+
+backend view models for UI
+
+control-surface components
+
+historical execution replay view
+
+regression + concurrency rerun
+
+commit and push
+
+The main risk in 5.2B is not the runtime anymore. It is event duplication, ordering drift, or UI coupling too tightly to internal models. Keep a thin presentation layer between persisted team data and the frontend.
+
+So yes — start 5.2B now, keep it observability-only, and use the frozen runtime as read-only truth. When you finish the first pass of SSE plus the control-surface card, send that checkpoint and I’ll help you verify whether the scope stayed clean.
