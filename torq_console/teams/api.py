@@ -50,17 +50,17 @@ def get_supabase():
     return get_supabase_client()
 
 
-def get_team_registry(supabase=Depends(get_supabase)) -> TeamDefinitionRegistry:
+async def get_team_registry(supabase=Depends(get_supabase)) -> TeamDefinitionRegistry:
     """Get team registry."""
     registry = get_registry()
     if not registry._loaded_from_db:
-        asyncio.create_task(initialize_registry(supabase))
+        await initialize_registry(supabase)
     return registry
 
 
-def get_orchestrator(supabase=Depends(get_supabase)) -> AgentTeamOrchestrator:
+async def get_orchestrator(supabase=Depends(get_supabase)) -> AgentTeamOrchestrator:
     """Get team orchestrator."""
-    registry = get_team_registry(supabase)
+    registry = await get_team_registry(supabase)
     return AgentTeamOrchestrator(supabase, registry)
 
 
@@ -335,38 +335,6 @@ async def get_execution_messages(
         )
         for m in messages
     ]
-
-
-@router.get("/executions/{execution_id}/decision", response_model=TeamDecisionResponse)
-async def get_execution_decision(
-    execution_id: str,
-    persistence: TeamPersistence = Depends(get_persistence),
-):
-    """Get the final decision for a team execution."""
-    try:
-        decision = await persistence.get_decision(UUID(execution_id))
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid execution ID")
-
-    if not decision:
-        raise HTTPException(status_code=404, detail=f"Decision not found: {execution_id}")
-
-    return TeamDecisionResponse(
-        id=str(decision.id),
-        team_execution_id=str(decision.team_execution_id),
-        final_output=decision.final_output,
-        text_output=decision.text_output,
-        decision_policy=decision.decision_policy,
-        approval_summary=decision.approval_summary,
-        dissent_summary=decision.dissent_summary,
-        validator_status=decision.validator_status.value,
-        validator_notes=decision.validator_notes,
-        confidence_score=decision.confidence_score,
-        confidence_breakdown=decision.confidence_breakdown,
-        revision_count=decision.revision_count,
-        escalation_count=decision.escalation_count,
-        created_at=decision.created_at,
-    )
 
 
 # ============================================================================

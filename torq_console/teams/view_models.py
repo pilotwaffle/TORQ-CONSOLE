@@ -198,16 +198,30 @@ class DecisionSummary(BaseModel):
         if result.dissent_summary:
             dissenting_roles = result.dissent_summary.get("dissenting_roles", [])
 
+        # Get decision policy value
+        decision_policy = (
+            result.decision_policy.value
+            if hasattr(result.decision_policy, 'value')
+            else str(result.decision_policy)
+        )
+
+        # Get validator status value
+        validator_status = (
+            result.validator_status.value
+            if hasattr(result.validator_status, 'value')
+            else str(result.validator_status)
+        )
+
         return cls(
             execution_id=str(result.team_execution_id),
-            decision_policy=result.decision_policy,
-            final_confidence=result.confidence_score,
-            validator_status=result.validator_status.value,
+            decision_policy=decision_policy,
+            final_confidence=result.confidence_score or 0.0,
+            validator_status=validator_status,
             validator_notes=result.validator_notes,
             has_dissent=result.dissent_summary.get("has_dissent", False) if result.dissent_summary else False,
             dissenting_roles=dissenting_roles,
-            revision_count=result.revision_count,
-            escalation_count=result.escalation_count,
+            revision_count=result.revision_count or 0,
+            escalation_count=result.escalation_count or 0,
             confidence_breakdown=confidence_breakdown,
         )
 

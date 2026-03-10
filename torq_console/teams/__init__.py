@@ -2,6 +2,7 @@
 Agent Teams Module
 
 Phase 5.2: Agent Teams as a governed execution primitive.
+Phase 5.2B: Observability + UI (read-only)
 
 This module provides multi-agent team collaboration capabilities
 for TORQ Console mission execution.
@@ -11,6 +12,7 @@ Exports:
     - AgentTeamOrchestrator: Team orchestration engine
     - TeamDefinitionRegistry: Team definition management
     - TeamPersistence: Database persistence layer
+    - View models: UI presentation layer (Phase 5.2B)
 """
 
 from .models import (

@@ -54,12 +54,13 @@ async def get_recent_execution():
     supabase = get_supabase_client()
     persistence = TeamPersistence(supabase)
 
-    executions = await persistence.list_executions(limit=5)
+    executions = await persistence.list_executions(limit=20)
     for exec in executions:
         if exec.status.value == "completed":
             messages = await persistence.get_messages(exec.id)
             decision = await persistence.get_decision(exec.id)
-            if messages and decision:
+            # Look for complete execution with 3 rounds and 15 messages
+            if messages and decision and exec.current_round == 3 and len(messages) == 15:
                 return exec, str(exec.id)
 
     # Create new one if none available
@@ -448,12 +449,19 @@ async def test_7_regression_rerun():
     persistence = TeamPersistence(supabase)
 
     # Check a recent execution
-    executions = await persistence.list_executions(limit=1)
-    if not executions:
-        print_fail("No executions to verify")
+    executions = await persistence.list_executions(limit=20)
+    exec = None
+    for e in executions:
+        if e.status.value == "completed" and e.current_round == 3:
+            messages = await persistence.get_messages(e.id)
+            if len(messages) == 15:
+                exec = e
+                break
+
+    if not exec:
+        print_fail("No complete 3-round execution found for regression")
         return False
 
-    exec = executions[0]
     messages = await persistence.get_messages(exec.id)
     decision = await persistence.get_decision(exec.id)
 
