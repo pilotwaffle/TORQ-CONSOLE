@@ -1,8 +1,8 @@
 {
-  "git_sha": "9da2413d41f546cc117c3331960e9ebf5b676aef",
-  "git_short_sha": "9da2413d41f5",
+  "git_sha": "ac2f126dbab90123e03cda815fbfc2daa85f30b0",
+  "git_short_sha": "ac2f126dbab9",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-09T04:31:35.722082+00:00",
+  "built_at": "2026-03-10T03:03:44.136676+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "fix(frontend): add missing Skeleton loading components"
+  "commit_message": "fix(agent-teams): fix 5.2b observability endpoints and integration test"
 }
