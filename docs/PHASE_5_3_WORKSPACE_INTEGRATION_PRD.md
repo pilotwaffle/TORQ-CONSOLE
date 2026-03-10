@@ -1,141 +1,71 @@
-# Agent Tool Workspace Integration — Implementation Plan
+# PHASE 5.3: AGENT TOOL WORKSPACE INTEGRATION PRD
 
-**Phase:** 5.3 - Workspace Integration
-**Previous:** Phase 5.2 Agent Teams (COMPLETE)
-**Goal:** Route tool outputs into shared workspace context for traceability
+**TORQ Console**
 
 ---
 
-## Executive Summary
+## 1. Executive Summary
 
-Make tool outputs first-class workspace artifacts without changing the validated Agent Teams runtime.
+Phase 5.3 introduces a workspace artifact bridge that captures tool activity and persists normalized tool outputs into shared workspace context. The objective is to preserve continuity, traceability, and retrieval value across mission execution without changing the frozen Phase 5.2 Agent Teams runtime.
 
-**Problem:** Tool usage is not consistently written into workspace context, losing continuity and traceability.
-
-**Solution:** Add an additive workspace artifact bridge between tool execution and shared workspace.
-
-**Outcome:** Tool outputs are persisted, linked to execution context, and retrievable for later inspection.
+This phase is **additive**. It does not introduce a new runtime, a new team pattern, or a client-facing product layer. Instead, it connects tool execution to the same operational context already used by mission and team execution so artifacts can be inspected, replayed, and retrieved later.
 
 ---
 
-## Goal
+## 2. Problem and Rationale
 
-Route tool activity and tool outputs into the shared workspace context so missions, teams, and later memory/retrieval layers can reference the same execution artifacts.
+Agent Teams now produces stable, persisted reasoning traces, but tool activity can still become detached from the execution record. When tool output is not written into workspace context, TORQ loses:
 
-This is not a new runtime. It is a traceability and continuity layer added around the existing system.
-
----
-
-## Why This Is The Right Next Step
-
-Now that Agent Teams is complete, the next bottleneck is that reasoning and tool usage can become separated.
-
-If tool outputs are not consistently written into workspace context, you lose:
 - Continuity across execution steps
-- Artifact traceability
-- Clean audit history
-- Later retrieval value
-- Stronger advisor/client-facing explainability
+- Auditability and explainability
+- Later memory and retrieval reliability
+- Advisor- and client-facing explainability
 
 ---
 
-## Scope
+## 3. Scope and Constraints
 
 ### In Scope
+
 - Capture tool invocation metadata
-- Persist tool outputs into workspace-linked records
-- Link tool artifacts to mission execution and team execution context
-- Expose workspace-linked tool artifacts for later retrieval and inspection
-- Preserve ordering and traceability
+- Normalize supported tool outputs into a consistent artifact contract
+- Persist workspace-linked artifact records
+- Link artifacts to mission, execution, team execution, role, and round context where applicable
+- Provide read and inspection capability for later observability, memory, and retrieval use
 
 ### Out of Scope
-- Changing AgentTeamOrchestrator logic
-- Changing RoleRunner decision behavior
-- Changing DecisionEngine
-- Changing team persistence schema unless additive and isolated
-- Client portal or new end-user surfaces
-- Autonomous tool planning changes
 
----
+- Changes to `AgentTeamOrchestrator`, `RoleRunner`, `DecisionEngine`, or existing Phase 5.2 behavior
+- Client portal work, new end-user surfaces, or autonomous tool-planning changes
+- Replacing existing team tables or mixing workspace artifacts with strategic memory logic too early
 
-## Constraints
+### Frozen Runtime Boundary
 
-**Frozen components remain frozen:**
+The following components remain **frozen** throughout Phase 5.3:
+
 - `AgentTeamOrchestrator`
 - `RoleRunner`
 - `DecisionEngine`
 - Phase 5.2 team runtime behavior
-- Existing 5.2B observability contracts (unless extended read-only later)
-
-This integration must be **additive, not invasive**.
+- Existing 5.2B observability contracts (unless extended in additive read-only way)
 
 ---
 
-## Desired Outcome
+## 4. Target State Architecture
+
+The target state is a thin artifact bridge between tool execution and shared workspace, allowing every supported tool output to become a first-class execution artifact.
 
 ```
-Mission / Team Execution
-        ↓
-Agent reasons
-        ↓
-Tool invoked
-        ↓
-Tool output persisted to workspace
-        ↓
-Workspace artifact linked to execution context
-        ↓
-Future steps can inspect, cite, or retrieve artifact
+Tool Invocation → Tool Output Adapter → Workspace Artifact Writer → Shared Workspace
+                                                              ↓
+                                              Execution / Team Context References
 ```
 
 ---
 
-## Architecture
+## 5. Workspace Scope Hierarchy
 
-### Core Idea
-
-Introduce a workspace artifact bridge between tool execution and shared workspace.
-
-```
-Tool Invocation
-      ↓
-Tool Output Adapter
-      ↓
-Workspace Artifact Writer
-      ↓
-Shared Workspace
-      ↓
-Execution / Team Context References
-```
-
-### New Responsibilities
-
-**Tool Output Adapter**
-Normalizes tool results into a consistent shape:
-- `tool_name`
-- `invocation_id`
-- `execution_id` / `mission_id` / `node_id`
-- `team_execution_id` (if present)
-- `role_name` (if present)
-- `artifact_type`
-- `summary`
-- `raw_output` reference
-- `created_at`
-
-**Workspace Artifact Writer**
-Writes normalized tool artifacts into the proper workspace scope.
-
-**Workspace Context Linker**
-Associates artifacts to:
-- Workflow execution
-- Team execution
-- Team round (if applicable)
-- Node execution
-
----
-
-## Workspace Scope Hierarchy
-
-Use the existing pattern and extend carefully:
+Artifacts should be written to the **narrowest relevant workspace scope** and only referenced upward when necessary:
 
 ```
 workflow_execution:{execution_id}
@@ -144,109 +74,38 @@ team_round:{team_execution_id}:{round}
 node_execution:{mission_id}:{node_id}
 ```
 
-Tool outputs should be written to the **narrowest relevant scope** and optionally referenced upward.
-
 ---
 
-## Data Model Additions
+## 6. Data Model
 
-### New Table: `workspace_artifacts`
+Phase 5.3 adds a single minimal table, `workspace_artifacts`, that **complements** (not replaces) existing team and mission persistence.
 
-Keep minimal and additive.
+### Table: `workspace_artifacts`
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field | Type | Purpose |
+|-------|------|---------|
 | `id` | UUID | Primary key |
 | `workspace_id` | UUID | Workspace reference |
 | `mission_id` | UUID | Mission reference |
 | `node_id` | UUID | Node reference |
 | `execution_id` | UUID | Workflow execution reference |
-| `team_execution_id` | UUID | Team execution reference (nullable) |
-| `round_number` | int | Round number (nullable) |
-| `role_name` | string | Role that invoked tool (nullable) |
+| `team_execution_id` | UUID? | Nullable team execution reference |
+| `round_number` | int? | Nullable round number |
+| `role_name` | string? | Nullable invoking role |
 | `tool_name` | string | Tool identifier |
-| `artifact_type` | string | Type of artifact |
-| `title` | string | Artifact title |
-| `summary` | text | Short summary |
-| `content_json` | jsonb | Structured content |
-| `content_text` | text | Plain text content |
-| `source_ref` | string | Reference to source (nullable) |
+| `artifact_type` | string | Artifact category |
+| `title` | string | Human-readable title |
+| `summary` | text | Short summary for retrieval and UI |
+| `content_json` | jsonb | Structured artifact payload |
+| `content_text` | text | Plain text representation |
+| `source_ref` | string? | Optional source reference |
 | `created_at` | timestamp | Creation time |
 
-**Note:** This complements, not replaces, existing team tables.
-
 ---
 
-## Implementation Milestones
+## 7. Module Layout
 
-### Milestone 1 — Tool Output Contract
-
-Build a normalized internal contract for tool outputs.
-
-**Deliverables:**
-- `artifact_adapter.py` or equivalent
-- Normalized artifact schema
-- Artifact typing rules
-
-**Acceptance:**
-- Tool output from supported tools can be normalized
-- Structure includes execution and workspace linkage metadata
-
-### Milestone 2 — Workspace Artifact Persistence
-
-Build the persistence layer that writes artifacts to workspace context.
-
-**Deliverables:**
-- `workspace_artifacts` migration
-- Persistence service
-- Additive repository methods
-
-**Acceptance:**
-- Tool outputs persist successfully
-- Artifacts associated with correct workspace scope
-- Write ordering is preserved
-
-### Milestone 3 — Execution/Team Context Linking
-
-Connect tool artifacts to mission and team context without changing frozen team runtime.
-
-**Deliverables:**
-- Lightweight integration points around tool execution
-- Context-aware scope selection
-- Optional role/round tagging
-
-**Acceptance:**
-- Team execution produces workspace-linked artifacts
-- Artifacts traceable to mission, node, role, and round
-
-### Milestone 4 — Read/Inspection Layer
-
-Add read APIs to inspect workspace artifacts.
-
-**Deliverables:**
-- `GET /workspace/artifacts`
-- `GET /workspace/artifacts/{execution_id}`
-- `GET /workspace/artifacts/teams/{team_execution_id}`
-- `GET /workspace/artifacts/{id}`
-
-**Acceptance:**
-- Artifacts can be queried reliably
-- Data usable by observability, retrieval, and memory
-
-### Milestone 5 — Validation and Hardening
-
-Test correctness, ordering, and regression safety.
-
-**Acceptance:**
-- No regression in 5.2A / 5.2B
-- No duplicate artifacts
-- Correct scope assignment
-- Concurrent writes remain stable
-- Historical artifact replay works
-
----
-
-## Recommended Module Layout
+Fit inside the existing workspace package:
 
 ```
 torq_console/workspace/
@@ -257,48 +116,54 @@ torq_console/workspace/
   artifact_api.py          # FastAPI endpoints
 ```
 
-Fit into existing workspace package rather than creating parallel architecture.
+---
+
+## 8. Implementation Milestones
+
+### Milestone 1 - Tool Output Contract
+
+**Build:** `artifact_adapter.py`, normalized artifact schema, artifact typing rules
+
+**Acceptance:** Tool output from supported tools can be normalized into one structure carrying execution and workspace linkage metadata.
+
+### Milestone 2 - Workspace Artifact Persistence
+
+**Build:** `workspace_artifacts` migration, persistence service, additive repository methods
+
+**Acceptance:** Tool outputs persist successfully, write ordering is preserved, artifacts associated with correct workspace scope.
+
+### Milestone 3 - Execution and Team Context Linking
+
+**Build:** Lightweight integration points around tool execution, context-aware scope selection
+
+**Acceptance:** Team execution produces workspace-linked artifacts traceable to mission, node, role, and round without changing frozen runtime behavior.
+
+### Milestone 4 - Read and Inspection Layer
+
+**Build:** Artifact list and detail access for workspace, execution, and team execution contexts
+
+**Acceptance:** Artifacts can be queried reliably and reused later by observability, retrieval, and memory layers.
+
+### Milestone 5 - Validation and Hardening
+
+**Build:** Ordering, deduplication, replay, concurrency behavior, and regression safety tests
+
+**Acceptance:** No regression in 5.2A or 5.2B, no duplicate artifacts, correct scope assignment, stable concurrent writes, historical replay works.
 
 ---
 
-## Acceptance Criteria
+## 9. Test Plan
 
-Phase complete when:
-- ✅ Tool outputs persist into shared workspace context
-- ✅ Artifacts link correctly to execution and team context
-- ✅ Artifact ordering is preserved
-- ✅ Duplicate artifact writes are prevented
-- ✅ Artifacts can be read back reliably
-- ✅ 5.2A and 5.2B regressions remain green
-- ✅ Concurrency behavior remains stable
+| Test Type | Checks | Expected Result |
+|-----------|--------|------------------|
+| Functional | Single tool output persists; team-linked output persists; round-linked artifact persists to correct scope | Correct artifact records written with complete linkage metadata |
+| Integration | Mission execution with tool usage writes workspace artifacts; team execution with tool usage writes artifacts without runtime drift | Artifacts linked to execution context, no runtime changes |
+| Concurrency | Multiple simultaneous tool outputs do not duplicate; ordering remains correct under concurrent writes | No orphaned artifacts, ordering preserved |
+| Regression | Rerun 5.2A; rerun 5.2B; run workspace artifact integration suite | No regression in frozen components |
 
 ---
 
-## Test Plan
-
-### Functional Tests
-- Single tool output persists to workspace
-- Team-linked tool output persists with team metadata
-- Round-linked artifact persists with correct scope
-
-### Integration Tests
-- Mission execution with tool usage writes workspace artifacts
-- Team execution with tool usage writes artifacts without runtime drift
-- Read APIs return expected artifact list and detail
-
-### Concurrency Tests
-- Multiple simultaneous tool outputs do not duplicate
-- Ordering remains correct under concurrent writes
-- No orphaned artifacts
-
-### Regression Tests
-- Rerun 5.2A activation test
-- Rerun 5.2B integration test
-- Run workspace artifact integration suite
-
----
-
-## GitHub Checkpoint Strategy
+## 10. GitHub Checkpoint Strategy
 
 ```
 feat(workspace): add tool output artifact contract
@@ -310,45 +175,45 @@ test(workspace): validate artifact persistence ordering and regression safety
 
 ---
 
-## Best Build Order
+## 11. Risks and Guardrails
 
-1. Artifact contract
-2. Persistence layer
-3. Integration hook around tool execution
-4. Read/inspection layer
-5. Tests
-6. Commit and push
-
----
-
-## Risks To Avoid
-
-- ❌ Letting tools write raw inconsistent payloads directly to workspace
-- ❌ Coupling workspace artifacts too tightly to one tool type
-- ❌ Modifying team runtime to "support" this when it should stay frozen
-- ❌ Mixing artifact storage with memory logic too early
-- ❌ Exposing unfinished artifacts to UI before validation
+- ❌ Do not allow raw, tool-specific payloads to write directly into workspace without normalization
+- ❌ Do not couple workspace artifacts too tightly to a single tool type or provider
+- ❌ Do not modify frozen team runtime to "support" this phase; integration must remain additive
+- ❌ Do not mix workspace artifact storage with memory logic before validation is complete
+- ❌ Do not expose unfinished artifacts to UI before persistence and ordering are proven
 
 ---
 
-## Why This Matters
+## 12. Definition of Done
 
-This phase is a **bridge phase** that strengthens:
-- Traceability
-- Continuity
-- Later memory quality
-- Insight publishing quality
-- Future advisor/client explainability
+Phase 5.3 is complete when:
 
-Without this, TORQ can execute well but will have weaker knowledge continuity. With it, TORQ starts behaving more like a true consulting operating system.
+- ✅ `workspace_artifacts` exists in Supabase and is writing correctly
+- ✅ Supported tool outputs normalize into a single artifact shape
+- ✅ Artifacts link correctly to mission, node, execution, team execution, role, and round context where applicable
+- ✅ Artifact ordering is preserved and duplicate writes are prevented
+- ✅ Read and inspection capability works reliably
+- ✅ Phase 5.2A and 5.2B regressions remain green
 
 ---
 
-## Bottom Line
+## Appendix A: Architectural Progression
 
-**Next disciplined milestone:**
+```
+structured team execution (5.2) ✅
+        ↓
+workspace-linked artifact continuity (5.3) 📋
+        ↓
+memory / retrieval / insight compounding (5.4+) 📝
+```
 
-> Agent tool workspace integration = make tool outputs first-class workspace artifacts without changing the validated Agent Teams runtime.
+---
 
-**After this:**
-> Strategic Memory Validation & Control
+## Appendix B: Source Baseline
+
+| Previous Phase | Phase 5.2 Agent Teams |
+|---|---|
+| **Goal** | Make tool outputs first-class workspace artifacts without changing the validated runtime |
+| **Primary Deliverables** | Artifact contract, workspace_artifacts migration, persistence, context linking, inspection APIs |
+| **Outcome** | Traceable, retrievable tool outputs linked to mission, node, team, and round context |
