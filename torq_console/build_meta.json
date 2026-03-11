@@ -1,8 +1,8 @@
 {
-  "git_sha": "91f5f522a34e30015f752a5e3d27d29d5765c44d",
-  "git_short_sha": "91f5f522a34e",
+  "git_sha": "35f502ae4604d9d10e45cd3e2570247e27b1cdf8",
+  "git_short_sha": "35f502ae4604",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-11T20:10:29.530479+00:00",
+  "built_at": "2026-03-11T21:06:13.223273+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "Add TORQ Readiness Checker and complete Insight Publishing 5B"
+  "commit_message": "Complete Readiness Checker Milestone 2: Evidence Collection and Scoring Engine"
 }
