@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, MutableRefObject, useRef, useState } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
@@ -19,6 +19,7 @@ export const ChatWindow: React.FC = () => {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const typingState = useTypingState();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const handleSendRef = useRef<((message: string) => Promise<void>) | null>(null);
   const { isStandalone } = useStandaloneMode();
 
   // Guard against undefined store (AFTER all hooks)
@@ -74,6 +75,9 @@ export const ChatWindow: React.FC = () => {
    */
   const handleSend = useCallback(async (message: string) => {
     if (!activeSessionId) return;
+
+    // Store latest handleSend in ref for event listener access
+    handleSendRef.current = handleSend;
 
     // Update first message state
     if (isFirstMessage) {
@@ -230,14 +234,15 @@ export const ChatWindow: React.FC = () => {
     const handleSuggestionClick = (e: Event) => {
       const customEvent = e as CustomEvent<{suggestion: string}>;
       const suggestion = customEvent.detail.suggestion;
-      if (suggestion && activeSessionId && handleSend) {
-        handleSend(suggestion);
+      // Use ref to access latest handleSend without dependency issues
+      if (suggestion && activeSessionId && handleSendRef.current) {
+        handleSendRef.current(suggestion);
       }
     };
 
     window.addEventListener('suggestion-click', handleSuggestionClick);
     return () => window.removeEventListener('suggestion-click', handleSuggestionClick);
-  }, [activeSessionId, handleSend]);
+  }, [activeSessionId]); // Only depend on activeSessionId, not handleSend
 
   if (!activeSession) {
     return (
