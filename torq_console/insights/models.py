@@ -355,6 +355,7 @@ class InsightUpdate(BaseModel):
 
     # Lifecycle updates
     lifecycle_state: Optional[InsightLifecycleState] = None
+    superseded_by_id: Optional[UUID] = None  # Milestone 5B: Track superseding insight
 
     # Expiration
     expires_at: Optional[datetime] = None
@@ -949,3 +950,17 @@ EXAMPLE_INSIGHTS = {
         }
     }
 }
+
+
+# ============================================================================
+# Milestone 5B Refinement - Re-export InsightCandidate
+# ============================================================================
+
+# Import InsightCandidate from refinement_5b for backward compatibility
+# This allows tests to import from models instead of needing to know about refinement module
+try:
+    from .refinement_5b import InsightCandidate as _InsightCandidate
+    # Make it available at module level
+    InsightCandidate = _InsightCandidate
+except (ImportError, AttributeError):
+    pass  # If refinement_5b is not available, skip this export

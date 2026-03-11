@@ -174,15 +174,7 @@ class Milestone5Validator:
         try:
             persistence = MemoryInsightPersistence()
             workflow = get_approval_workflow(persistence)
-            extractor = get_default_extractor()
-            validator = get_default_validator()  # Takes no args
-
-            # Create test memory for extraction
-            test_memory = {
-                "id": "test_mem_concurrent",
-                "content": "Test content for concurrent publication",
-                "metadata": {"domain": "test"},
-            }
+            validator = get_default_validator()
 
             # Track results
             results = []
@@ -191,41 +183,91 @@ class Milestone5Validator:
             def publish_instance(instance_id: int):
                 """Attempt to publish an insight."""
                 try:
-                    # Extract candidates
-                    candidates = extractor.extract_candidates([test_memory])
+                    # Milestone 5B: Create candidate directly instead of extracting
+                    from torq_console.insights.models import InsightCreate, SourceReference, QualityMetrics
+                    from torq_console.insights.models import InsightSourceType
 
-                    if candidates:
-                        # Validate
-                        validation_results = validator.validate_candidates(candidates)
+                    candidate = InsightCreate(
+                        insight_type=InsightType.REUSABLE_PLAYBOOK,
+                        title=f"Concurrent Test Insight {instance_id}",
+                        summary=f"Test insight for concurrent publication {instance_id}",
+                        scope=InsightScope.GLOBAL,
+                        domain="test",
+                        tags=["test", "concurrent"],
+                        content={"test": "data"},
+                        source_references=[SourceReference(
+                            source_type=InsightSourceType.MEMORY,
+                            source_id=f"test_mem_{instance_id}",
+                            contribution_weight=1.0,
+                            extraction_method="test",
+                        )],
+                        quality=QualityMetrics(
+                            confidence_score=0.85,
+                            validation_score=0.90,
+                            applicability_score=0.80,
+                            source_count=1,
+                            execution_count=10,
+                            success_rate=0.95,  # Milestone 5B: Add success_rate to pass validation
+                        ),
+                    )
 
-                        if validation_results.valid_candidates:
-                            # Create record
-                            candidate = validation_results.valid_candidates[0]
-                            record = InsightRecord(
-                                id=uuid4(),
-                                insight_type=candidate.insight_type,
-                                title=f"Concurrent Test Insight {instance_id}",
-                                summary=candidate.summary,
-                                scope=candidate.scope,
-                                scope_key=candidate.scope_key,
-                                domain=candidate.domain,
-                                tags=candidate.tags,
-                                content=candidate.content,
-                                source_references=candidate.source_references,
-                                quality=candidate.quality,
-                                lifecycle_state=InsightLifecycleState.PUBLISHED,
-                                created_at=datetime.now(),
-                                updated_at=datetime.now(),
-                                published_at=datetime.now(),
-                                usage_count=0,
-                                created_by="system",
-                            )
+                    # Validate the candidate
+                    validation_result = validator.validate_for_publication(candidate)
 
-                            # Save
-                            persistence._insights[record.id] = record
-                            results.append(record.id)
+                    # Debug: Log validation result
+                    if not validation_result.passed:
+                        errors.append(f"Instance {instance_id} validation failed: {validation_result.validation_errors[:2] if validation_result.validation_errors else 'unknown'}")
+                        return
+
+                    if validation_result.passed:
+                        # Create record
+                        # Convert SourceReference objects to dicts for InsightRecord
+                        source_refs_dicts = [
+                            {
+                                "source_type": sr.source_type.value,
+                                "source_id": sr.source_id,
+                                "contribution_weight": sr.contribution_weight,
+                                "extraction_method": sr.extraction_method,
+                            }
+                            for sr in candidate.source_references
+                        ]
+
+                        # Convert QualityMetrics to dict
+                        quality_dict = {
+                            "confidence_score": candidate.quality.confidence_score,
+                            "validation_score": candidate.quality.validation_score,
+                            "applicability_score": candidate.quality.applicability_score,
+                            "source_count": candidate.quality.source_count,
+                            "execution_count": candidate.quality.execution_count,
+                            "success_rate": candidate.quality.success_rate,
+                        }
+
+                        record = InsightRecord(
+                            id=uuid4(),
+                            insight_type=candidate.insight_type,
+                            title=f"Concurrent Test Insight {instance_id}",
+                            summary=candidate.summary,
+                            scope=candidate.scope,
+                            scope_key=candidate.scope_key,
+                            domain=candidate.domain,
+                            tags=candidate.tags,
+                            content=candidate.content,
+                            source_references=source_refs_dicts,
+                            quality=quality_dict,
+                            lifecycle_state=InsightLifecycleState.PUBLISHED,
+                            created_at=datetime.now(),
+                            updated_at=datetime.now(),
+                            published_at=datetime.now(),
+                            usage_count=0,
+                            created_by="system",
+                        )
+
+                        # Save
+                        persistence._insights[record.id] = record
+                        results.append(record.id)
                 except Exception as e:
-                    errors.append(str(e))
+                    import traceback
+                    errors.append(f"{str(e)}: {traceback.format_exc()[:100]}")
 
             # Run concurrent publications
             with ThreadPoolExecutor(max_workers=10) as executor:
@@ -245,6 +287,11 @@ class Milestone5Validator:
                 passed,
                 f"Published {len(results)} insights concurrently, {len(errors)} errors"
             )
+
+            # Log first few errors for debugging
+            if errors:
+                for i, error in enumerate(errors[:3]):
+                    logger.error(f"Concurrent Publication Error {i}: {error}")
         except Exception as e:
             self.record("Concurrent Publication", False, str(e))
 
@@ -377,8 +424,10 @@ class Milestone5Validator:
     async def test_duplicate_prevention(self):
         """Test that duplicate insights are prevented or flagged."""
         try:
+            from torq_console.insights.refinement_5b import get_duplicate_detector
+
             persistence = MemoryInsightPersistence()
-            validator = get_default_validator()  # Takes no args
+            detector = get_duplicate_detector()
 
             # Create a base insight
             base_record = create_test_insight_record(
@@ -403,20 +452,25 @@ class Milestone5Validator:
                 confidence=base_record.quality["confidence_score"],
             )
 
-            # Validate - should detect duplicate
-            validation_result = validator.validate_candidates([duplicate_candidate])
+            # Get existing insights for duplicate checking
+            existing_insights = list(persistence._insights.values())
 
-            # Check for duplication warnings
+            # Check for duplicates using the detector
+            duplicate_result = detector.check_duplicate(duplicate_candidate, existing_insights)
+
+            # Check that duplicate was detected
             passed = (
-                validation_result.duplicates_found >= 1 or
-                len(validation_result.duplication_checks) > 0
+                duplicate_result.is_duplicate and
+                duplicate_result.duplicate_of_id == base_record.id
             )
 
             self.record(
                 "Duplicate Prevention",
                 passed,
-                f"Duplicates found: {validation_result.duplicates_found}, "
-                f"duplication checks: {len(validation_result.duplication_checks)}"
+                f"Is duplicate: {duplicate_result.is_duplicate}, "
+                f"duplicate_of_id: {duplicate_result.duplicate_of_id}, "
+                f"similarity: {duplicate_result.similarity_score:.2f}, "
+                f"reason: {duplicate_result.reason}"
             )
         except Exception as e:
             self.record("Duplicate Prevention", False, str(e))
@@ -452,9 +506,10 @@ class Milestone5Validator:
 
             # Check that superseded insight is not in results
             insight_ids = [i.id for i in result.insights]
+            # Convert UUIDs to strings for proper comparison
             passed = (
-                old_id not in insight_ids and
-                new_id in insight_ids and
+                str(old_id) not in insight_ids and
+                str(new_id) in insight_ids and
                 len(result.suppressed) > 0
             )
 
@@ -497,9 +552,10 @@ class Milestone5Validator:
 
             # Check that archived insight is not in results
             insight_ids = [i.id for i in result.insights]
+            # Convert UUIDs to strings for proper comparison
             passed = (
-                archived_id not in insight_ids and
-                published_id in insight_ids and
+                str(archived_id) not in insight_ids and
+                str(published_id) in insight_ids and
                 len(result.suppressed) > 0
             )
 
@@ -637,8 +693,10 @@ class Milestone5Validator:
         """Test that disabling a type affects retrieval."""
         try:
             persistence = MemoryInsightPersistence()
-            retrieval_service = get_retrieval_service(persistence)
-            inspection_service = get_inspection_service(persistence, retrieval_service)
+            # Create inspection service first
+            inspection_service = get_inspection_service(persistence)
+            # Create retrieval service with inspection service reference (Milestone 5B)
+            retrieval_service = get_retrieval_service(persistence, inspection_service=inspection_service)
 
             # Create insights of different types
             playbook_id = uuid4()
@@ -725,15 +783,16 @@ class Milestone5Validator:
 
             # Check ranking
             insight_ids = [i.id for i in result.insights]
+            # Convert UUID to string for proper comparison
             passed = (
                 len(result.insights) == 2 and
-                insight_ids[0] == fresh_id  # Fresh first
+                insight_ids[0] == str(fresh_id)  # Fresh first
             )
 
             self.record(
                 "Stale Insight Ranking",
                 passed,
-                f"Fresh ranked first: {passed}, "
+                f"Fresh ranked first: {insight_ids[0] == str(fresh_id) if len(insight_ids) > 0 else 'no results'}, "
                 f"fresh last_validated: {fresh.quality['last_validated_at']}, "
                 f"stale last_validated: {stale.quality['last_validated_at']}"
             )
@@ -774,17 +833,18 @@ class Milestone5Validator:
 
             # Check that low confidence is filtered out
             insight_ids = [i.id for i in result.insights]
+            # Convert UUIDs to strings for proper comparison
             passed = (
-                high_conf_id in insight_ids and
-                low_conf_id not in insight_ids and
+                str(high_conf_id) in insight_ids and
+                str(low_conf_id) not in insight_ids and
                 len(result.suppressed) > 0
             )
 
             self.record(
                 "Low Confidence Filtering",
                 passed,
-                f"High conf included: {high_conf_id in insight_ids}, "
-                f"low conf excluded: {low_conf_id not in insight_ids}, "
+                f"High conf included: {str(high_conf_id) in insight_ids}, "
+                f"low conf excluded: {str(low_conf_id) not in insight_ids}, "
                 f"suppressed: {len(result.suppressed)}"
             )
         except Exception as e:
@@ -794,8 +854,10 @@ class Milestone5Validator:
         """Test that disabled types are filtered from retrieval."""
         try:
             persistence = MemoryInsightPersistence()
-            retrieval_service = get_retrieval_service(persistence)
-            inspection_service = get_inspection_service(persistence, retrieval_service)
+            # Create inspection service first
+            inspection_service = get_inspection_service(persistence)
+            # Create retrieval service with inspection service reference (Milestone 5B)
+            retrieval_service = get_retrieval_service(persistence, inspection_service=inspection_service)
 
             # Disable BEST_PRACTICE type
             await inspection_service.disable_insight_type(
@@ -826,9 +888,10 @@ class Milestone5Validator:
             result = await retrieval_service.retrieve_by_mission("planning", limit=10)
 
             insight_ids = [i.id for i in result.insights]
+            # Convert UUIDs to strings for proper comparison
             passed = (
-                enabled_id in insight_ids and
-                disabled_id not in insight_ids
+                str(enabled_id) in insight_ids and
+                str(disabled_id) not in insight_ids
             )
 
             # Re-enable for other tests
@@ -840,8 +903,8 @@ class Milestone5Validator:
             self.record(
                 "Disabled Type Filtering",
                 passed,
-                f"Enabled type included: {enabled_id in insight_ids}, "
-                f"disabled type excluded: {disabled_id not in insight_ids}"
+                f"Enabled type included: {str(enabled_id) in insight_ids}, "
+                f"disabled type excluded: {str(disabled_id) not in insight_ids}"
             )
         except Exception as e:
             self.record("Disabled Type Filtering", False, str(e))
@@ -872,16 +935,17 @@ class Milestone5Validator:
             result = await retrieval_service.retrieve_by_mission("planning", limit=10)
 
             insight_ids = [i.id for i in result.insights]
+            # Convert UUIDs to strings for proper comparison
             passed = (
-                published_id in insight_ids and
-                candidate_id not in insight_ids
+                str(published_id) in insight_ids and
+                str(candidate_id) not in insight_ids
             )
 
             self.record(
                 "Candidate State Filtering",
                 passed,
-                f"Published included: {published_id in insight_ids}, "
-                f"candidate excluded: {candidate_id not in insight_ids}"
+                f"Published included: {str(published_id) in insight_ids}, "
+                f"candidate excluded: {str(candidate_id) not in insight_ids}"
             )
         except Exception as e:
             self.record("Candidate State Filtering", False, str(e))

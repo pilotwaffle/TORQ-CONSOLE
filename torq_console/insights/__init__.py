@@ -149,6 +149,33 @@ from .inspection import (
     get_inspection_service,
 )
 
+# Milestone 5B Refinement: Insight candidate and duplicate detection
+from .refinement_5b import (
+    InsightCandidate,
+    DuplicateDetectionResult,
+    DuplicateDetector,
+)
+
+from .refinement_5b import (
+    # Milestone 5B Refinement
+    InsightCandidate,
+    DuplicateDetectionResult,
+    DuplicateDetector,
+    LifecycleTransitionError,
+    LifecycleTransitionValidator,
+    RankingEdgeCaseConfig,
+    RankingEngine,
+    AuditEventType,
+    GovernanceAuditEvent,
+    AuditCompletenessService,
+    SupersessionService,
+    get_duplicate_detector,
+    get_lifecycle_validator,
+    get_ranking_engine,
+    get_audit_service,
+    get_supersession_service,
+)
+
 
 __all__ = [
     # Models
@@ -246,4 +273,22 @@ __all__ = [
     "InsightTypeConfig",
     "InsightInspectionService",
     "get_inspection_service",
+
+    # Milestone 5B Refinement
+    "InsightCandidate",
+    "DuplicateDetectionResult",
+    "DuplicateDetector",
+    "LifecycleTransitionError",
+    "LifecycleTransitionValidator",
+    "RankingEdgeCaseConfig",
+    "RankingEngine",
+    "AuditEventType",
+    "GovernanceAuditEvent",
+    "AuditCompletenessService",
+    "SupersessionService",
+    "get_duplicate_detector",
+    "get_lifecycle_validator",
+    "get_ranking_engine",
+    "get_audit_service",
+    "get_supersession_service",
 ]

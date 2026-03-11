@@ -895,22 +895,25 @@ class InsightInspectionService:
 
         previous_state = old_record.lifecycle_state.value
 
-        # Transition old to SUPERSEDED
+        # Transition old to SUPERSEDED (Milestone 5B: Set superseded_by_id)
         from .models import InsightUpdate
         update = InsightUpdate(
             lifecycle_state=InsightLifecycleState.SUPERSEDED,
-            # Note: superseded_by_id would need to be added to InsightRecord
+            superseded_by_id=new_insight_id,  # Milestone 5B: Track superseding insight
         )
         await self.persistence.update_insight(old_insight_id, update)
 
-        # Log lifecycle event
+        # Log lifecycle event (M5B: Handle None new_record safely)
+        new_title = new_record.title if new_record else f"Insight {new_insight_id}"
+        supersession_msg = f"Superseded by {new_title}. Reason: {reason or 'None'}"
+
         self._log_lifecycle_event(
             str(old_insight_id),
             "superseded",
             previous_state,
             InsightLifecycleState.SUPERSEDED.value,
             superseded_by,
-            f"Superseded by {new_record.title}. Reason: {reason or 'None'}",
+            supersession_msg,
         )
 
         return GovernanceAction(
@@ -919,7 +922,7 @@ class InsightInspectionService:
             insight_id=str(old_insight_id),
             previous_state=previous_state,
             new_state=InsightLifecycleState.SUPERSEDED.value,
-            message=f"Insight superseded by {new_record.title}",
+            message=f"Insight superseded by {new_title}",
             performed_by=superseded_by,
         )
 
@@ -1001,6 +1004,22 @@ class InsightInspectionService:
         if config:
             return config.enabled
         return True  # Default to enabled
+
+    def get_insight_type_config(self, insight_type) -> Optional[InsightTypeConfig]:
+        """
+        Get the configuration for an insight type.
+
+        Milestone 5B: Added for retrieval service to check disabled types.
+
+        Args:
+            insight_type: InsightType enum or string value
+
+        Returns:
+            InsightTypeConfig if exists, None otherwise
+        """
+        # Handle both enum and string
+        type_value = insight_type.value if hasattr(insight_type, 'value') else str(insight_type)
+        return self._insight_type_configs.get(type_value)
 
     # ========================================================================
     # Helper Methods

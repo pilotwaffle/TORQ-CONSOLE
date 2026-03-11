@@ -531,6 +531,8 @@ class MemoryInsightPersistence(InsightPersistence):
             record.tags = update.tags
         if update.lifecycle_state:
             record.lifecycle_state = update.lifecycle_state
+        if update.superseded_by_id:
+            record.superseded_by_id = update.superseded_by_id  # Milestone 5B
         if update.expires_at:
             record.expires_at = update.expires_at
 

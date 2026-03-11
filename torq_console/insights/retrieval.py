@@ -311,6 +311,7 @@ class InsightRetrievalService:
         self,
         persistence,
         ranking_config: Optional[RankingConfig] = None,
+        inspection_service=None,
     ):
         """
         Initialize the retrieval service.
@@ -318,9 +319,11 @@ class InsightRetrievalService:
         Args:
             persistence: Insight persistence layer
             ranking_config: Optional ranking configuration
+            inspection_service: Optional inspection service for type config access
         """
         self.persistence = persistence
         self.ranking_config = ranking_config or RankingConfig()
+        self._inspection_service = inspection_service
         self._audit_log: List[RetrievalAuditEntry] = []
 
     async def retrieve(
@@ -338,15 +341,20 @@ class InsightRetrievalService:
         """
         start_time = datetime.now()
 
-        # Get all published insights (base query)
-        all_insights = await self.persistence.list_insights(
+        # Milestone 5B: Fetch ALL lifecycle states to enable proper suppression tracking
+        # This ensures that superseded/archived insights appear in suppressed list
+        all_insights = []
+
+        # Get PUBLISHED insights (primary)
+        published = await self.persistence.list_insights(
             insight_type=None,
             lifecycle_state=InsightLifecycleState.PUBLISHED,
             scope=context.scope,
-            limit=1000  # Get more than we need for filtering
+            limit=1000
         )
+        all_insights.extend(published)
 
-        # Also include VALIDATED for some contexts
+        # Also include VALIDATED for planning/review contexts
         if context.mission_type in ["planning", "review"]:
             validated = await self.persistence.list_insights(
                 insight_type=None,
@@ -355,6 +363,30 @@ class InsightRetrievalService:
                 limit=500
             )
             all_insights.extend(validated)
+
+        # Milestone 5B: Also fetch SUPERSEDED and ARCHIVED for suppression tracking
+        # These will be filtered out by _filter_insights but appear in suppressed list
+        try:
+            superseded = await self.persistence.list_insights(
+                insight_type=None,
+                lifecycle_state=InsightLifecycleState.SUPERSEDED,
+                scope=context.scope,
+                limit=500
+            )
+            all_insights.extend(superseded)
+        except Exception:
+            pass  # If not supported, skip
+
+        try:
+            archived = await self.persistence.list_insights(
+                insight_type=None,
+                lifecycle_state=InsightLifecycleState.ARCHIVED,
+                scope=context.scope,
+                limit=500
+            )
+            all_insights.extend(archived)
+        except Exception:
+            pass  # If not supported, skip
 
         # Filter insights
         filtered, suppressed = self._filter_insights(all_insights, context)
@@ -676,6 +708,16 @@ class InsightRetrievalService:
             reasons.append(f"lifecycle_state={insight.lifecycle_state.value}")
             return reasons  # Early return - these are hard filters
 
+        # Disabled type filtering (Milestone 5B)
+        if self._inspection_service:
+            try:
+                type_config = self._inspection_service.get_insight_type_config(insight.insight_type)
+                if type_config and not type_config.enabled:
+                    reasons.append(f"insight_type_disabled")
+                    return reasons  # Early return - disabled types are hard filters
+            except Exception:
+                pass  # If we can't check type config, continue
+
         # Insight type filtering
         if context.insight_types:
             if insight.insight_type not in context.insight_types:
@@ -779,8 +821,11 @@ class InsightRetrievalService:
         else:
             scope_score = 0.5
 
-        # Freshness score
-        age_days = (datetime.now() - insight.created_at).days
+        # Freshness score (M5B: Use last_validated_at when available)
+        last_validated = self._get_last_validated_at(insight)
+        freshness_timestamp = last_validated if last_validated else insight.created_at
+        age_days = (datetime.now() - freshness_timestamp).days
+
         if age_days <= config.fresh_days_threshold:
             freshness_score = 1.0
         elif age_days <= config.stale_days_threshold:
@@ -790,7 +835,7 @@ class InsightRetrievalService:
             )
             freshness_score = 1.0 - (ratio * 0.5)
         else:
-            freshness_score = 0.3  # Still somewhat relevant
+            freshness_score = 0.3  # Stale but possibly still relevant
 
         # Confidence score
         confidence_score = self._get_confidence(insight)
@@ -982,7 +1027,8 @@ class InsightRetrievalService:
 
 def get_retrieval_service(
     persistence,
-    ranking_config: Optional[RankingConfig] = None
+    ranking_config: Optional[RankingConfig] = None,
+    inspection_service=None
 ) -> InsightRetrievalService:
     """
     Get the insight retrieval service.
@@ -990,8 +1036,9 @@ def get_retrieval_service(
     Args:
         persistence: Insight persistence layer
         ranking_config: Optional ranking configuration
+        inspection_service: Optional inspection service for type config access (Milestone 5B)
 
     Returns:
         InsightRetrievalService instance
     """
-    return InsightRetrievalService(persistence, ranking_config)
+    return InsightRetrievalService(persistence, ranking_config, inspection_service)
