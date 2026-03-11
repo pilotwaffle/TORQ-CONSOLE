@@ -76,9 +76,6 @@ export const ChatWindow: React.FC = () => {
   const handleSend = useCallback(async (message: string) => {
     if (!activeSessionId) return;
 
-    // Store latest handleSend in ref for event listener access
-    handleSendRef.current = handleSend;
-
     // Update first message state
     if (isFirstMessage) {
       setIsFirstMessage(false);
@@ -228,6 +225,11 @@ export const ChatWindow: React.FC = () => {
       agentStoreAddMessage(activeSessionId, errorMsg);
     }
   }, [activeSessionId, activeSession?.agentId, setTyping, agentStoreAddMessage]);
+
+  // Keep the ref updated with the latest handleSend function
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  }, [handleSend]);
 
   // Listen for suggestion-click events from empty state
   useEffect(() => {
