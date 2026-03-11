@@ -24,8 +24,8 @@ Architecture:
     observed | watchlist | ready | blocked | regressed
 
 Phase Milestones:
-    M1: Readiness object model + policy schema
-    M2: Evidence collection and scoring engine
+    M1: Readiness object model + policy schema ✅
+    M2: Evidence collection and scoring engine 🔄 IN PROGRESS
     M3: Transition controller and governance actions
     M4: Query / inspection / audit layer
     M5: Hardening & regression
@@ -76,6 +76,37 @@ from .readiness_policy import (
     get_policy_applicator,
 )
 
+from .evidence_collector import (
+    # Evidence Collection Interface
+    EvidenceCollector,
+    CollectorResult,
+    CollectorError,
+
+    # Dimension Collectors
+    ExecutionStabilityCollector,
+    ArtifactCompletenessCollector,
+    MemoryConfidenceCollector,
+    InsightQualityCollector,
+    PatternConfidenceCollector,
+    AuditCoverageCollector,
+    PolicyComplianceCollector,
+    OperationalConsistencyCollector,
+
+    # Collection Orchestration
+    EvidenceCollectionOrchestrator,
+    collect_all_evidence,
+    get_evidence_orchestrator,
+)
+
+from .scoring_engine import (
+    # Scoring Engine
+    ReadinessScoringEngine,
+    ScoreBreakdown,
+    ScoringContext,
+    compute_readiness_score,
+    get_scoring_engine,
+)
+
 __all__ = [
     # Models
     "CandidateType",
@@ -103,4 +134,27 @@ __all__ = [
     "get_hard_block_evaluator",
     "PolicyApplicator",
     "get_policy_applicator",
+
+    # Evidence Collection
+    "EvidenceCollector",
+    "CollectorResult",
+    "CollectorError",
+    "ExecutionStabilityCollector",
+    "ArtifactCompletenessCollector",
+    "MemoryConfidenceCollector",
+    "InsightQualityCollector",
+    "PatternConfidenceCollector",
+    "AuditCoverageCollector",
+    "PolicyComplianceCollector",
+    "OperationalConsistencyCollector",
+    "EvidenceCollectionOrchestrator",
+    "collect_all_evidence",
+    "get_evidence_orchestrator",
+
+    # Scoring Engine
+    "ReadinessScoringEngine",
+    "ScoreBreakdown",
+    "ScoringContext",
+    "compute_readiness_score",
+    "get_scoring_engine",
 ]

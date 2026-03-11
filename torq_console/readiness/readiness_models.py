@@ -269,7 +269,7 @@ class ReadinessScore(BaseModel):
 
     # Score breakdown
     dimension_weights: Dict[str, float] = Field(default_factory=dict)
-    dimension_scores_raw: Dict[str, float] = Field(default_factory=dict)
+    dimension_scores_raw: Dict[str, Dict[str, float]] = Field(default_factory=dict)
 
     # Computed at
     computed_at: datetime = Field(default_factory=datetime.now)
