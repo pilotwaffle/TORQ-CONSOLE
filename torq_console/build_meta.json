@@ -1,8 +1,8 @@
 {
-  "git_sha": "7d09541489f3ae732498698894450e6200bbb36c",
-  "git_short_sha": "7d09541489f3",
+  "git_sha": "91f5f522a34e30015f752a5e3d27d29d5765c44d",
+  "git_short_sha": "91f5f522a34e",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-11T03:06:00.523625+00:00",
+  "built_at": "2026-03-11T20:10:29.530479+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "Insight Publishing Milestone 5: Hardening & Regression Validation"
+  "commit_message": "Add TORQ Readiness Checker and complete Insight Publishing 5B"
 }
