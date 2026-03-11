@@ -1,8 +1,8 @@
 {
-  "git_sha": "3b17da8fe910b23c0c32464ad0307e59f0d2dd7f",
-  "git_short_sha": "3b17da8fe910",
+  "git_sha": "7d09541489f3ae732498698894450e6200bbb36c",
+  "git_short_sha": "7d09541489f3",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-10T04:01:27.463194+00:00",
+  "built_at": "2026-03-11T03:06:00.523625+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "docs: add Phase 5.3 next session guide"
+  "commit_message": "Insight Publishing Milestone 5: Hardening & Regression Validation"
 }
