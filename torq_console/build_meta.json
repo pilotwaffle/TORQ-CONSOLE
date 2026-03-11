@@ -1,8 +1,8 @@
 {
-  "git_sha": "1e83359a609d74c4cbf6b04729e9fd50abd03734",
-  "git_short_sha": "1e83359a609d",
+  "git_sha": "117e7228fcd06316fa8dc22bdaa3443ebb8f8828",
+  "git_short_sha": "117e7228fcd0",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-11T22:33:58.568241+00:00",
+  "built_at": "2026-03-11T22:35:32.995434+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "chore: update build metadata [skip ci]"
+  "commit_message": "Complete Readiness Checker Milestone 3: Transition Controller and Governance Actions"
 }
