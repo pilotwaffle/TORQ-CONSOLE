@@ -1,8 +1,8 @@
 {
-  "git_sha": "e555484c2430263c5446bc564a857cb85b650573",
-  "git_short_sha": "e555484c2430",
+  "git_sha": "1e83359a609d74c4cbf6b04729e9fd50abd03734",
+  "git_short_sha": "1e83359a609d",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-11T21:11:35.222445+00:00",
+  "built_at": "2026-03-11T22:33:58.568241+00:00",
   "branch": "feature/operator-control-surface",
   "commit_message": "chore: update build metadata [skip ci]"
 }
