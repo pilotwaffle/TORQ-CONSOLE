@@ -1,8 +1,8 @@
 {
-  "git_sha": "8f977e23501722d525585df3ba7b2ade16a6e873",
-  "git_short_sha": "8f977e235017",
+  "git_sha": "ae8a07b63c61d279cae2174b949d1281fd495253",
+  "git_short_sha": "ae8a07b63c61",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-09T02:23:41.005007+00:00",
-  "branch": "release/v0.9.0-beta",
-  "commit_message": "docs: reorganize documentation into current / architecture / prd layers"
+  "built_at": "2026-03-11T21:11:21.256363+00:00",
+  "branch": "main",
+  "commit_message": "Revise setup.py for Phase 5.2B enhancements"
 }
