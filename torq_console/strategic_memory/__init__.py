@@ -59,6 +59,30 @@ from .governance import (
     VALID_TRANSITIONS,
 )
 
+from .query_service import (
+    MemoryQueryService,
+    MemoryQuery,
+    MemoryQueryResult,
+    MemoryInspection,
+    ProvenanceFilter,
+    FreshnessFilter,
+    AccessLogEntry,
+    get_memory_query_service,
+)
+
+from .inspection_service import (
+    MemoryInspectionService,
+    MemoryRecordDetail,
+    MemoryTraceability,
+    ValidationDecisionReport,
+    RejectionLogEntry,
+    RetrievalAuditRecord,
+    RetrievalAuditSummary,
+    GovernanceAction,
+    GovernanceActionResult,
+    get_memory_inspection_service,
+)
+
 __all__ = [
     # Core types
     "MemoryType",
@@ -100,4 +124,26 @@ __all__ = [
     "MemoryLineageTracker",
     "GovernanceTransition",
     "VALID_TRANSITIONS",
+
+    # Query (Phase 4H.1 Milestone 3)
+    "MemoryQueryService",
+    "MemoryQuery",
+    "MemoryQueryResult",
+    "MemoryInspection",
+    "ProvenanceFilter",
+    "FreshnessFilter",
+    "AccessLogEntry",
+    "get_memory_query_service",
+
+    # Inspection & Control (Phase 4H.1 Milestone 4)
+    "MemoryInspectionService",
+    "MemoryRecordDetail",
+    "MemoryTraceability",
+    "ValidationDecisionReport",
+    "RejectionLogEntry",
+    "RetrievalAuditRecord",
+    "RetrievalAuditSummary",
+    "GovernanceAction",
+    "GovernanceActionResult",
+    "get_memory_inspection_service",
 ]

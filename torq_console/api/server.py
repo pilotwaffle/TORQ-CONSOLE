@@ -88,6 +88,22 @@ except ImportError:
     STRATEGIC_MEMORY_AVAILABLE = False
     strategic_memory_router = None
 
+# Try to import memory query API routes if available (Phase 4H.1 Milestone 3)
+try:
+    from torq_console.api.memory_api import router as memory_query_router
+    MEMORY_QUERY_AVAILABLE = True
+except ImportError:
+    MEMORY_QUERY_AVAILABLE = False
+    memory_query_router = None
+
+# Try to import memory inspection API routes if available (Phase 4H.1 Milestone 4)
+try:
+    from torq_console.api.memory_inspection_api import router as memory_inspection_router
+    MEMORY_INSPECTION_AVAILABLE = True
+except ImportError:
+    MEMORY_INSPECTION_AVAILABLE = False
+    memory_inspection_router = None
+
 # Try to import mission graph routes if available
 try:
     from torq_console.mission_graph.api import router as mission_graph_router
@@ -198,6 +214,16 @@ if ADAPTIVE_TELEMETRY_AVAILABLE and adaptive_telemetry_router:
 if STRATEGIC_MEMORY_AVAILABLE and strategic_memory_router:
     app.include_router(strategic_memory_router, prefix="/api")
     logger.info("Strategic Memory routes included")
+
+# Include memory query routes if available (Phase 4H.1 Milestone 3)
+if MEMORY_QUERY_AVAILABLE and memory_query_router:
+    app.include_router(memory_query_router, prefix="/api")
+    logger.info("Memory Query API routes included (Phase 4H.1 Milestone 3)")
+
+# Include memory inspection routes if available (Phase 4H.1 Milestone 4)
+if MEMORY_INSPECTION_AVAILABLE and memory_inspection_router:
+    app.include_router(memory_inspection_router, prefix="/api")
+    logger.info("Memory Inspection & Control API routes included (Phase 4H.1 Milestone 4)")
 
 # Include mission graph routes if available
 if MISSION_GRAPH_AVAILABLE and mission_graph_router:

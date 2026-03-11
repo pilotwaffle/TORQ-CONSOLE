@@ -172,8 +172,22 @@ torq_console/
 
 ---
 
+## Checkpoint Commit
+
+**Commit:** `9d929432` - `fix(console): restore standalone chat flow, health indicators, and agent registry UX`
+
+This checkpoint commit closes the app-stability branch cleanly. All standalone mode fixes have been committed to the `feature/operator-control-surface` branch.
+
 ## Conclusion
 
 TORQ Console is now **functionally operational** in standalone mode. All critical frontend/backend integration issues have been resolved. The application provides clear UX feedback about current capabilities and limitations.
 
+**Status: ✅ OPERATIONAL - Ready for Roadmap Continuation**
+
 **Recommendation:** Proceed with Path 1 (platform stability) and address Marvin enablement as a separate, deliberate task.
+
+## Next Steps
+
+1. ✅ Commit standalone mode fixes - COMPLETE (9d929432)
+2. ⏭️ Return to roadmap (Phase 4H.1 or next queued milestone)
+3. 🔄 Keep Marvin enablement as separate task branch (deferred)
