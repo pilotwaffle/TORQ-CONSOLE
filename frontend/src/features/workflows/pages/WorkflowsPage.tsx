@@ -1,21 +1,28 @@
 /**
- * Workflows Page
+ * Phase 3: Product UX & Identity
  *
- * Lists all workflow graphs with filtering and actions.
+ * Workflows Page with enhanced UX
+ * Empty states, consistent headers, better polish
  */
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useWorkflows, useArchiveWorkflow, useDeleteWorkflow, useExecuteWorkflow } from "../hooks/useWorkflows";
 import { useWorkflowUiStore } from "../stores/workflowUiStore";
 import { WorkflowListTable } from "../components/WorkflowListTable";
+import { WorkflowEmptyState } from "@/components/empty-states";
+import { PageHeader } from "@/components/page-headers";
+import { WorkflowCardSkeleton, TableSkeleton } from "@/components/loading/Skeleton";
+import { useToast } from "@/components/toasts";
 import type { WorkflowGraph } from "../api";
-import { Plus, RefreshCw, Filter } from "lucide-react";
+import { Plus, RefreshCw, Filter, Archive, Trash2 } from "lucide-react";
 
 export function WorkflowsPage() {
+  const navigate = useNavigate();
   const { data: workflows, isLoading, error, refetch } = useWorkflows();
   const archiveWorkflow = useArchiveWorkflow();
   const deleteWorkflow = useDeleteWorkflow();
   const executeWorkflow = useExecuteWorkflow();
+  const toast = useToast();
 
   const { statusFilter, setStatusFilter } = useWorkflowUiStore();
 
@@ -25,96 +32,145 @@ export function WorkflowsPage() {
     return true;
   }) || [];
 
+  const hasWorkflows = workflows && workflows.length > 0;
+
   const handleExecute = (workflow: WorkflowGraph) => {
     executeWorkflow.mutate(
       { graphId: workflow.graph_id, request: { trigger_type: "manual" } },
       {
         onSuccess: (result) => {
-          window.location.href = `/executions/${result.execution_id}`;
+          navigate(`/executions/${result.execution_id}`);
         },
         onError: (error) => {
           console.error("Failed to execute workflow:", error);
-          alert("Failed to execute workflow. Please try again.");
+          toast.error("Failed to execute workflow. Please try again.");
         },
       }
     );
   };
 
   const handleArchive = (workflow: WorkflowGraph) => {
-    if (!confirm(`Archive workflow "${workflow.name}"?`)) return;
-
-    archiveWorkflow.mutate(workflow.graph_id, {
-      onSuccess: () => {
-        refetch();
-      },
-      onError: (error) => {
-        console.error("Failed to archive workflow:", error);
-        alert("Failed to archive workflow. Please try again.");
+    // Phase 3: Use toast with action instead of confirm dialog
+    toast.warning(`Archive workflow "${workflow.name}"?`, {
+      title: 'Confirm Archive',
+      action: {
+        label: 'Archive',
+        onClick: () => {
+          archiveWorkflow.mutate(workflow.graph_id, {
+            onSuccess: () => {
+              refetch();
+            },
+            onError: (error) => {
+              console.error("Failed to archive workflow:", error);
+              toast.error("Failed to archive workflow. Please try again.");
+            },
+          });
+        },
       },
     });
   };
 
   const handleDelete = (workflow: WorkflowGraph) => {
-    if (!confirm(`Delete workflow "${workflow.name}"? This cannot be undone.`)) return;
-
-    deleteWorkflow.mutate(workflow.graph_id, {
-      onSuccess: () => {
-        refetch();
-      },
-      onError: (error) => {
-        console.error("Failed to delete workflow:", error);
-        alert("Failed to delete workflow. Please try again.");
+    // Phase 3: Use toast with action instead of confirm dialog
+    toast.error(`Delete workflow "${workflow.name}"? This cannot be undone.`, {
+      title: 'Confirm Delete',
+      action: {
+        label: 'Delete',
+        onClick: () => {
+          deleteWorkflow.mutate(workflow.graph_id, {
+            onSuccess: () => {
+              refetch();
+            },
+            onError: (error) => {
+              console.error("Failed to delete workflow:", error);
+              toast.error("Failed to delete workflow. Please try again.");
+            },
+          });
+        },
       },
     });
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full">
+        <PageHeader
+          title="Workflows"
+          description="Manage and execute automated workflow graphs"
+          onRefresh={() => refetch()}
+          isLoading={isLoading}
+          primaryAction={{
+            label: "New Workflow",
+            icon: <Plus className="w-4 h-4" />,
+            onClick: () => navigate("/workflows/new"),
+          }}
+        />
+        <div className="flex-1 px-6 py-4">
+          <TableSkeleton rows={5} columns={5} />
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!hasWorkflows && !isLoading) {
+    return (
+      <div className="flex flex-col h-full">
+        <PageHeader
+          title="Workflows"
+          description="Manage and execute automated workflow graphs"
+          onRefresh={() => refetch()}
+          isLoading={isLoading}
+          primaryAction={{
+            label: "Create Workflow",
+            icon: <Plus className="w-4 h-4" />,
+            onClick: () => navigate("/workflows/new"),
+          }}
+        />
+        <div className="flex-1">
+          <WorkflowEmptyState onCreateWorkflow={() => navigate("/workflows/new")} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Workflows</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage and execute automated workflow graphs
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => refetch()}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
-            title="Refresh"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <Link
-            to="/workflows/new"
-            className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Workflow
-          </Link>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-4 px-6 py-3 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <select
-            value={statusFilter || "all"}
-            onChange={(e) => setStatusFilter(e.target.value === "all" ? null : e.target.value)}
-            className="text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-200"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
-        <div className="text-sm text-gray-500">
-          Showing {filteredWorkflows.length} workflow{filteredWorkflows.length !== 1 ? "s" : ""}
-        </div>
-      </div>
+      {/* Header with consistent design */}
+      <PageHeader
+        title="Workflows"
+        description="Manage and execute automated workflow graphs"
+        onRefresh={() => refetch()}
+        isLoading={isLoading}
+        meta={
+          !isLoading && hasWorkflows && (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-400" />
+                <select
+                  value={statusFilter || "all"}
+                  onChange={(e) => setStatusFilter(e.target.value === "all" ? null : e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div className="text-sm text-gray-500">
+                {filteredWorkflows.length} workflow{filteredWorkflows.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+          )
+        }
+        primaryAction={{
+          label: "New Workflow",
+          icon: <Plus className="w-4 h-4" />,
+          onClick: () => navigate("/workflows/new"),
+        }}
+      />
 
       {/* Error State */}
       {error && (

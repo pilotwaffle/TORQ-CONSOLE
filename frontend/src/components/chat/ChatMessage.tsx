@@ -6,9 +6,10 @@ import type { Message } from '@/lib/types';
 interface ChatMessageProps {
   message: Message;
   agentName: string;
+  isStreaming?: boolean;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message, agentName }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ message, agentName, isStreaming = false }) => {
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
@@ -95,9 +96,21 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, agentName }) 
             <span className="text-small text-text-muted">
               {formatTimestamp(message.timestamp)}
             </span>
+            {isStreaming && (
+              <span className="text-small text-accent-primary flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-accent-primary rounded-full animate-pulse" />
+                typing
+              </span>
+            )}
           </div>
 
-          <div className="text-body text-text-secondary">{renderContent()}</div>
+          <div className="text-body text-text-secondary">
+            {isStreaming && message.content === '' ? (
+              <span className="text-text-muted italic">Thinking...</span>
+            ) : (
+              renderContent()
+            )}
+          </div>
 
           {/* File path metadata (only show if not already in CodeBlock) */}
           {message.metadata?.filePath && message.type !== 'code' && message.type !== 'diff' && (

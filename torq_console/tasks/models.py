@@ -123,6 +123,7 @@ class TaskGraphResponse(BaseModel):
     nodes: List[NodeDefinition]
     edges: List[EdgeDefinition]
     config: Dict[str, Any]
+    workspace_id: Optional[str] = None  # Linked Shared Cognitive Workspace
 
 
 class ExecutionCreate(BaseModel):
@@ -145,6 +146,7 @@ class ExecutionResponse(BaseModel):
     nodes_completed: int
     nodes_failed: int
     trace_id: Optional[str]
+    workspace_id: Optional[str] = None  # Linked Shared Cognitive Workspace
 
 
 class NodeResult(BaseModel):

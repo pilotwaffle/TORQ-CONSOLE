@@ -24,11 +24,13 @@ from .socketio_handler import SocketIOHandler
 try:
     from torq_console.workspace.api import router as workspace_router
     from torq_console.workspace.agent_tools_api import router as agent_tools_router
+    from torq_console.workspace.artifacts_api import router as artifacts_router
     WORKSPACE_AVAILABLE = True
 except ImportError:
     WORKSPACE_AVAILABLE = False
     workspace_router = None
     agent_tools_router = None
+    artifacts_router = None
 
 # Try to import synthesis routes if available
 try:
@@ -156,6 +158,11 @@ if WORKSPACE_AVAILABLE and workspace_router:
 if WORKSPACE_AVAILABLE and agent_tools_router:
     app.include_router(agent_tools_router, prefix="/api")
     logger.info("Agent Workspace Tools routes included")
+
+# Include workspace artifacts routes if available
+if WORKSPACE_AVAILABLE and artifacts_router:
+    app.include_router(artifacts_router, prefix="/api")
+    logger.info("Workspace Artifacts routes included")
 
 # Include synthesis routes if available
 if SYNTHESIS_AVAILABLE and synthesis_router:

@@ -2,6 +2,7 @@
 Execution Engine for Task Graph Engine.
 
 Orchestrates the execution of task graphs with dependency resolution.
+Integrates with Shared Cognitive Workspace for execution-level working memory.
 """
 
 import logging
@@ -25,6 +26,16 @@ from .models import (
 from .dependency_resolver import DependencyResolver
 from .node_runner import NodeRunner
 
+# Optional workspace integration for Shared Cognitive Workspace
+try:
+    from torq_console.workspace.service import WorkspaceService
+    WORKSPACE_AVAILABLE = True
+except ImportError:
+    WORKSPACE_AVAILABLE = False
+    WorkspaceService = None
+
+logger = logging.getLogger(__name__)
+
 
 class ExecutionEngine:
     """
@@ -37,16 +48,18 @@ class ExecutionEngine:
     - Telemetry
     """
 
-    def __init__(self, supabase_client=None, agent_registry=None):
+    def __init__(self, supabase_client=None, agent_registry=None, workspace_service=None):
         """
         Initialize the execution engine.
 
         Args:
             supabase_client: Supabase client for persistence
             agent_registry: Agent registry for agent execution
+            workspace_service: Optional WorkspaceService for Shared Cognitive Workspace
         """
         self.supabase = supabase_client
         self.agent_registry = agent_registry
+        self.workspace_service = workspace_service
         self.node_runner = NodeRunner(agent_registry)
         self._running_executions: Dict[UUID, asyncio.Task] = {}
 
@@ -68,9 +81,25 @@ class ExecutionEngine:
         execution_id = uuid4()
         trace_id = f"exec_{int(time.time() * 1000)}_{execution_id.hex[:8]}"
 
+        # Create Shared Cognitive Workspace for this execution
+        workspace_id = None
+        if self.workspace_service:
+            try:
+                workspace = await self.workspace_service.get_or_create_workspace(
+                    scope_type="workflow_execution",
+                    scope_id=str(execution_id),
+                    title=f"Execution: {graph.name or 'Untitled'}",
+                    description=f"Workspace for workflow execution {execution_id}",
+                )
+                workspace_id = str(workspace.workspace_id)
+                logger.info(f"[{trace_id}] Created workspace: {workspace_id}")
+            except Exception as e:
+                logger.warning(f"[{trace_id}] Failed to create workspace: {e}")
+                # Continue without workspace - non-blocking
+
         # Create execution record
         if self.supabase:
-            self.supabase.table("task_executions").insert({
+            execution_data = {
                 "execution_id": str(execution_id),
                 "graph_id": str(graph.graph_id),
                 "status": "running",
@@ -78,7 +107,12 @@ class ExecutionEngine:
                 "trigger_type": execution_request.trigger_type.value,
                 "trigger_source": execution_request.trigger_source,
                 "trace_id": trace_id,
-            }).execute()
+            }
+            # Link workspace if created
+            if workspace_id:
+                execution_data["workspace_id"] = workspace_id
+
+            self.supabase.table("task_executions").insert(execution_data).execute()
 
         started_at = time.time()
         completed_nodes: Set[UUID] = set()
@@ -214,6 +248,7 @@ class ExecutionEngine:
                 nodes_completed=len(completed_nodes),
                 nodes_failed=len(failed_nodes),
                 trace_id=trace_id,
+                workspace_id=workspace_id,
             )
 
         except Exception as e:
@@ -243,6 +278,7 @@ class ExecutionEngine:
                 nodes_completed=len(completed_nodes),
                 nodes_failed=len(failed_nodes),
                 trace_id=trace_id,
+                workspace_id=workspace_id,
             )
 
     async def _execute_single_node(
@@ -358,6 +394,7 @@ class ExecutionEngine:
                 nodes_completed=data.get("nodes_completed", 0),
                 nodes_failed=data.get("nodes_failed", 0),
                 trace_id=data.get("trace_id"),
+                workspace_id=data.get("workspace_id"),
             )
 
         return None

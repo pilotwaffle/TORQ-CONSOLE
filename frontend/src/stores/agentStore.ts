@@ -3,6 +3,8 @@ import { Agent, ChatSession, Message, Workspace } from '@/lib/types';
 import websocketManager from '@/services/websocket';
 import apiService from '@/services/api';
 import agentService from '@/services/agentService';
+import { findMessageById } from '@/utils/messageUtils';
+import { useChatStore } from './chatStore';
 
 interface AgentState {
   // State
@@ -88,17 +90,27 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   setActiveSession: (sessionId) => set({ activeSessionId: sessionId }),
 
+  // Phase 2: Updated with deduplication
   addMessage: (sessionId, message) =>
     set((state) => ({
-      sessions: state.sessions.map((session) =>
-        session.id === sessionId
-          ? {
-            ...session,
-            messages: [...session.messages, message],
-            updatedAt: Date.now(),
-          }
-          : session
-      ),
+      sessions: state.sessions.map((session) => {
+        if (session.id !== sessionId) return session;
+
+        // Phase 2: Check for duplicate message by ID
+        // Support both legacy Message.id and ChatMessage.message_id
+        const messageId = message.id || (message as any).message_id;
+        const existing = findMessageById(session.messages, messageId);
+        if (existing) {
+          // Duplicate found - don't add again, just return session unchanged
+          return session;
+        }
+
+        return {
+          ...session,
+          messages: [...session.messages, message],
+          updatedAt: Date.now(),
+        };
+      }),
     })),
 
   updateMessage: (sessionId, messageId, updates) =>
@@ -106,12 +118,12 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       sessions: state.sessions.map((session) =>
         session.id === sessionId
           ? {
-            ...session,
-            messages: session.messages.map((msg) =>
-              msg.id === messageId ? { ...msg, ...updates } : msg
-            ),
-            updatedAt: Date.now(),
-          }
+              ...session,
+              messages: session.messages.map((msg) =>
+                msg.id === messageId ? { ...msg, ...updates } : msg
+              ),
+              updatedAt: Date.now(),
+            }
           : session
       ),
     })),
@@ -155,13 +167,23 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       // console.log('Agent response received:', data); // Comment out to reduce noise
       const { sessionId, message } = data;
 
+      // Phase 2: Clear typing indicator when response arrives
+      const chatStore = useChatStore.getState();
+      chatStore.setTyping(sessionId, false);
+
       set((state) => ({
         sessions: state.sessions.map((session) => {
           if (session.id !== sessionId) return session;
 
-          const existingMsgIndex = session.messages.findIndex(m => m.id === message.id);
+          // Phase 2: Find by either legacy id or new message_id
+          const messageId = message.id || (message as any).message_id;
+          const existingMsgIndex = session.messages.findIndex(m => {
+            const mId = m.id || (m as any).message_id;
+            return mId === messageId;
+          });
+
           if (existingMsgIndex >= 0) {
-            // Update existing message
+            // Update existing message (streaming)
             const newMessages = [...session.messages];
             newMessages[existingMsgIndex] = { ...newMessages[existingMsgIndex], ...message };
             return { ...session, messages: newMessages, updatedAt: Date.now() };
@@ -281,4 +303,7 @@ if (typeof window !== 'undefined') {
   // Only initialize in browser environment
   const store = useAgentStore.getState();
   store.initializeWebSocket();
+
+  // Expose store for HealthStatus component ( belt-and-suspenders)
+  (window as any).__agentStore__ = useAgentStore;
 }

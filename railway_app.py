@@ -160,9 +160,22 @@ except Exception as e:
 
 try:
     from torq_console.tasks.api import create_task_router
+    from torq_console.workspace.service import WorkspaceService
+    from torq_console.dependencies import get_supabase_client
+
+    # Try to create workspace service for Shared Cognitive Workspace integration
+    workspace_service = None
+    try:
+        supabase_client = get_supabase_client()
+        workspace_service = WorkspaceService(supabase_client)
+        logger.info("Workspace service initialized for task execution")
+    except Exception as e:
+        logger.warning(f"Workspace service not available: {e}")
+
     task_router = create_task_router(
         supabase_client=None,  # Will be initialized with actual client
         agent_registry=None,  # Will be initialized with actual registry
+        workspace_service=workspace_service,  # Shared Cognitive Workspace
     )
     app.include_router(task_router)
     logger.info("Task Graph Engine routes loaded")
@@ -176,12 +189,69 @@ except Exception as e:
 
 try:
     from torq_console.workflow_planner import router as workflow_planner_router
+    from torq_console.workflow_planner.api import set_workspace_service
+
+    # Wire up workspace service if available
+    if 'workspace_service' in locals() and workspace_service:
+        set_workspace_service(workspace_service)
+        logger.info("Workspace service wired to workflow planner")
+
     app.include_router(workflow_planner_router)
     logger.info("Workflow Planning Copilot routes loaded")
 except Exception as e:
     logger.exception(f"Failed to load workflow planner: {e}")
     # Non-fatal - log and continue
     logger.warning("Workflow Planning Copilot not available")
+
+# ============================================================================
+# Reasoning Synthesis Engine Routes (Phase 4E)
+# ============================================================================
+
+try:
+    from torq_console.synthesis import router as synthesis_router
+    app.include_router(synthesis_router)
+    logger.info("Reasoning Synthesis Engine routes loaded")
+except Exception as e:
+    logger.exception(f"Failed to load synthesis engine: {e}")
+    # Non-fatal - log and continue
+    logger.warning("Reasoning Synthesis Engine not available")
+
+# ============================================================================
+# Evaluation Engine Routes (Phase 4F)
+# ============================================================================
+
+try:
+    from torq_console.evaluation import router as evaluation_router
+    app.include_router(evaluation_router)
+    logger.info("Evaluation Engine routes loaded")
+except Exception as e:
+    logger.exception(f"Failed to load evaluation engine: {e}")
+
+# Learning Signal Engine (Phase 4F)
+try:
+    from torq_console.learning import router as learning_router
+    app.include_router(learning_router)
+    logger.info("Learning Signal Engine routes loaded")
+except Exception as e:
+    logger.exception(f"Failed to load learning signal engine: {e}")
+
+# Adaptation Policy Engine (Phase 4F)
+try:
+    from torq_console.adaptation import router as adaptation_router
+    app.include_router(adaptation_router)
+    logger.info("Adaptation Policy Engine routes loaded")
+except Exception as e:
+    logger.exception(f"Failed to load adaptation policy engine: {e}")
+
+# Behavior Experiment & Versioning Layer (Phase 4F)
+try:
+    from torq_console.experiments import router as experiments_router
+    app.include_router(experiments_router)
+    logger.info("Behavior Experiment & Versioning Layer routes loaded")
+except Exception as e:
+    logger.exception(f"Failed to load experiments layer: {e}")
+    # Non-fatal - log and continue
+    logger.warning("Experiments Layer not available")
 
 # ============================================================================
 # Demo Workflow Seeding on Startup

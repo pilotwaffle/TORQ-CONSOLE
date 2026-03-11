@@ -4,6 +4,7 @@ API Router for Task Graph Engine.
 Provides REST endpoints for task graph management and execution.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 def create_task_router(
     supabase_client=None,
     agent_registry=None,
+    workspace_service=None,
 ) -> APIRouter:
     """
     Create the task graph API router.
@@ -37,6 +39,7 @@ def create_task_router(
     Args:
         supabase_client: Supabase client for persistence
         agent_registry: Agent registry for agent execution
+        workspace_service: Optional WorkspaceService for Shared Cognitive Workspace
 
     Returns:
         FastAPI router with task graph endpoints
@@ -45,8 +48,8 @@ def create_task_router(
     router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
     # Initialize engines
-    graph_engine = TaskGraphEngine(supabase_client)
-    execution_engine = ExecutionEngine(supabase_client, agent_registry)
+    graph_engine = TaskGraphEngine(supabase_client, workspace_service)
+    execution_engine = ExecutionEngine(supabase_client, agent_registry, workspace_service)
     scheduler = Scheduler(supabase_client, execution_engine)
 
     # ========================================================================
@@ -198,6 +201,7 @@ def create_task_router(
                 nodes_completed=e.get("nodes_completed", 0),
                 nodes_failed=e.get("nodes_failed", 0),
                 trace_id=e.get("trace_id"),
+                workspace_id=e.get("workspace_id"),
             )
             for e in result.data
         ]
@@ -388,6 +392,7 @@ def create_task_router(
                 "nodes_completed": execution.get("nodes_completed", 0),
                 "nodes_failed": execution.get("nodes_failed", 0),
                 "trace_id": execution.get("trace_id"),
+                "workspace_id": execution.get("workspace_id"),
             },
             "graph": {
                 "graph_id": graph["graph_id"],

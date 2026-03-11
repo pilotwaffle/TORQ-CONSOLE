@@ -14,12 +14,25 @@ import asyncio
 
 import socketio
 
-from torq_console.agents.marvin_prince_flowers import create_prince_flowers_agent
-from torq_console.agents.marvin_orchestrator import (
-    get_orchestrator,
-    OrchestrationMode,
-)
-from torq_console.agents.marvin_query_router import create_query_router
+# Optional marvin imports (skip if not installed)
+try:
+    from torq_console.agents.marvin_prince_flowers import create_prince_flowers_agent
+except ImportError:
+    create_prince_flowers_agent = None
+
+try:
+    from torq_console.agents.marvin_orchestrator import (
+        get_orchestrator,
+        OrchestrationMode,
+    )
+except ImportError:
+    get_orchestrator = None
+    OrchestrationMode = None
+
+try:
+    from torq_console.agents.marvin_query_router import create_query_router
+except ImportError:
+    create_query_router = None
 
 # Configure logging
 logger = logging.getLogger("TORQ.API.SocketIO")
@@ -47,15 +60,16 @@ class SocketIOHandler:
         self.sio = sio_server
         self.connected_clients: dict[str, dict[str, Any]] = {}
 
-        # Initialize agents
-        self.orchestrator = get_orchestrator()
-        self.query_router = create_query_router()
-        self.prince_flowers = create_prince_flowers_agent()
+        # Initialize agents (if marvin is available)
+        self.orchestrator = get_orchestrator() if get_orchestrator else None
+        self.query_router = create_query_router() if create_query_router else None
+        self.prince_flowers = create_prince_flowers_agent() if create_prince_flowers_agent else None
 
         # Register event handlers
         self._register_handlers()
 
-        logger.info("Socket.IO handler initialized")
+        marvin_status = "with Marvin" if (get_orchestrator and create_query_router and create_prince_flowers_agent) else "without Marvin"
+        logger.info(f"Socket.IO handler initialized ({marvin_status})")
 
     def _register_handlers(self) -> None:
         """Register all Socket.IO event handlers."""

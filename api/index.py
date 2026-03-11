@@ -445,21 +445,23 @@ async def chat(req: ChatRequest):
 @app.post("/api/chat/stream", response_class=StreamingResponse)
 async def chat_stream(req: ChatRequest):
     """
-    Stream chat response (SSE) - Phase 1 Feature.
-    Enabled via TORQ_STREAMING_ENABLED env var.
-    """
-    if os.environ.get("TORQ_STREAMING_ENABLED", "false").lower() != "true":
-        raise HTTPException(status_code=400, detail="Streaming is currently disabled via feature flag.")
+    Stream chat response (SSE) - Phase 4.1 Chat Streaming.
 
+    Tries direct provider streaming (Anthropic/OpenAI) for lowest latency.
+    Falls back gracefully if provider unavailable.
+
+    Frontend handles fallback to non-streaming /api/chat if this fails.
+    """
     provider = "none"
     if _has_key("ANTHROPIC_API_KEY"):
         provider = "anthropic"
     elif _has_key("OPENAI_API_KEY"):
         provider = "openai"
     else:
+        # Return 400 so frontend knows to use non-streaming fallback
         raise HTTPException(
-            status_code=503,
-            detail="No API key configured.",
+            status_code=400,
+            detail="No streaming-capable provider available (requires ANTHROPIC_API_KEY or OPENAI_API_KEY)"
         )
 
     return StreamingResponse(
@@ -468,6 +470,7 @@ async def chat_stream(req: ChatRequest):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
             "X-Torq-Provider": provider,
         },
     )
@@ -594,15 +597,19 @@ async def chat_health():
 @app.get("/api/status")
 async def status():
     """System status — local with optional Railway health probe."""
+    # Streaming is available if we have Anthropic or OpenAI API keys
+    streaming_available = _has_key("ANTHROPIC_API_KEY") or _has_key("OPENAI_API_KEY")
+
     result = {
         "status": "healthy",
         "service": "torq-console",
-        "version": "0.91.0",
+        "version": "0.92.0",  # Bump for streaming support
         "platform": "vercel",
         "agents_active": 1,
         "anthropic_configured": _has_key("ANTHROPIC_API_KEY"),
         "openai_configured": _has_key("OPENAI_API_KEY"),
-        "streaming_enabled": os.environ.get("TORQ_STREAMING_ENABLED", "false").lower() == "true",
+        "streaming_enabled": streaming_available,  # Based on API key availability
+        "streaming_provider": "anthropic" if _has_key("ANTHROPIC_API_KEY") else "openai" if _has_key("OPENAI_API_KEY") else None,
         "timestamp": _now_iso(),
     }
     # Optionally probe Railway health

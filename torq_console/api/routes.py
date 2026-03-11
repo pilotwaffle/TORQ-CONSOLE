@@ -15,19 +15,37 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from torq_console.agents.marvin_prince_flowers import (
-    MarvinPrinceFlowers,
-    create_prince_flowers_agent,
-)
-from torq_console.agents.marvin_orchestrator import (
-    MarvinAgentOrchestrator,
-    OrchestrationMode,
-    get_orchestrator,
-)
-from torq_console.agents.marvin_query_router import (
-    MarvinQueryRouter,
-    create_query_router,
-)
+# Optional marvin imports (skip if not installed)
+try:
+    from torq_console.agents.marvin_prince_flowers import (
+        MarvinPrinceFlowers,
+        create_prince_flowers_agent,
+    )
+    MARVIN_AVAILABLE = True
+except ImportError:
+    MarvinPrinceFlowers = None
+    create_prince_flowers_agent = None
+    MARVIN_AVAILABLE = False
+
+try:
+    from torq_console.agents.marvin_orchestrator import (
+        MarvinAgentOrchestrator,
+        OrchestrationMode,
+        get_orchestrator,
+    )
+except ImportError:
+    MarvinAgentOrchestrator = None
+    OrchestrationMode = None
+    get_orchestrator = None
+
+try:
+    from torq_console.agents.marvin_query_router import (
+        MarvinQueryRouter,
+        create_query_router,
+    )
+except ImportError:
+    MarvinQueryRouter = None
+    create_query_router = None
 
 # Configure logging
 logger = logging.getLogger("TORQ.API.Routes")
@@ -124,14 +142,26 @@ class AgentManager:
 
     def __init__(self) -> None:
         """Initialize agent manager."""
-        self.orchestrator: MarvinAgentOrchestrator = get_orchestrator()
-        self.router: MarvinQueryRouter = create_query_router()
-        self.prince_flowers: MarvinPrinceFlowers = create_prince_flowers_agent()
+        # Initialize marvin-dependent components if available
+        if get_orchestrator:
+            self.orchestrator: MarvinAgentOrchestrator = get_orchestrator()
+        else:
+            self.orchestrator = None
+
+        if create_query_router:
+            self.router: MarvinQueryRouter = create_query_router()
+        else:
+            self.router = None
+
+        if create_prince_flowers_agent:
+            self.prince_flowers: MarvinPrinceFlowers = create_prince_flowers_agent()
+        else:
+            self.prince_flowers = None
 
         self.sessions: dict[str, dict[str, Any]] = {}
         self.startup_time = datetime.now()
 
-        logger.info("Agent manager initialized")
+        logger.info("Agent manager initialized" + (" (with Marvin)" if MARVIN_AVAILABLE else " (without Marvin)"))
 
     async def get_agent_info(self, agent_id: str) -> AgentInfo:
         """
@@ -185,15 +215,17 @@ class AgentManager:
 
         agent_data = agents_map[agent_id]
 
-        # Get metrics based on agent type
-        if agent_id == "prince_flowers":
-            metrics = self.prince_flowers.get_metrics()
-        elif agent_id == "orchestrator":
-            metrics = self.orchestrator.get_comprehensive_metrics()
-        elif agent_id == "query_router":
-            metrics = self.router.get_metrics()
-        else:
-            metrics = {}
+        # Get metrics based on agent type (safe access)
+        metrics = {}
+        try:
+            if agent_id == "prince_flowers" and self.prince_flowers:
+                metrics = self.prince_flowers.get_metrics()
+            elif agent_id == "orchestrator" and self.orchestrator:
+                metrics = self.orchestrator.get_comprehensive_metrics()
+            elif agent_id == "query_router" and self.router:
+                metrics = self.router.get_metrics()
+        except Exception:
+            metrics = {"error": "Metrics not available"}
 
         return AgentInfo(
             id=agent_id,
@@ -227,6 +259,20 @@ class AgentManager:
             HTTPException: If processing fails.
         """
         try:
+            # Check if orchestrator is available
+            if not self.orchestrator:
+                return ChatResponse(
+                    response="TORQ Console is running in standalone mode. The Marvin AI agents are not installed. "
+                            "To enable chat features, install the marvin package: pip install marvin",
+                    agent_id=agent_id,
+                    timestamp=datetime.now().isoformat(),
+                    metadata={
+                        "mode": mode,
+                        "marvin_available": False,
+                        "success": False,
+                    },
+                )
+
             # Map mode string to OrchestrationMode enum
             orchestration_modes = {
                 "single_agent": OrchestrationMode.SINGLE_AGENT,
@@ -352,12 +398,26 @@ class AgentManager:
         """
         uptime = (datetime.now() - self.startup_time).total_seconds()
 
+        # Get metrics if orchestrator is available, otherwise use empty dict
+        metrics = {}
+        if self.orchestrator:
+            try:
+                metrics = self.orchestrator.get_comprehensive_metrics()
+            except Exception:
+                metrics = {}
+
+        # Count active agents based on what's actually available
+        agents_active = sum([
+            1 for agent in [self.prince_flowers, self.orchestrator, self.router]
+            if agent is not None
+        ])
+
         return SystemStatus(
             status="healthy",
-            agents_active=3,  # prince_flowers, orchestrator, query_router
+            agents_active=agents_active,
             sessions_active=len(self.sessions),
             uptime_seconds=uptime,
-            metrics=self.orchestrator.get_comprehensive_metrics(),
+            metrics=metrics,
         )
 
 
@@ -528,3 +588,103 @@ async def get_status() -> SystemStatus:
         >>> status = response.json()
     """
     return agent_manager.get_system_status()
+
+
+# ============================================================================
+# Simplified Chat Endpoints (for frontend compatibility)
+# ============================================================================
+
+
+@router.post("/chat")
+async def chat_simple(request: ChatMessage) -> ChatResponse:
+    """
+    Simple chat endpoint that uses prince_flowers by default.
+
+    This is a convenience endpoint that routes to prince_flowers agent
+    without requiring the agent_id in the URL path.
+
+    Args:
+        request: ChatMessage with user message and optional context.
+
+    Returns:
+        ChatResponse with agent's reply.
+
+    Example:
+        >>> response = requests.post(
+        ...     "http://localhost:8899/api/chat",
+        ...     json={"message": "How do I implement JWT auth?"}
+        ... )
+        >>> chat_response = response.json()
+    """
+    return await agent_manager.process_chat(
+        "prince_flowers",
+        request.message,
+        context=request.context,
+        mode=request.mode or "single_agent",
+    )
+
+
+@router.post("/chat/stream")
+async def chat_stream_simple(request: ChatMessage) -> ChatResponse:
+    """
+    Simple streaming chat endpoint (currently non-streaming for compatibility).
+
+    This endpoint accepts the same format as /chat but can be upgraded
+    to full SSE streaming in the future.
+
+    Args:
+        request: ChatMessage with user message and optional context.
+
+    Returns:
+        ChatResponse with agent's reply.
+
+    Example:
+        >>> response = requests.post(
+        ...     "http://localhost:8899/api/chat/stream",
+        ...     json={"message": "How do I implement JWT auth?"}
+        ... )
+        >>> chat_response = response.json()
+    """
+    return await agent_manager.process_chat(
+        "prince_flowers",
+        request.message,
+        context=request.context,
+        mode=request.mode or "single_agent",
+    )
+
+
+# ============================================================================
+# Agent Registry Compatibility Endpoints (for frontend compatibility)
+# ============================================================================
+
+
+@router.get("/chat/agents", response_model=list[AgentInfo])
+async def list_agents_chat() -> list[AgentInfo]:
+    """
+    List all available agents (alternative endpoint for frontend compatibility).
+
+    This is an alias for /agents that the frontend expects.
+
+    Returns:
+        List of AgentInfo objects with agent details.
+
+    Example:
+        >>> response = requests.get("http://localhost:8899/api/chat/agents")
+        >>> agents = response.json()
+    """
+    return await list_agents()
+
+
+@router.get("/agent/registry", response_model=list[AgentInfo])
+async def agent_registry() -> list[AgentInfo]:
+    """
+    Legacy agent registry endpoint (for backward compatibility).
+
+    Returns:
+        List of AgentInfo objects with agent details.
+
+    Example:
+        >>> response = requests.get("http://localhost:8899/api/agent/registry")
+        >>> agents = response.json()
+    """
+    return await list_agents()
