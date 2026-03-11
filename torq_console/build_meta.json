@@ -1,8 +1,8 @@
 {
-  "git_sha": "117e7228fcd06316fa8dc22bdaa3443ebb8f8828",
-  "git_short_sha": "117e7228fcd0",
+  "git_sha": "c8dee8d0d44b3698c127b93c8ee2924ef26cb3d7",
+  "git_short_sha": "c8dee8d0d44b",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-11T22:35:32.995434+00:00",
+  "built_at": "2026-03-11T22:54:56.065000+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "Complete Readiness Checker Milestone 3: Transition Controller and Governance Actions"
+  "commit_message": "Add Milestone 4: Inspection, Query, and Governance Audit Layer"
 }
