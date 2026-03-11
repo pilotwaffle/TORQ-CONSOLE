@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { CloudOff } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
@@ -73,7 +72,7 @@ export const ChatWindow: React.FC = () => {
    * 3. Stream tokens into placeholder
    * 4. On error, fall back to WebSocket/non-streaming
    */
-  const handleSend = async (message: string) => {
+  const handleSend = useCallback(async (message: string) => {
     if (!activeSessionId) return;
 
     // Update first message state
@@ -180,14 +179,25 @@ export const ChatWindow: React.FC = () => {
     } catch (error) {
       console.error('[ChatWindow] Streaming service error:', error);
       setStreamingMessageId(null);
-      handleFallbackSend(message, error);
+      await handleFallbackSend(message, error);
     }
-  };
+  }, [
+    activeSessionId,
+    activeSession?.agentId,
+    isFirstMessage,
+    chatStoreAddMessage,
+    agentStoreAddMessage,
+    agentStoreUpdateMessage,
+    appendToStream,
+    completeStream,
+    setStreamingMessageId,
+    agentStore,
+  ]);
 
   /**
    * Fallback to WebSocket/non-streaming
    */
-  const handleFallbackSend = async (message: string, streamingError?: Error) => {
+  const handleFallbackSend = useCallback(async (message: string, streamingError?: Error) => {
     if (!activeSessionId) return;
 
     // Show typing indicator
@@ -213,7 +223,21 @@ export const ChatWindow: React.FC = () => {
       };
       agentStoreAddMessage(activeSessionId, errorMsg);
     }
-  };
+  }, [activeSessionId, activeSession?.agentId, setTyping, agentStoreAddMessage]);
+
+  // Listen for suggestion-click events from empty state
+  useEffect(() => {
+    const handleSuggestionClick = (e: Event) => {
+      const customEvent = e as CustomEvent<{suggestion: string}>;
+      const suggestion = customEvent.detail.suggestion;
+      if (suggestion && activeSessionId && handleSend) {
+        handleSend(suggestion);
+      }
+    };
+
+    window.addEventListener('suggestion-click', handleSuggestionClick);
+    return () => window.removeEventListener('suggestion-click', handleSuggestionClick);
+  }, [activeSessionId, handleSend]);
 
   if (!activeSession) {
     return (
@@ -261,7 +285,7 @@ export const ChatWindow: React.FC = () => {
             {isStandalone && (
               <div className="mt-6 px-6 max-w-md">
                 <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                  <CloudOff className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                  <span className="text-amber-400 flex-shrink-0">📡</span>
                   <div className="flex-1 text-sm">
                     <p className="font-medium text-amber-200">
                       TORQ Console is running in standalone mode
@@ -298,7 +322,7 @@ export const ChatWindow: React.FC = () => {
       {/* Input */}
       <ChatInput
         onSend={handleSend}
-        disabled={!activeAgent || !!streamingMessageId}
+        disabled={!!streamingMessageId}
       />
     </div>
   );
