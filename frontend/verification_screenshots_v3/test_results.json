@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-03-11T01:54:15.875Z",
+  "baseUrl": "http://localhost:3000",
+  "results": {
+    "loadCheck": {
+      "passed": true,
+      "details": "Status: 200, CloudOff error: NO"
+    },
+    "standaloneModeTest": {
+      "passed": false,
+      "details": "Badge: 0, Panel: 0, Mode: 0, Standalone text: false"
+    },
+    "chatInputTest": {
+      "passed": true,
+      "details": "Text entered: YES, Value: \"test message\""
+    },
+    "suggestionButtonTest": {
+      "passed": true,
+      "details": "Clicked suggestion button successfully"
+    },
+    "messageSendTest": {
+      "passed": false,
+      "details": "Message found in chat: NO"
+    },
+    "consoleCheck": {
+      "passed": true,
+      "details": "Hook warnings: 0, CloudOff: 0, Crashes: 0"
+    }
+  },
+  "summary": {
+    "total": 6,
+    "passed": 4,
+    "failed": 2
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[AgentRegistry] Failed to load agents from backend: Error: Failed to load agents: 404\n    at AgentRegistryService.loadAgents (http://localhost:3000/src/services/agentRegistryService.ts:39:15)\n    at async loadBackendAgents (http://localhost:3000/src/App.tsx:103:31)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[AgentRegistry] Failed to load agents from backend: Error: Failed to load agents: 404\n    at AgentRegistryService.loadAgents (http://localhost:3000/src/services/agentRegistryService.ts:39:15)\n    at async loadBackendAgents (http://localhost:3000/src/App.tsx:103:31)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[AgentRegistry] Failed to load agents from backend: Error: Failed to load agents: 404\n    at AgentRegistryService.loadAgents (http://localhost:3000/src/services/agentRegistryService.ts:39:15)\n    at async loadBackendAgents (http://localhost:3000/src/App.tsx:103:31)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[AgentRegistry] Failed to load agents from backend: Error: Failed to load agents: 404\n    at AgentRegistryService.loadAgents (http://localhost:3000/src/services/agentRegistryService.ts:39:15)\n    at async loadBackendAgents (http://localhost:3000/src/App.tsx:103:31)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Cannot read properties of undefined (reading 'typingState')",
+    "Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'typingState')\n    at http://localhost:3000/src/stores/chatStore.ts:380:40\n    at memoizedSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:106:32)\n    at http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:126:24\n    at updateSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:11918:30)\n    at Object.useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:12781:22)\n    at useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-QCHXOAYK.js?v=25aa9b69:1120:29)\n    at exports.useSyncExternalStoreWithSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:135:21)\n    at useStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:26:17)\n    at useBoundStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:43:51)\n    at useTypingState (http://localhost:3000/src/stores/chatStore.ts:380:10)",
+    "Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'typingState')\n    at http://localhost:3000/src/stores/chatStore.ts:380:40\n    at memoizedSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:106:32)\n    at http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:126:24\n    at updateSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:11918:30)\n    at Object.useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:12781:22)\n    at useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-QCHXOAYK.js?v=25aa9b69:1120:29)\n    at exports.useSyncExternalStoreWithSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:135:21)\n    at useStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:26:17)\n    at useBoundStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:43:51)\n    at useTypingState (http://localhost:3000/src/stores/chatStore.ts:380:10)",
+    "Cannot read properties of undefined (reading 'typingState')",
+    "Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'typingState')\n    at http://localhost:3000/src/stores/chatStore.ts:380:40\n    at memoizedSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:106:32)\n    at http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:126:24\n    at updateSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:11918:30)\n    at Object.useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:12781:22)\n    at useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-QCHXOAYK.js?v=25aa9b69:1120:29)\n    at exports.useSyncExternalStoreWithSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:135:21)\n    at useStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:26:17)\n    at useBoundStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:43:51)\n    at useTypingState (http://localhost:3000/src/stores/chatStore.ts:380:10)",
+    "Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'typingState')\n    at http://localhost:3000/src/stores/chatStore.ts:380:40\n    at memoizedSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:106:32)\n    at http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:126:24\n    at updateSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:11918:30)\n    at Object.useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:12781:22)\n    at useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-QCHXOAYK.js?v=25aa9b69:1120:29)\n    at exports.useSyncExternalStoreWithSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:135:21)\n    at useStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:26:17)\n    at useBoundStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:43:51)\n    at useTypingState (http://localhost:3000/src/stores/chatStore.ts:380:10)",
+    "The above error occurred in the <ChatWindow> component:\n\n    at ChatWindow (http://localhost:3000/src/components/chat/ChatWindow.tsx:30:22)\n    at div\n    at div\n    at App (http://localhost:3000/src/App.tsx:32:59)\n    at Suspense\n    at RootLayout (http://localhost:3000/src/components/RootLayout.tsx:26:20)\n    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=25aa9b69:4088:5)\n    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=25aa9b69:4048:5)\n    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=25aa9b69:5239:5)\n    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=25aa9b69:4501:15)\n    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=25aa9b69:5053:5)\n    at AppWithRouter\n    at AppWithProviders\n    at AppErrorBoundary (http://localhost:3000/src/components/errors/AppErrorBoundary.tsx:138:5)\n    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/chunk-INRFYZBO.js?v=25aa9b69:3168:3)\n\nReact will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary.",
+    "React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'typingState')\n    at http://localhost:3000/src/stores/chatStore.ts:380:40\n    at memoizedSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:106:32)\n    at http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:126:24\n    at updateSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:11918:30)\n    at Object.useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25aa9b69:12781:22)\n    at useSyncExternalStore (http://localhost:3000/node_modules/.vite/deps/chunk-QCHXOAYK.js?v=25aa9b69:1120:29)\n    at exports.useSyncExternalStoreWithSelector (http://localhost:3000/node_modules/.vite/deps/chunk-V5UY3TDE.js?v=25aa9b69:135:21)\n    at useStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:26:17)\n    at useBoundStore (http://localhost:3000/node_modules/.vite/deps/zustand.js?v=25aa9b69:43:51)\n    at useTypingState (http://localhost:3000/src/stores/chatStore.ts:380:10) {componentStack: \n    at ChatWindow (http://localhost:3000/src/comp…s/.vite/deps/chunk-INRFYZBO.js?v=25aa9b69:3168:3)}",
+    "[ChatWindow] Streaming service error: Error: HTTP 404: Not Found\n    at ChatStreamingService.sendMessageNonStreaming (http://localhost:3000/src/services/chatStreaming.ts:155:15)\n    at async handleSend (http://localhost:3000/src/components/chat/ChatWindow.tsx:122:7)",
+    "Cannot read properties of undefined (reading 'agents')",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "REST API Error: Error: Chat error 404: {\"detail\":\"Not Found\"}\n    at WebSocketManager.sendRestMessage (http://localhost:3000/src/services/websocket.ts:161:15)\n    at async handleFallbackSend (http://localhost:3000/src/components/chat/ChatWindow.tsx:171:7)",
+    "WebSocket error in store: Error: Chat error 404: {\"detail\":\"Not Found\"}\n    at WebSocketManager.sendRestMessage (http://localhost:3000/src/services/websocket.ts:161:15)\n    at async handleFallbackSend (http://localhost:3000/src/components/chat/ChatWindow.tsx:171:7)"
+  ],
+  "warnings": [
+    "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.",
+    "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.",
+    "[ChatWindow] Streaming failed, trying fallback: Error: HTTP 404: Not Found\n    at ChatStreamingService.sendMessageNonStreaming (http://localhost:3000/src/services/chatStreaming.ts:155:15)\n    at async handleSend (http://localhost:3000/src/components/chat/ChatWindow.tsx:122:7)"
+  ]
+}
