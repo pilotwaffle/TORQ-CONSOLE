@@ -26,8 +26,8 @@ Architecture:
 Phase Milestones:
     M1: Readiness object model + policy schema ✅
     M2: Evidence collection and scoring engine ✅
-    M3: Transition controller and governance actions 🔄 IN PROGRESS
-    M4: Query / inspection / audit layer
+    M3: Transition controller and governance actions ✅
+    M4: Query / inspection / audit layer 🔄 IN PROGRESS
     M5: Hardening & regression
 """
 
@@ -131,6 +131,72 @@ from .transition_controller import (
     add_audit_log,
 )
 
+# M4: Inspection and Query Layer
+from .inspection_models import (
+    # Inspection Models
+    ReadinessInspection,
+    TransitionRecord,
+    DimensionScoreView,
+    EvidenceSummaryView,
+    GovernanceActionView,
+
+    # Query Models
+    CandidateListFilter,
+    CandidateListItem,
+    CandidateListResult,
+
+    # Analytics Models
+    StateDistribution,
+    ReadinessMetrics,
+    ReadinessTrend,
+
+    # Report Models
+    ReadinessReportSection,
+    CandidateReadinessReport,
+    SystemReadinessReport,
+
+    # Helpers
+    get_score_label,
+    get_dimension_label,
+)
+
+from .query_service import (
+    # Query Service
+    ReadinessQueryService,
+    get_query_service,
+
+    # Storage helpers
+    register_candidate,
+    add_evaluation,
+    get_candidate_storage,
+    clear_candidate_storage,
+)
+
+from .inspection_service import (
+    # Inspection Service
+    ReadinessInspectionService,
+    get_inspection_service,
+)
+
+from .audit_service import (
+    # Audit Service
+    ReadinessAuditService,
+    TransitionAuditFilter,
+    get_audit_service,
+)
+
+from .analytics_service import (
+    # Analytics Service
+    ReadinessAnalyticsService,
+    get_analytics_service,
+)
+
+from .report_builder import (
+    # Report Builder
+    ReadinessReportBuilder,
+    get_report_builder,
+)
+
 __all__ = [
     # Models
     "CandidateType",
@@ -203,4 +269,45 @@ __all__ = [
     "TransitionAuditLog",
     "get_audit_logs",
     "add_audit_log",
+
+    # Inspection Models (M4)
+    "ReadinessInspection",
+    "TransitionRecord",
+    "DimensionScoreView",
+    "EvidenceSummaryView",
+    "GovernanceActionView",
+    "CandidateListFilter",
+    "CandidateListItem",
+    "CandidateListResult",
+    "StateDistribution",
+    "ReadinessMetrics",
+    "ReadinessTrend",
+    "ReadinessReportSection",
+    "CandidateReadinessReport",
+    "SystemReadinessReport",
+    "get_score_label",
+    "get_dimension_label",
+
+    # Query Service (M4)
+    "ReadinessQueryService",
+    "get_query_service",
+    "register_candidate",
+    "add_evaluation",
+
+    # Inspection Service (M4)
+    "ReadinessInspectionService",
+    "get_inspection_service",
+
+    # Audit Service (M4)
+    "ReadinessAuditService",
+    "TransitionAuditFilter",
+    "get_audit_service",
+
+    # Analytics Service (M4)
+    "ReadinessAnalyticsService",
+    "get_analytics_service",
+
+    # Report Builder (M4)
+    "ReadinessReportBuilder",
+    "get_report_builder",
 ]

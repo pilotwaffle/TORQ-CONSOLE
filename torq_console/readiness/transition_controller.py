@@ -119,6 +119,11 @@ def add_audit_log(log: TransitionAuditLog) -> None:
     logger.info(f"Recorded transition audit: {log.from_state.value} -> {log.to_state.value} for candidate {candidate_id}")
 
 
+def get_all_audit_logs() -> Dict[UUID, List[TransitionAuditLog]]:
+    """Get all audit logs (for audit service)."""
+    return _audit_logs.copy()
+
+
 # ============================================================================
 # Transition Policy Validator
 # ============================================================================
