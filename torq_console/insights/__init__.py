@@ -16,6 +16,7 @@ Key Components:
 - persistence.py: Store insights with lineage tracking
 - approval_workflow.py: Approval/rejection/supersession workflows
 - retrieval.py: Agent retrieval service with context-aware queries
+- inspection.py: Inspection, audit, and governance layer
 """
 
 from .models import (
@@ -133,6 +134,21 @@ from .retrieval import (
     get_retrieval_service,
 )
 
+from .inspection import (
+    # Inspection
+    InsightLineage,
+    LifecycleEvent,
+    UsageRecord,
+    InsightDetail,
+    RetrievalAuditSummary,
+    PublicationAuditTrail,
+    RankingExplanation,
+    GovernanceAction,
+    InsightTypeConfig,
+    InsightInspectionService,
+    get_inspection_service,
+)
+
 
 __all__ = [
     # Models
@@ -217,4 +233,17 @@ __all__ = [
     "RankingConfig",
     "InsightRetrievalService",
     "get_retrieval_service",
+
+    # Inspection
+    "InsightLineage",
+    "LifecycleEvent",
+    "UsageRecord",
+    "InsightDetail",
+    "RetrievalAuditSummary",
+    "PublicationAuditTrail",
+    "RankingExplanation",
+    "GovernanceAction",
+    "InsightTypeConfig",
+    "InsightInspectionService",
+    "get_inspection_service",
 ]
