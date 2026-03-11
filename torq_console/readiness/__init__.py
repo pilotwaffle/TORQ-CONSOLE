@@ -25,8 +25,8 @@ Architecture:
 
 Phase Milestones:
     M1: Readiness object model + policy schema ✅
-    M2: Evidence collection and scoring engine 🔄 IN PROGRESS
-    M3: Transition controller and governance actions
+    M2: Evidence collection and scoring engine ✅
+    M3: Transition controller and governance actions 🔄 IN PROGRESS
     M4: Query / inspection / audit layer
     M5: Hardening & regression
 """
@@ -107,6 +107,30 @@ from .scoring_engine import (
     get_scoring_engine,
 )
 
+from .transition_controller import (
+    # Transition Controller
+    ReadinessTransitionController,
+    get_transition_controller,
+
+    # Governance Engine
+    GovernanceActionEngine,
+    GovernanceActionType,
+    GovernanceAction,
+    get_governance_engine,
+
+    # State Machine
+    ReadinessStateMachine,
+    get_state_machine,
+
+    # Policy Validator
+    TransitionPolicyValidator,
+
+    # Audit Log
+    TransitionAuditLog,
+    get_audit_logs,
+    add_audit_log,
+)
+
 __all__ = [
     # Models
     "CandidateType",
@@ -157,4 +181,26 @@ __all__ = [
     "ScoringContext",
     "compute_readiness_score",
     "get_scoring_engine",
+
+    # Transition Controller
+    "ReadinessTransitionController",
+    "get_transition_controller",
+
+    # Governance Engine
+    "GovernanceActionEngine",
+    "GovernanceActionType",
+    "GovernanceAction",
+    "get_governance_engine",
+
+    # State Machine
+    "ReadinessStateMachine",
+    "get_state_machine",
+
+    # Policy Validator
+    "TransitionPolicyValidator",
+
+    # Audit Log
+    "TransitionAuditLog",
+    "get_audit_logs",
+    "add_audit_log",
 ]
