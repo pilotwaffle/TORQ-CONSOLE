@@ -1,0 +1,951 @@
+"""
+Insight Models - Phase Insight Publishing & Agent Retrieval
+
+Curated, publishable intelligence objects designed for reuse.
+
+This module defines the insight layer which sits above artifacts and memory:
+- Artifact = Raw persisted execution output
+- Memory = Validated carry-forward knowledge
+- Insight = Curated, publishable intelligence for agent reuse
+
+Key design principles:
+1. Keep insight types distinct from memory types
+2. Maintain explicit provenance to sources (artifacts, memories, or existing insights)
+3. Support lifecycle governance (draft -> candidate -> validated -> published -> superseded -> archived)
+4. Enable scope-aware retrieval for agent injection
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field
+
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Insight Type Enumeration
+# ============================================================================
+
+class InsightType(str, Enum):
+    """
+    Categories of curated insights.
+
+    Each insight type represents a distinct kind of intelligence
+    that can be packaged and reused by agents.
+    """
+
+    # High-level strategic observations
+    STRATEGIC_INSIGHT = "strategic_insight"
+    """Observations about execution patterns that inform strategy."""
+
+    # Reusable execution patterns
+    REUSABLE_PLAYBOOK = "reusable_playbook"
+    """Step-by-step guidance that has proven effective."""
+
+    # Empirically validated findings
+    VALIDATED_FINDING = "validated_finding"
+    """Results that have been tested and confirmed."""
+
+    # Technical decisions with rationale
+    ARCHITECTURE_DECISION = "architecture_decision"
+    """Technical choices with context and trade-offs."""
+
+    # Procedural recommendations
+    BEST_PRACTICE = "best_practice"
+    """Recommended approaches based on experience."""
+
+    # Risk patterns with mitigations
+    RISK_PATTERN = "risk_pattern"
+    """Identified risks with proven mitigation strategies."""
+
+    # Execution lessons learned
+    EXECUTION_LESSON = "execution_lesson"
+    """Specific learnings from execution outcomes."""
+
+    # Synthesized research outputs
+    RESEARCH_SUMMARY = "research_summary"
+    """Condensed research findings for agent consumption."""
+
+
+# ============================================================================
+# Insight Lifecycle States
+# ============================================================================
+
+class InsightLifecycleState(str, Enum):
+    """
+    Lifecycle states for an insight.
+
+    The publication pipeline flows through these states:
+    draft -> candidate -> validated -> published -> superseded -> archived
+    """
+
+    DRAFT = "draft"
+    """Initial creation, not yet ready for review."""
+
+    CANDIDATE = "candidate"
+    """Submitted for publication review."""
+
+    VALIDATED = "validated"
+    """Passed quality gates, ready for publication."""
+
+    PUBLISHED = "published"
+    """Available for agent retrieval."""
+
+    SUPERSEDED = "superseded"
+    """Replaced by a newer version."""
+
+    ARCHIVED = "archived"
+    """No longer active, kept for historical reference."""
+
+
+# ============================================================================
+# Insight Scope (matches memory scope pattern for consistency)
+# ============================================================================
+
+class InsightScope(str, Enum):
+    """
+    Scope of insight applicability.
+
+    Matches MemoryScope for consistency across layers.
+    """
+
+    GLOBAL = "global"
+    """Applies to all workflows and agents."""
+
+    WORKFLOW_TYPE = "workflow_type"
+    """Specific workflow type (e.g., 'planning', 'code_generation')."""
+
+    AGENT_TYPE = "agent_type"
+    """Specific agent type (e.g., 'researcher', 'coder')."""
+
+    DOMAIN = "domain"
+    """Specific domain (e.g., 'financial', 'legal', 'medical')."""
+
+    MISSION_TYPE = "mission_type"
+    """Specific mission type (from mission graph)."""
+
+
+# ============================================================================
+# Source Provenance (what this insight was derived from)
+# ============================================================================
+
+class InsightSourceType(str, Enum):
+    """
+    Types of sources that insights can be derived from.
+
+    Insights must have clear provenance to one or more sources.
+    """
+
+    ARTIFACT = "artifact"
+    """Derived from workspace artifacts (raw execution output)."""
+
+    MEMORY = "memory"
+    """Derived from strategic memory (validated knowledge)."""
+
+    INSIGHT = "insight"
+    """Derived from an existing insight (e.g., synthesis, refinement)."""
+
+    MANUAL = "manual"
+    """Manually created by a human operator."""
+
+    AGENT_GENERATED = "agent_generated"
+    """Generated by an agent through dedicated analysis."""
+
+
+class SourceReference(BaseModel):
+    """
+    Reference to a source that contributed to this insight.
+
+    Each source reference captures what was used and how it contributed.
+    """
+
+    source_type: InsightSourceType = Field(..., description="Type of source")
+    source_id: str = Field(..., description="ID of the source artifact/memory/insight")
+
+    # Contribution tracking
+    contribution_weight: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Relative contribution of this source (0-1)"
+    )
+
+    # Context about how it was used
+    extraction_method: Optional[str] = Field(
+        None,
+        description="How this source was used (e.g., 'synthesis', 'validation')"
+    )
+
+    referenced_at: datetime = Field(
+        default_factory=datetime.now,
+        description="When this source was referenced"
+    )
+
+    # Optional supporting evidence
+    evidence_snippet: Optional[str] = Field(
+        None,
+        description="Relevant excerpt or evidence from source"
+    )
+
+
+# ============================================================================
+# Quality and Validation
+# ============================================================================
+
+class QualityMetrics(BaseModel):
+    """
+    Quality metrics for an insight.
+
+    These metrics are used to determine if an insight
+    passes quality gates for publication.
+    """
+
+    # Confidence scores
+    confidence_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="How reliable is this insight?"
+    )
+
+    validation_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="How well-validated is this insight?"
+    )
+
+    applicability_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="How broadly applicable is this insight?"
+    )
+
+    # Evidence metrics
+    source_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of sources supporting this insight"
+    )
+
+    execution_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of executions that support this insight"
+    )
+
+    success_rate: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Success rate when this insight was applied"
+    )
+
+    # Freshness
+    last_validated_at: Optional[datetime] = Field(
+        None,
+        description="When this insight was last validated"
+    )
+
+    evidence_cutoff_at: Optional[datetime] = Field(
+        None,
+        description="Evidence collection cutoff date"
+    )
+
+
+class QualityGateResult(BaseModel):
+    """
+    Result of quality gate evaluation.
+    """
+
+    gate_name: str = Field(..., description="Name of the quality gate")
+    passed: bool = Field(..., description="Whether the insight passed this gate")
+    score: Optional[float] = Field(None, description="Score if applicable")
+    threshold: Optional[float] = Field(None, description="Threshold used")
+    reason: Optional[str] = Field(None, description="Explanation for pass/fail")
+    evaluated_at: datetime = Field(default_factory=datetime.now)
+
+
+# ============================================================================
+# Core Insight Models
+# ============================================================================
+
+class InsightCreate(BaseModel):
+    """
+    Request model for creating a new insight.
+
+    All insights must specify type, scope, and provenance.
+    """
+
+    # Core identification
+    insight_type: InsightType = Field(..., description="Type of insight")
+    title: str = Field(..., min_length=1, max_length=500, description="Human-readable title")
+    summary: str = Field(..., min_length=1, max_length=2000, description="Short summary")
+
+    # Scope specification
+    scope: InsightScope = Field(..., description="Applicability scope")
+    scope_key: Optional[str] = Field(
+        None,
+        description="Scope identifier (e.g., workflow type name)"
+    )
+
+    # Content
+    content: Dict[str, Any] = Field(
+        ...,
+        description="Insight content structured by type"
+    )
+
+    # Domain classification
+    domain: Optional[str] = Field(
+        None,
+        description="Domain classification (e.g., 'financial', 'legal')"
+    )
+
+    # Tags for retrieval
+    tags: List[str] = Field(
+        default_factory=list,
+        description="Tags for search and categorization"
+    )
+
+    # Provenance
+    source_references: List[SourceReference] = Field(
+        ...,
+        min_length=1,
+        description="Sources this insight was derived from"
+    )
+
+    # Quality metrics
+    quality: QualityMetrics = Field(..., description="Quality assessment")
+
+    # Lifecycle
+    initial_state: InsightLifecycleState = Field(
+        default=InsightLifecycleState.DRAFT,
+        description="Initial lifecycle state"
+    )
+
+    # Optional expiration
+    expires_in_days: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Days until this insight expires (None = no expiration)"
+    )
+
+
+class InsightUpdate(BaseModel):
+    """
+    Request model for updating an existing insight.
+    """
+
+    # Content updates
+    title: Optional[str] = Field(None, min_length=1, max_length=500)
+    summary: Optional[str] = Field(None, min_length=1, max_length=2000)
+    content: Optional[Dict[str, Any]] = None
+    tags: Optional[List[str]] = None
+
+    # Quality updates
+    quality: Optional[QualityMetrics] = None
+
+    # Lifecycle updates
+    lifecycle_state: Optional[InsightLifecycleState] = None
+
+    # Expiration
+    expires_at: Optional[datetime] = None
+
+
+class Insight(BaseModel):
+    """
+    A published insight for agent reuse.
+
+    Insights are curated intelligence objects derived from
+    artifacts, memory, or existing insights.
+    """
+
+    # Core identification
+    id: UUID = Field(default_factory=uuid4, description="Unique insight identifier")
+    insight_type: InsightType = Field(..., description="Type of insight")
+    title: str = Field(..., description="Human-readable title")
+    summary: str = Field(..., description="Short summary")
+
+    # Scope
+    scope: InsightScope = Field(..., description="Applicability scope")
+    scope_key: Optional[str] = Field(None, description="Scope identifier")
+    domain: Optional[str] = Field(None, description="Domain classification")
+
+    # Content
+    content: Dict[str, Any] = Field(..., description="Structured content by type")
+    tags: List[str] = Field(default_factory=list, description="Search tags")
+
+    # Provenance
+    source_references: List[SourceReference] = Field(
+        ...,
+        description="Sources this insight was derived from"
+    )
+
+    # Quality
+    quality: QualityMetrics = Field(..., description="Quality metrics")
+
+    # Lifecycle
+    lifecycle_state: InsightLifecycleState = Field(
+        ...,
+        description="Current lifecycle state"
+    )
+
+    # Tracking
+    created_at: datetime = Field(default_factory=datetime.now, description="Creation timestamp")
+    updated_at: datetime = Field(default_factory=datetime.now, description="Last update timestamp")
+    published_at: Optional[datetime] = Field(None, description="Publication timestamp")
+    expires_at: Optional[datetime] = Field(None, description="Expiration date")
+
+    # Usage tracking
+    usage_count: int = Field(default=0, description="Times retrieved by agents")
+    last_used_at: Optional[datetime] = Field(None, description="Last retrieval timestamp")
+
+    # Effectiveness tracking
+    effectiveness_score: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Aggregate effectiveness from usage feedback"
+    )
+
+    # Supersession
+    superseded_by_id: Optional[UUID] = Field(
+        None,
+        description="ID of insight that superseded this one"
+    )
+
+    # Creator
+    created_by: str = Field(
+        default="system",
+        description="Creator (system, human, or agent ID)"
+    )
+
+
+# ============================================================================
+# Publication Request Models
+# ============================================================================
+
+class PublicationRequest(BaseModel):
+    """
+    Request to publish an insight.
+
+    Includes the candidate insight and publication criteria.
+    """
+
+    insight: InsightCreate = Field(..., description="The insight to publish")
+
+    # Publication options
+    auto_validate: bool = Field(
+        default=False,
+        description="Run quality gates automatically"
+    )
+
+    skip_conflict_check: bool = Field(
+        default=False,
+        description="Skip conflict/supersession detection"
+    )
+
+    # Request metadata
+    requested_by: str = Field(..., description="Who is requesting publication")
+    request_reason: Optional[str] = Field(None, description="Reason for publication")
+
+
+class PublicationResult(BaseModel):
+    """
+    Result of a publication request.
+    """
+
+    success: bool = Field(..., description="Whether publication succeeded")
+    insight_id: Optional[UUID] = Field(None, description="ID of published insight")
+
+    # Quality gate results
+    quality_gate_results: List[QualityGateResult] = Field(
+        default_factory=list,
+        description="Results from quality gate evaluation"
+    )
+
+    # Conflict detection
+    conflicts_found: List[str] = Field(
+        default_factory=list,
+        description="IDs of conflicting insights"
+    )
+
+    superseded_insights: List[UUID] = Field(
+        default_factory=list,
+        description="IDs of insights that were superseded"
+    )
+
+    # Final state
+    final_lifecycle_state: Optional[InsightLifecycleState] = Field(
+        None,
+        description="Final lifecycle state after publication"
+    )
+
+    # Messages
+    messages: List[str] = Field(
+        default_factory=list,
+        description="Informational messages"
+    )
+
+    evaluated_at: datetime = Field(default_factory=datetime.now)
+
+
+# ============================================================================
+# Retrieval Models
+# ============================================================================
+
+class InsightRetrievalRequest(BaseModel):
+    """
+    Request to retrieve insights for agent injection.
+
+    Similar to MemorySearchRequest but for insights.
+    """
+
+    # Query context
+    query: Optional[str] = Field(None, description="Free-form query")
+    workflow_type: Optional[str] = Field(None, description="Workflow type context")
+    mission_type: Optional[str] = Field(None, description="Mission type context")
+    domain: Optional[str] = Field(None, description="Domain context")
+    agent_type: Optional[str] = Field(None, description="Agent type context")
+
+    # Filters
+    insight_types: Optional[List[InsightType]] = Field(None, description="Filter by type")
+    scope: Optional[InsightScope] = Field(None, description="Filter by scope")
+    scope_key: Optional[str] = Field(None, description="Filter by scope key")
+    lifecycle_states: Optional[List[InsightLifecycleState]] = Field(
+        default_factory=lambda: [InsightLifecycleState.PUBLISHED],
+        description="Only retrieve these lifecycle states"
+    )
+
+    # Quality filters
+    min_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    min_effectiveness: Optional[float] = Field(None, ge=0.0, le=1.0)
+
+    # Freshness
+    require_fresh: bool = Field(False, description="Exclude expired insights")
+    as_of_date: Optional[datetime] = Field(None, description="Retrieve as of this date")
+
+    # Pagination
+    max_results: int = Field(default=10, ge=1, le=100)
+
+    # Injection options
+    include_provenance: bool = Field(
+        default=False,
+        description="Include source references in results"
+    )
+    include_quality_metrics: bool = Field(
+        default=True,
+        description="Include quality metrics in results"
+    )
+
+
+class InsightRetrievalResult(BaseModel):
+    """
+    A single insight retrieval result with relevance scoring.
+    """
+
+    insight: Insight = Field(..., description="The retrieved insight")
+    relevance_score: float = Field(..., ge=0.0, le=1.0, description="Relevance to query")
+    match_reason: str = Field(..., description="Why this insight matched")
+
+    # Optional provenance (if requested)
+    provenance_summary: Optional[str] = Field(None, description="Source summary")
+
+
+class InsightInjection(BaseModel):
+    """
+    Insights formatted for agent injection.
+
+    Similar to MemoryInjection but for insights.
+    """
+
+    strategic_insights: List[Insight] = Field(default_factory=list)
+    reusable_playbooks: List[Insight] = Field(default_factory=list)
+    validated_findings: List[Insight] = Field(default_factory=list)
+    architecture_decisions: List[Insight] = Field(default_factory=list)
+    best_practices: List[Insight] = Field(default_factory=list)
+    risk_patterns: List[Insight] = Field(default_factory=list)
+    execution_lessons: List[Insight] = Field(default_factory=list)
+    research_summaries: List[Insight] = Field(default_factory=list)
+
+    # Injection metadata
+    total_count: int = Field(default=0, description="Total insights injected")
+    injected_at: datetime = Field(default_factory=datetime.now, description="Injection timestamp")
+
+    def get_context_text(self) -> str:
+        """Generate formatted context text for agent consumption."""
+        sections = []
+
+        if self.strategic_insights:
+            sections.append("## STRATEGIC INSIGHTS\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.strategic_insights
+            ]))
+
+        if self.reusable_playbooks:
+            sections.append("## REUSABLE PLAYBOOKS\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.reusable_playbooks
+            ]))
+
+        if self.validated_findings:
+            sections.append("## VALIDATED FINDINGS\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.validated_findings
+            ]))
+
+        if self.architecture_decisions:
+            sections.append("## ARCHITECTURE DECISIONS\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.architecture_decisions
+            ]))
+
+        if self.best_practices:
+            sections.append("## BEST PRACTICES\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.best_practices
+            ]))
+
+        if self.risk_patterns:
+            sections.append("## RISK PATTERNS\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.risk_patterns
+            ]))
+
+        if self.execution_lessons:
+            sections.append("## EXECUTION LESSONS\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.execution_lessons
+            ]))
+
+        if self.research_summaries:
+            sections.append("## RESEARCH SUMMARIES\n" + "\n".join([
+                f"- {insight.title}: {insight.summary}"
+                for insight in self.research_summaries
+            ]))
+
+        return "\n\n".join(sections) if sections else "No relevant insights available."
+
+
+# ============================================================================
+# Publishing Rules Configuration
+# ============================================================================
+
+class PublishingRule(BaseModel):
+    """
+    Rule governing insight publication.
+
+    Each rule defines criteria that must be met for publication.
+    """
+
+    name: str = Field(..., description="Rule name")
+    description: str = Field(..., description="Rule description")
+
+    # Applicability
+    applies_to_types: List[InsightType] = Field(..., description="Insight types this applies to")
+
+    # Quality thresholds
+    min_confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    min_validation_score: float = Field(default=0.7, ge=0.0, le=1.0)
+    min_applicability: float = Field(default=0.6, ge=0.0, le=1.0)
+
+    # Evidence requirements
+    min_source_count: int = Field(default=1, ge=0)
+    min_execution_count: int = Field(default=0, ge=0)
+    require_success_rate: bool = Field(default=False)
+    min_success_rate: float = Field(default=0.6, ge=0.0, le=1.0)
+
+    # Freshness requirements
+    max_age_days: Optional[int] = Field(None, ge=1, description="Max age of evidence")
+    require_recent_validation: bool = Field(default=False)
+
+    # Source type requirements
+    allowed_source_types: List[InsightSourceType] = Field(
+        default_factory=lambda: list(InsightSourceType),
+        description="Allowed source types"
+    )
+
+    # Conflict behavior
+    supersede_on_conflict: bool = Field(
+        default=False,
+        description="Auto-supersede conflicting insights"
+    )
+
+    # Approval requirements
+    requires_manual_approval: bool = Field(
+        default=False,
+        description="Requires human approval for publication"
+    )
+
+
+class PublishingCriteria(BaseModel):
+    """
+    Complete publishing criteria configuration.
+
+    This defines all rules that must be satisfied for publication.
+    """
+
+    rules: List[PublishingRule] = Field(default_factory=list)
+
+    # Global settings
+    default_lifecycle_path: List[InsightLifecycleState] = Field(
+        default_factory=lambda: [
+            InsightLifecycleState.DRAFT,
+            InsightLifecycleState.CANDIDATE,
+            InsightLifecycleState.VALIDATED,
+            InsightLifecycleState.PUBLISHED,
+        ],
+        description="Default lifecycle progression"
+    )
+
+    # Conflict detection
+    enable_conflict_detection: bool = Field(
+        default=True,
+        description="Detect conflicting insights before publication"
+    )
+
+    conflict_similarity_threshold: float = Field(
+        default=0.85,
+        ge=0.0,
+        le=1.0,
+        description="Similarity threshold for conflict detection"
+    )
+
+    # Supersession rules
+    auto_supersede_threshold: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="When to auto-supersede (higher similarity)"
+    )
+
+
+# ============================================================================
+# Insight Templates (for consistent creation)
+# ============================================================================
+
+class InsightTemplates:
+    """
+    Templates for creating insights of each type.
+
+    These ensure consistent structure across insights.
+    """
+
+    @staticmethod
+    def strategic_insight_template(
+        title: str,
+        observation: str,
+        strategic_implication: str,
+        applicability: str,
+        confidence_basis: str
+    ) -> Dict[str, Any]:
+        """Template for strategic insights."""
+        return {
+            "observation": observation,
+            "strategic_implication": strategic_implication,
+            "applicability": applicability,
+            "confidence_basis": confidence_basis,
+            "examples": [],
+            "counter_considerations": []
+        }
+
+    @staticmethod
+    def reusable_playbook_template(
+        title: str,
+        objective: str,
+        triggers: List[str],
+        steps: List[str],
+        expected_outcome: str,
+        risk_level: str = "medium"
+    ) -> Dict[str, Any]:
+        """Template for reusable playbooks."""
+        return {
+            "objective": objective,
+            "triggers": triggers,
+            "steps": steps,
+            "expected_outcome": expected_outcome,
+            "risk_level": risk_level,
+            "prerequisites": [],
+            "common_pitfalls": []
+        }
+
+    @staticmethod
+    def validated_finding_template(
+        title: str,
+        finding: str,
+        validation_method: str,
+        confidence_interval: Optional[str],
+        effect_size: Optional[str]
+    ) -> Dict[str, Any]:
+        """Template for validated findings."""
+        return {
+            "finding": finding,
+            "validation_method": validation_method,
+            "confidence_interval": confidence_interval,
+            "effect_size": effect_size,
+            "replication_notes": "",
+            "limitations": []
+        }
+
+    @staticmethod
+    def architecture_decision_template(
+        title: str,
+        decision: str,
+        context: str,
+        alternatives: List[str],
+        rationale: str,
+        trade_offs: Dict[str, str],
+        consequences: str
+    ) -> Dict[str, Any]:
+        """Template for architecture decisions."""
+        return {
+            "decision": decision,
+            "context": context,
+            "alternatives_considered": alternatives,
+            "rationale": rationale,
+            "trade_offs": trade_offs,
+            "expected_consequences": consequences,
+            "review_date": None
+        }
+
+    @staticmethod
+    def best_practice_template(
+        title: str,
+        practice: str,
+        rationale: str,
+        when_to_apply: List[str],
+        how_to_apply: str,
+        common_mistakes: List[str]
+    ) -> Dict[str, Any]:
+        """Template for best practices."""
+        return {
+            "practice": practice,
+            "rationale": rationale,
+            "when_to_apply": when_to_apply,
+            "how_to_apply": how_to_apply,
+            "common_mistakes": common_mistakes,
+            "related_practices": []
+        }
+
+    @staticmethod
+    def risk_pattern_template(
+        title: str,
+        risk_description: str,
+        indicators: List[str],
+        likelihood: str,
+        impact: str,
+        mitigations: List[str]
+    ) -> Dict[str, Any]:
+        """Template for risk patterns."""
+        return {
+            "risk_description": risk_description,
+            "early_indicators": indicators,
+            "likelihood": likelihood,
+            "impact": impact,
+            "mitigation_strategies": mitigations,
+            "monitoring_approach": ""
+        }
+
+    @staticmethod
+    def execution_lesson_template(
+        title: str,
+        lesson: str,
+        context: str,
+        outcome: str,
+        applicability: List[str]
+    ) -> Dict[str, Any]:
+        """Template for execution lessons."""
+        return {
+            "lesson": lesson,
+            "context": context,
+            "outcome": outcome,
+            "applicable_scenarios": applicability,
+            "transferability": "specific"
+        }
+
+    @staticmethod
+    def research_summary_template(
+        title: str,
+        research_question: str,
+        methodology: str,
+        key_findings: List[str],
+        confidence_level: str,
+        limitations: List[str]
+    ) -> Dict[str, Any]:
+        """Template for research summaries."""
+        return {
+            "research_question": research_question,
+            "methodology": methodology,
+            "key_findings": key_findings,
+            "confidence_level": confidence_level,
+            "limitations": limitations,
+            "further_research": []
+        }
+
+
+# ============================================================================
+# Example Insights (for documentation and testing)
+# ============================================================================
+
+EXAMPLE_INSIGHTS = {
+    "planning_heuristic_insight": {
+        "insight_type": InsightType.STRATEGIC_INSIGHT,
+        "title": "Planning Quality Improves Execution Outcomes",
+        "summary": "Teams that invest in structured planning produce higher quality outputs",
+        "scope": InsightScope.WORKFLOW_TYPE,
+        "scope_key": "planning",
+        "content": {
+            "observation": "Analysis of 500+ planning workflows shows correlation",
+            "strategic_implication": "Invest in planning quality for better execution",
+            "applicability": "All planning workflows",
+            "confidence_basis": "Observed correlation across multiple domains"
+        },
+        "domain": "workflow_optimization",
+        "tags": ["planning", "quality", "execution"],
+        "quality": {
+            "confidence_score": 0.85,
+            "validation_score": 0.80,
+            "applicability_score": 0.90,
+            "source_count": 5,
+            "execution_count": 500,
+            "success_rate": 0.72
+        }
+    },
+
+    "error_handling_playbook": {
+        "insight_type": InsightType.REUSABLE_PLAYBOOK,
+        "title": "API Error Handling Playbook",
+        "summary": "Standardized approach to API error handling that improves reliability",
+        "scope": InsightScope.WORKFLOW_TYPE,
+        "scope_key": "api_integration",
+        "content": {
+            "objective": "Standardize API error handling across workflows",
+            "triggers": ["API call failure", "Timeout", "Rate limit"],
+            "steps": [
+                "Log error details",
+                "Implement exponential backoff",
+                "Check for retry eligibility",
+                "Fall back to cached response if available"
+            ],
+            "expected_outcome": "Graceful degradation on API failures"
+        },
+        "domain": "api_integration",
+        "tags": ["api", "error_handling", "reliability"],
+        "quality": {
+            "confidence_score": 0.92,
+            "validation_score": 0.88,
+            "applicability_score": 0.85,
+            "source_count": 3,
+            "execution_count": 150,
+            "success_rate": 0.95
+        }
+    }
+}
