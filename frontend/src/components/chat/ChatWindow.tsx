@@ -232,8 +232,8 @@ export const ChatWindow: React.FC = () => {
   // Listen for suggestion-click events from empty state
   useEffect(() => {
     const handleSuggestionClick = (e: Event) => {
-      const customEvent = e as CustomEvent<{suggestion: string}>;
-      const suggestion = customEvent.detail.suggestion;
+      const customEvent = e as CustomEvent<string>;
+      const suggestion = customEvent.detail;  // detail is the suggestion string directly
       // Use ref to access latest handleSend without dependency issues
       if (suggestion && activeSessionId && handleSendRef.current) {
         handleSendRef.current(suggestion);

@@ -79,7 +79,13 @@ export function ChatEmptyState({ agentName = 'Prince Flowers', isFirstMessage = 
         {['Web Search', 'Code Generation', 'Analysis', 'Orchestration'].map((cap) => (
           <span
             key={cap}
-            className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full"
+            className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full cursor-pointer hover:bg-blue-100 transition-colors"
+            onClick={() => {
+              const event = new CustomEvent('suggestion-click', {
+                detail: `Use ${cap} to help me`,
+              });
+              window.dispatchEvent(event);
+            }}
           >
             {cap}
           </span>
