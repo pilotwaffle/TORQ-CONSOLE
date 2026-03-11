@@ -15,6 +15,7 @@ Key Components:
 - validation_service.py: Publishing validation and conflict detection
 - persistence.py: Store insights with lineage tracking
 - approval_workflow.py: Approval/rejection/supersession workflows
+- retrieval.py: Agent retrieval service with context-aware queries
 """
 
 from .models import (
@@ -119,6 +120,19 @@ from .approval_workflow import (
     get_approval_workflow,
 )
 
+from .retrieval import (
+    # Retrieval
+    RetrievalContext,
+    RetrievalResult,
+    InsightPayload,
+    ProvenanceSummary,
+    SuppressedInsight,
+    RetrievalAuditEntry,
+    RankingConfig,
+    InsightRetrievalService,
+    get_retrieval_service,
+)
+
 
 __all__ = [
     # Models
@@ -192,4 +206,15 @@ __all__ = [
     "approve_batch",
     "reject_batch",
     "get_approval_workflow",
+
+    # Retrieval
+    "RetrievalContext",
+    "RetrievalResult",
+    "InsightPayload",
+    "ProvenanceSummary",
+    "SuppressedInsight",
+    "RetrievalAuditEntry",
+    "RankingConfig",
+    "InsightRetrievalService",
+    "get_retrieval_service",
 ]
