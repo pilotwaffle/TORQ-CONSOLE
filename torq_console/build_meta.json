@@ -1,8 +1,8 @@
 {
-  "git_sha": "35f502ae4604d9d10e45cd3e2570247e27b1cdf8",
-  "git_short_sha": "35f502ae4604",
+  "git_sha": "b0f3b2f890379883d315aa72c08cbee956612f5e",
+  "git_short_sha": "b0f3b2f89037",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-11T21:06:13.223273+00:00",
+  "built_at": "2026-03-11T21:10:42.840527+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "Complete Readiness Checker Milestone 2: Evidence Collection and Scoring Engine"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
