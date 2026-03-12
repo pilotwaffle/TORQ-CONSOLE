@@ -1,8 +1,8 @@
 {
-  "git_sha": "c8dee8d0d44b3698c127b93c8ee2924ef26cb3d7",
-  "git_short_sha": "c8dee8d0d44b",
+  "git_sha": "4f3b7143e6b819f53d9ab90ee287a1c66de0d7ff",
+  "git_short_sha": "4f3b7143e6b8",
   "version": "1.0.10-standalone",
-  "built_at": "2026-03-11T22:54:56.065000+00:00",
+  "built_at": "2026-03-12T00:12:19.502052+00:00",
   "branch": "feature/operator-control-surface",
-  "commit_message": "Add Milestone 4: Inspection, Query, and Governance Audit Layer"
+  "commit_message": "chore: update build metadata [skip ci]"
 }
