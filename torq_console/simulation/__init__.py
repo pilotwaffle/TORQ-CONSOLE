@@ -10,6 +10,11 @@ This module provides:
 - StrategicForecastingEngine: Predict long-term system and organizational outcomes
 - RiskModelingService: Quantify operational and strategic risks
 - PlanningWorkspaceService: Collaborative scenario planning environment
+
+Stabilization Components:
+- SimulationCalibrationEngine: Continuously improves simulation accuracy
+- SimulationMetricsExporter: Observability metrics for simulation performance
+- DecisionAuditService: Creates audit artifacts for strategic decisions
 """
 
 from __future__ import annotations
@@ -85,6 +90,20 @@ from .planning_workspace.planning_workspace_service import (
     get_planning_workspace,
 )
 
+# Stabilization components
+from .calibration.calibration_engine import (
+    get_calibration_engine,
+    SimulationCalibrationEngine,
+)
+from .observability.metrics import (
+    get_metrics_exporter,
+    SimulationMetricsExporter,
+)
+from .audit.decision_audit import (
+    get_decision_audit_service,
+    DecisionAuditService,
+)
+
 
 __all__ = [
     # Models
@@ -121,7 +140,7 @@ __all__ = [
     "get_all_forecast_types",
     "get_all_risk_categories",
     "get_all_risk_severities",
-    # Services
+    # Core Services
     "ScenarioSimulationEngine",
     "PolicyImpactSimulator",
     "StrategicForecastingEngine",
@@ -132,6 +151,13 @@ __all__ = [
     "get_forecasting_engine",
     "get_risk_service",
     "get_planning_workspace",
+    # Stabilization Services
+    "SimulationCalibrationEngine",
+    "get_calibration_engine",
+    "SimulationMetricsExporter",
+    "get_metrics_exporter",
+    "DecisionAuditService",
+    "get_decision_audit_service",
 ]
 
 
@@ -143,6 +169,10 @@ def get_layer10_services() -> dict:
         "forecasting_engine": get_forecasting_engine(),
         "risk_service": get_risk_service(),
         "planning_workspace": get_planning_workspace(),
+        # Stabilization services
+        "calibration_engine": get_calibration_engine(),
+        "metrics_exporter": get_metrics_exporter(),
+        "decision_audit": get_decision_audit_service(),
     }
 
 
