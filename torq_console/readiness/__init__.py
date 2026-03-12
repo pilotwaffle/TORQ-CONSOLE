@@ -27,8 +27,8 @@ Phase Milestones:
     M1: Readiness object model + policy schema ✅
     M2: Evidence collection and scoring engine ✅
     M3: Transition controller and governance actions ✅
-    M4: Query / inspection / audit layer 🔄 IN PROGRESS
-    M5: Hardening & regression
+    M4: Query / inspection / audit layer ✅
+    M5: Hardening & regression ✅
 """
 
 from .readiness_models import (
@@ -197,6 +197,50 @@ from .report_builder import (
     get_report_builder,
 )
 
+# M5: Hardening & Regression
+from .hardening import (
+    TransitionLockManager,
+    get_transition_lock_manager,
+
+    IdempotencyGuard,
+    IdempotencyRecord,
+    generate_idempotency_key,
+    get_idempotency_guard,
+
+    RegressionDetector,
+    RegressionEvent,
+    RegressionSeverity,
+    get_regression_detector,
+
+    ScoringStabilityValidator,
+    ScoreHistoryEntry,
+    StabilityReport,
+    get_scoring_stability_validator,
+
+    AuditIntegrityVerifier,
+    IntegrityViolation,
+    IntegrityReport,
+    get_audit_integrity_verifier,
+)
+
+from .services import (
+    RegressionService,
+    RegressionSummary,
+    get_regression_service,
+
+    TransitionSafetyService,
+    TransitionValidationResult,
+    get_transition_safety_service,
+
+    ScoringValidationService,
+    SystemStabilitySummary,
+    get_scoring_validation_service,
+
+    AuditIntegrityService,
+    SystemIntegrityStatus,
+    get_audit_integrity_service,
+)
+
 __all__ = [
     # Models
     "CandidateType",
@@ -310,4 +354,38 @@ __all__ = [
     # Report Builder (M4)
     "ReadinessReportBuilder",
     "get_report_builder",
+
+    # Hardening (M5)
+    "TransitionLockManager",
+    "get_transition_lock_manager",
+    "IdempotencyGuard",
+    "IdempotencyRecord",
+    "generate_idempotency_key",
+    "get_idempotency_guard",
+    "RegressionDetector",
+    "RegressionEvent",
+    "RegressionSeverity",
+    "get_regression_detector",
+    "ScoringStabilityValidator",
+    "ScoreHistoryEntry",
+    "StabilityReport",
+    "get_scoring_stability_validator",
+    "AuditIntegrityVerifier",
+    "IntegrityViolation",
+    "IntegrityReport",
+    "get_audit_integrity_verifier",
+
+    # Services (M5)
+    "RegressionService",
+    "RegressionSummary",
+    "get_regression_service",
+    "TransitionSafetyService",
+    "TransitionValidationResult",
+    "get_transition_safety_service",
+    "ScoringValidationService",
+    "SystemStabilitySummary",
+    "get_scoring_validation_service",
+    "AuditIntegrityService",
+    "SystemIntegrityStatus",
+    "get_audit_integrity_service",
 ]
