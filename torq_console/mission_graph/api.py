@@ -121,7 +121,7 @@ async def list_missions(
     if mission_type:
         query = query.eq("mission_type", mission_type.value)
 
-    query = query.order("created_at", desc").range(0, limit - 1)
+    query = query.order("created_at", desc=True).range(0, limit - 1)
 
     result = query.execute()
 
@@ -326,7 +326,7 @@ async def get_workstreams(
     supabase=Depends(get_supabase)
 ):
     """Get workstreams for a mission."""
-    result = supabase.table("workstreams").select("*").eq("mission_id", mission_id).execute()
+    result = supabase.table("workstream_states").select("*").eq("mission_id", mission_id).execute()
 
     return {
         "workstreams": result.data if result.data else [],

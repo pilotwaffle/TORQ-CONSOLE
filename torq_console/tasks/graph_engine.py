@@ -2,6 +2,7 @@
 Graph Engine for Task Graph management.
 
 Provides CRUD operations for task graphs and node/edge management.
+Integrates with Shared Cognitive Workspace for graph-level reasoning.
 """
 
 import logging
@@ -17,6 +18,14 @@ from .models import (
     GraphStatus,
     NodeStatus,
 )
+
+# Optional workspace integration
+try:
+    from torq_console.workspace.service import WorkspaceService
+    WORKSPACE_AVAILABLE = True
+except ImportError:
+    WORKSPACE_AVAILABLE = False
+    WorkspaceService = None
 
 logger = logging.getLogger(__name__)
 
@@ -116,16 +125,19 @@ class TaskGraphEngine:
     - Graph CRUD operations
     - Validation
     - Node/edge management
+    - Workspace creation for graph-level reasoning
     """
 
-    def __init__(self, supabase_client=None):
+    def __init__(self, supabase_client=None, workspace_service=None):
         """
         Initialize the graph engine.
 
         Args:
             supabase_client: Supabase client for persistence
+            workspace_service: Optional WorkspaceService for graph reasoning
         """
         self.supabase = supabase_client
+        self.workspace_service = workspace_service
 
     async def create_graph(self, graph_data: TaskGraphCreate) -> TaskGraphResponse:
         """
@@ -201,6 +213,26 @@ class TaskGraphEngine:
                     "condition": edge.condition,
                 }).execute()
 
+            # Create workspace for this graph (for planning reasoning)
+            workspace_id = None
+            if self.workspace_service:
+                try:
+                    workspace = await self.workspace_service.get_or_create_workspace(
+                        scope_type="workflow_graph",
+                        scope_id=str(graph_id),
+                        title=f"Workflow: {graph_data.name}",
+                        description=f"Planning and reasoning workspace for workflow '{graph_data.name}'",
+                    )
+                    workspace_id = str(workspace.workspace_id)
+                    logger.info(f"Created workspace for graph {graph_id}: {workspace_id}")
+
+                    # Update graph record with workspace_id
+                    self.supabase.table("task_graphs").update({
+                        "workspace_id": workspace_id,
+                    }).eq("graph_id", str(graph_id)).execute()
+                except Exception as e:
+                    logger.warning(f"Failed to create workspace for graph {graph_id}: {e}")
+
             return TaskGraphResponse(
                 graph_id=graph_id,
                 name=graph_data.name,
@@ -211,6 +243,7 @@ class TaskGraphEngine:
                 nodes=nodes_with_ids,
                 edges=graph_data.edges,
                 config=graph_data.config,
+                workspace_id=workspace_id,
             )
 
         # Without database, return in-memory graph
@@ -287,6 +320,7 @@ class TaskGraphEngine:
                 nodes=nodes,
                 edges=edges,
                 config=graph_data.get("config", {}),
+                workspace_id=graph_data.get("workspace_id"),
             )
 
         return None
@@ -328,6 +362,7 @@ class TaskGraphEngine:
                     nodes=[],  # Nodes loaded separately
                     edges=[],
                     config=g.get("config", {}),
+                    workspace_id=g.get("workspace_id"),
                 )
                 for g in result.data
             ]

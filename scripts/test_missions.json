@@ -1,0 +1,99 @@
+{
+  "validation_missions": [
+    {
+      "mission_id": "MISSION_1",
+      "title": "Market Entry Analysis",
+      "mission_type": "analysis",
+      "objective": "Assess market opportunity for electric delivery vehicles in Southeast US",
+      "context": {
+        "target_market": "commercial delivery fleets",
+        "region": "Southeast US",
+        "time_horizon": "5 years",
+        "key_questions": [
+          "What is the total addressable market?",
+          "Who are the primary competitors?",
+          "What are the regulatory barriers?",
+          "What infrastructure is required?",
+          "What is the breakeven timeline?"
+        ]
+      },
+      "expected_nodes": 8,
+      "expected_workstreams": 3,
+      "validation_section": "A"
+    },
+    {
+      "mission_id": "MISSION_2",
+      "title": "Product Roadmap Planning",
+      "mission_type": "planning",
+      "objective": "Create a 12-month product roadmap for a B2B SaaS analytics platform",
+      "context": {
+        "product_stage": "post-series-a",
+        "team_size": "15 engineers",
+        "key_priorities": [
+          "Enterprise features",
+          "API expansion",
+          "Data governance",
+          "Self-service onboarding"
+        ],
+        "constraints": [
+          "2 major releases per quarter",
+          "Maintain 99.9% uptime",
+          "Backward compatibility required"
+        ]
+      },
+      "expected_nodes": 10,
+      "expected_workstreams": 4,
+      "validation_section": "A"
+    },
+    {
+      "mission_id": "MISSION_3",
+      "title": "Technical Risk Evaluation",
+      "mission_type": "evaluation",
+      "objective": "Evaluate technical risks of migrating monolithic architecture to microservices",
+      "context": {
+        "current_architecture": "monolithic .NET application",
+        "target_architecture": "polyglot microservices",
+        "team_experience": "senior engineers, limited microservices experience",
+        "key_risk_areas": [
+          "Data consistency",
+          "Service communication",
+          "Deployment complexity",
+          "Observability",
+          "Team coordination"
+        ]
+      },
+      "expected_nodes": 12,
+      "expected_workstreams": 4,
+      "validation_section": "A"
+    }
+  ],
+  "api_requests": {
+    "mission_1_create": {
+      "method": "POST",
+      "endpoint": "/api/missions/",
+      "body": {
+        "title": "Market Entry Analysis",
+        "mission_type": "analysis",
+        "objective": "Assess market opportunity for electric delivery vehicles in Southeast US",
+        "context": {
+          "target_market": "commercial delivery fleets",
+          "region": "Southeast US",
+          "time_horizon": "5 years"
+        }
+      }
+    },
+    "mission_start": {
+      "method": "POST",
+      "endpoint": "/api/missions/{mission_id}/start",
+      "body": null
+    },
+    "mission_status": {
+      "method": "GET",
+      "endpoint": "/api/missions/{mission_id}/status"
+    },
+    "ready_nodes": {
+      "method": "GET",
+      "endpoint": "/api/missions/{mission_id}/nodes/ready"
+    }
+  }
+}

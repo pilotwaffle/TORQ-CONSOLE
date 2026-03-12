@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-03-11T01:53:04.379Z",
+  "baseUrl": "http://localhost:3000",
+  "results": {
+    "loadCheck": {
+      "passed": true,
+      "details": "Status: 200, CloudOff error: NO"
+    },
+    "modalHandling": {
+      "passed": false,
+      "details": "Modal closed: NO"
+    },
+    "chatInputTest": {
+      "passed": true,
+      "details": "Text entered: YES, Value: \"test message\""
+    },
+    "suggestionButtonTest": {
+      "passed": false,
+      "details": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"Explain\")').first()\u001b[22m\n\u001b[2m    - locator resolved to <button class=\"text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-gray-700 transition-colors text-left\">\"Explain the difference between REST and GraphQL\"</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"text-2xl mb-1\">⚡</div> from <div class=\"fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"text-2xl mb-1\">⚡</div> from <div class=\"fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    56 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div class=\"text-2xl mb-1\">⚡</div> from <div class=\"fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    },
+    "standaloneModeTest": {
+      "passed": false,
+      "details": "Badge: 0, Panel: 0, Mode: 0"
+    },
+    "consoleCheck": {
+      "passed": true,
+      "details": "Hook warnings: 0, CloudOff: 0, Crashes: 0"
+    }
+  },
+  "summary": {
+    "total": 6,
+    "passed": 3,
+    "failed": 3
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[AgentRegistry] Failed to load agents from backend: Error: Failed to load agents: 404\n    at AgentRegistryService.loadAgents (http://localhost:3000/src/services/agentRegistryService.ts:39:15)\n    at async loadBackendAgents (http://localhost:3000/src/App.tsx:103:31)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[AgentRegistry] Failed to load agents from backend: Error: Failed to load agents: 404\n    at AgentRegistryService.loadAgents (http://localhost:3000/src/services/agentRegistryService.ts:39:15)\n    at async loadBackendAgents (http://localhost:3000/src/App.tsx:103:31)"
+  ],
+  "warnings": [
+    "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+  ]
+}

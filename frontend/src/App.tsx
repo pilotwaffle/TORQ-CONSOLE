@@ -4,6 +4,8 @@ import { AgentSidebar } from '@/components/layout/AgentSidebar';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { CommandPalette } from '@/components/command/CommandPalette';
 import { CoordinationPanel } from '@/components/coordination/CoordinationPanel';
+import { OnboardingWelcome, useOnboarding } from '@/components/onboarding';
+import { ToastContainer } from '@/components/toasts';
 import { useAgentStore } from '@/stores/agentStore';
 import { useCoordinationStore } from '@/stores/coordinationStore';
 import { useKeyboardShortcuts, SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
@@ -12,6 +14,7 @@ import agentRegistryService from '@/services/agentRegistryService';
 
 function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const { hasSeenOnboarding, markOnboardingComplete } = useOnboarding();
 
   const { setAgents, addSession, setActiveSession, setActiveAgent, setWorkspace, setConnectionStatus } =
     useAgentStore();
@@ -162,6 +165,11 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden">
+      {/* Phase 3: Onboarding for first-time users */}
+      {!hasSeenOnboarding && (
+        <OnboardingWelcome onComplete={markOnboardingComplete} />
+      )}
+
       <TopNav />
       <div
         className={`
@@ -181,6 +189,9 @@ function App() {
 
       {/* Multi-Agent Coordination Panel */}
       <CoordinationPanel />
+
+      {/* Phase 3: Toast Notifications */}
+      <ToastContainer />
     </div>
   );
 }

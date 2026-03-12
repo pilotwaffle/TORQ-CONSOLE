@@ -20,6 +20,114 @@ from fastapi.responses import FileResponse, JSONResponse
 from .routes import router
 from .socketio_handler import SocketIOHandler
 
+# Try to import workspace routes if available
+try:
+    from torq_console.workspace.api import router as workspace_router
+    from torq_console.workspace.agent_tools_api import router as agent_tools_router
+    from torq_console.workspace.artifacts_api import router as artifacts_router
+    WORKSPACE_AVAILABLE = True
+except ImportError:
+    WORKSPACE_AVAILABLE = False
+    workspace_router = None
+    agent_tools_router = None
+    artifacts_router = None
+
+# Try to import synthesis routes if available
+try:
+    from torq_console.synthesis.api import router as synthesis_router
+    SYNTHESIS_AVAILABLE = True
+except ImportError:
+    SYNTHESIS_AVAILABLE = False
+    synthesis_router = None
+
+# Try to import evaluation routes if available
+try:
+    from torq_console.evaluation.api import router as evaluation_router
+    EVALUATION_AVAILABLE = True
+except ImportError:
+    EVALUATION_AVAILABLE = False
+    evaluation_router = None
+
+# Try to import learning signal routes if available
+try:
+    from torq_console.learning.api import router as learning_router
+    LEARNING_AVAILABLE = True
+except ImportError:
+    LEARNING_AVAILABLE = False
+    learning_router = None
+
+# Try to import adaptation proposal routes if available
+try:
+    from torq_console.adaptation.api import router as adaptation_router
+    ADAPTATION_AVAILABLE = True
+except ImportError:
+    ADAPTATION_AVAILABLE = False
+    adaptation_router = None
+
+# Try to import behavior experiments routes if available
+try:
+    from torq_console.experiments.api import router as experiments_router
+    EXPERIMENTS_AVAILABLE = True
+except ImportError:
+    EXPERIMENTS_AVAILABLE = False
+    experiments_router = None
+
+# Try to import adaptive telemetry routes if available
+try:
+    from torq_console.telemetry.api import router as adaptive_telemetry_router
+    ADAPTIVE_TELEMETRY_AVAILABLE = True
+except ImportError:
+    ADAPTIVE_TELEMETRY_AVAILABLE = False
+    adaptive_telemetry_router = None
+
+# Try to import strategic memory routes if available
+try:
+    from torq_console.strategic_memory.api import router as strategic_memory_router
+    STRATEGIC_MEMORY_AVAILABLE = True
+except ImportError:
+    STRATEGIC_MEMORY_AVAILABLE = False
+    strategic_memory_router = None
+
+# Try to import memory query API routes if available (Phase 4H.1 Milestone 3)
+try:
+    from torq_console.api.memory_api import router as memory_query_router
+    MEMORY_QUERY_AVAILABLE = True
+except ImportError:
+    MEMORY_QUERY_AVAILABLE = False
+    memory_query_router = None
+
+# Try to import memory inspection API routes if available (Phase 4H.1 Milestone 4)
+try:
+    from torq_console.api.memory_inspection_api import router as memory_inspection_router
+    MEMORY_INSPECTION_AVAILABLE = True
+except ImportError:
+    MEMORY_INSPECTION_AVAILABLE = False
+    memory_inspection_router = None
+
+# Try to import mission graph routes if available
+try:
+    from torq_console.mission_graph.api import router as mission_graph_router
+    MISSION_GRAPH_AVAILABLE = True
+except ImportError:
+    MISSION_GRAPH_AVAILABLE = False
+    mission_graph_router = None
+
+# Try to import operator control surface routes if available
+try:
+    from torq_console.mission_graph.control_api import router as control_surface_router
+    CONTROL_SURFACE_AVAILABLE = True
+except ImportError:
+    CONTROL_SURFACE_AVAILABLE = False
+    control_surface_router = None
+
+# Try to import agent teams routes if available
+try:
+    from torq_console.teams.api import router as teams_router
+    TEAMS_AVAILABLE = True
+except ImportError:
+    TEAMS_AVAILABLE = False
+    teams_router = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +164,82 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(router, prefix="/api")
+
+# Include workspace routes if available
+if WORKSPACE_AVAILABLE and workspace_router:
+    app.include_router(workspace_router, prefix="/api")
+    logger.info("Shared Cognitive Workspace routes included")
+
+# Include agent workspace tools routes if available
+if WORKSPACE_AVAILABLE and agent_tools_router:
+    app.include_router(agent_tools_router, prefix="/api")
+    logger.info("Agent Workspace Tools routes included")
+
+# Include workspace artifacts routes if available
+if WORKSPACE_AVAILABLE and artifacts_router:
+    app.include_router(artifacts_router, prefix="/api")
+    logger.info("Workspace Artifacts routes included")
+
+# Include synthesis routes if available
+if SYNTHESIS_AVAILABLE and synthesis_router:
+    app.include_router(synthesis_router, prefix="/api")
+    logger.info("Synthesis Engine routes included")
+
+# Include evaluation routes if available
+if EVALUATION_AVAILABLE and evaluation_router:
+    app.include_router(evaluation_router, prefix="/api")
+    logger.info("Evaluation Engine routes included")
+
+# Include learning signal routes if available
+if LEARNING_AVAILABLE and learning_router:
+    app.include_router(learning_router, prefix="/api")
+    logger.info("Learning Signal Engine routes included")
+
+# Include adaptation proposal routes if available
+if ADAPTATION_AVAILABLE and adaptation_router:
+    app.include_router(adaptation_router, prefix="/api")
+    logger.info("Adaptation Policy Engine routes included")
+
+# Include behavior experiments routes if available
+if EXPERIMENTS_AVAILABLE and experiments_router:
+    app.include_router(experiments_router, prefix="/api")
+    logger.info("Behavior Experiment & Versioning Layer routes included")
+
+# Include adaptive telemetry routes if available
+if ADAPTIVE_TELEMETRY_AVAILABLE and adaptive_telemetry_router:
+    app.include_router(adaptive_telemetry_router, prefix="/api")
+    logger.info("Adaptive System Telemetry routes included")
+
+# Include strategic memory routes if available
+if STRATEGIC_MEMORY_AVAILABLE and strategic_memory_router:
+    app.include_router(strategic_memory_router, prefix="/api")
+    logger.info("Strategic Memory routes included")
+
+# Include memory query routes if available (Phase 4H.1 Milestone 3)
+if MEMORY_QUERY_AVAILABLE and memory_query_router:
+    app.include_router(memory_query_router, prefix="/api")
+    logger.info("Memory Query API routes included (Phase 4H.1 Milestone 3)")
+
+# Include memory inspection routes if available (Phase 4H.1 Milestone 4)
+if MEMORY_INSPECTION_AVAILABLE and memory_inspection_router:
+    app.include_router(memory_inspection_router, prefix="/api")
+    logger.info("Memory Inspection & Control API routes included (Phase 4H.1 Milestone 4)")
+
+# Include mission graph routes if available
+if MISSION_GRAPH_AVAILABLE and mission_graph_router:
+    app.include_router(mission_graph_router, prefix="/api")
+    logger.info("Mission Graph Planning routes included")
+
+# Include operator control surface routes if available
+if CONTROL_SURFACE_AVAILABLE and control_surface_router:
+    app.include_router(control_surface_router, prefix="/api")
+    logger.info("Operator Control Surface routes included")
+
+# Include agent teams routes if available
+if TEAMS_AVAILABLE and teams_router:
+    # Teams router already has /api/teams prefix
+    app.include_router(teams_router)
+    logger.info("Agent Teams routes included")
 
 # Initialize Socket.IO handler
 socketio_handler = SocketIOHandler(sio)

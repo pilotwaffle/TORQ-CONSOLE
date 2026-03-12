@@ -12,7 +12,8 @@ import { ExecutionGraphOverlay, NodeDetailsPanel, ExecutionTimeline, LiveOutputP
 import type { WorkflowNode } from "../../features/workflows/api";
 import type { ExecutionNodeResult } from "../../features/workflows/api";
 import { formatRelativeTime, formatDuration } from "../../features/workflows/utils/workflowFormatters";
-import { ChevronRight, ChevronDown, Activity } from "lucide-react";
+import { ChevronRight, ChevronDown, Activity, Brain } from "lucide-react";
+import { WorkspaceInspectorByScope } from "../../features/workspace";
 
 function ExecutionDetailsPageContent() {
   const { executionId } = useParams<{ executionId: string }>();
@@ -22,6 +23,7 @@ function ExecutionDetailsPageContent() {
   const [selectedNodeResult, setSelectedNodeResult] = useState<ExecutionNodeResult | undefined>(undefined);
   const [showOutput, setShowOutput] = useState(true);
   const [showTimeline, setShowTimeline] = useState(true);
+  const [showWorkspace, setShowWorkspace] = useState(false);
 
   useEffect(() => {
     if (error && error.message.includes("404")) {
@@ -147,6 +149,17 @@ function ExecutionDetailsPageContent() {
               {formatRelativeTime(execution.started_at)}
             </div>
           )}
+          <button
+            onClick={() => setShowWorkspace(!showWorkspace)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
+              showWorkspace
+                ? "bg-purple-50 border-purple-300 text-purple-700"
+                : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <Brain className="w-4 h-4" />
+            <span className="text-sm font-medium">Workspace</span>
+          </button>
         </div>
       </div>
 
@@ -177,6 +190,17 @@ function ExecutionDetailsPageContent() {
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Workspace Side Panel */}
+        {showWorkspace && executionId && (
+          <div className="w-80 border-r border-gray-200 bg-white flex flex-col overflow-auto">
+            <WorkspaceInspectorByScope
+              scopeType="workflow_execution"
+              scopeId={executionId}
+              onClose={() => setShowWorkspace(false)}
+            />
+          </div>
+        )}
+
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Toggles */}

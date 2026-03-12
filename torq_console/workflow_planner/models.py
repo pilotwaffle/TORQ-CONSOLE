@@ -27,6 +27,8 @@ class WorkflowPlannerRequest(BaseModel):
     prompt: str = Field(..., min_length=10, max_length=4000, description="User's natural language workflow description")
     session_id: Optional[str] = Field(default=None, max_length=200, description="Optional session ID for context")
     tenant_id: Optional[str] = Field(default="default", max_length=200, description="Tenant identifier")
+    workspace_id: Optional[str] = Field(default=None, max_length=200, description="Optional workspace ID to write reasoning entries")
+    write_reasoning: bool = Field(default=True, description="Whether to write reasoning entries to workspace")
 
 
 class DraftNode(BaseModel):

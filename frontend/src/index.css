@@ -38,3 +38,30 @@
     @apply bg-border-focus;
   }
 }
+
+/* Global scrollbar styling to prevent white scrollbars */
+@layer base {
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #252526;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #3e3e42;
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #0078d4;
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3e3e42 #252526;
+  }
+}

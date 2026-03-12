@@ -120,14 +120,14 @@ class AgentRegistryService {
 
       // Transform backend agents to frontend Agent format
       const agents: Agent[] = backendAgents.map((backendAgent) => {
-        const frontendType = AGENT_TYPE_MAP[backendAgent.agent_id] || backendAgent.agent_type;
+        const frontendType = AGENT_TYPE_MAP[backendAgent.agent_id || backendAgent.id] || backendAgent.agent_type;
 
         return {
-          id: backendAgent.agent_id,
-          name: backendAgent.agent_name,
+          id: backendAgent.agent_id || backendAgent.id,
+          name: backendAgent.agent_name || backendAgent.name,
           status: backendAgent.status === 'active' ? 'idle' : backendAgent.status as Agent['status'],
           type: frontendType as Agent['type'],
-          capabilities: backendAgent.capabilities,
+          capabilities: backendAgent.capabilities || [],
           // Store additional metadata for UI display
           metadata: {
             description: backendAgent.description,

@@ -76,21 +76,26 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
     // Agent commands - New Chat
     agents.forEach((agent) => {
-      const Icon = AGENT_ICONS[agent.type];
+      // Safely get icon, defaulting to Bot if type is not defined
+      const Icon = agent.type ? AGENT_ICONS[agent.type] : Bot;
+      // Safely get agent name, defaulting to empty string if undefined
+      const agentName = agent.name || 'Unknown Agent';
+      const agentType = agent.type || 'general';
+
       commandsList.push({
         id: `new-chat-${agent.id}`,
-        title: `New Chat with ${agent.name}`,
+        title: `New Chat with ${agentName}`,
         category: 'Agents',
         icon: Icon,
-        keywords: ['new', 'chat', 'create', agent.name.toLowerCase(), agent.type],
+        keywords: ['new', 'chat', 'create', agentName.toLowerCase(), agentType],
         metadata: {
-          description: agent.capabilities.join(', '),
-          badge: agent.status,
+          description: agent.capabilities?.join(', ') || 'No capabilities listed',
+          badge: agent.status || 'idle',
         },
         action: () => {
           const newSession = {
             id: `session_${Date.now()}`,
-            title: `New ${agent.name} Chat`,
+            title: `New ${agentName} Chat`,
             agentId: agent.id,
             messages: [],
             createdAt: Date.now(),
@@ -106,15 +111,16 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
     // Agent commands - Switch To
     agents.forEach((agent) => {
-      const Icon = AGENT_ICONS[agent.type];
+      const Icon = agent.type ? AGENT_ICONS[agent.type] : Bot;
+      const agentName = agent.name || 'Unknown Agent';
       const agentSessions = sessions.filter((s) => s.agentId === agent.id);
       if (agentSessions.length > 0) {
         commandsList.push({
           id: `switch-${agent.id}`,
-          title: `Switch to ${agent.name}`,
+          title: `Switch to ${agentName}`,
           category: 'Agents',
           icon: ArrowLeftRight,
-          keywords: ['switch', 'change', agent.name.toLowerCase()],
+          keywords: ['switch', 'change', agentName.toLowerCase()],
           metadata: {
             description: `${agentSessions.length} active session${agentSessions.length > 1 ? 's' : ''}`,
           },
