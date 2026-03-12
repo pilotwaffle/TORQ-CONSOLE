@@ -7,15 +7,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-
 // ============================================================================
 // Mission Portfolio Loading Tests
 // ============================================================================
 
 test.describe('Mission Portfolio', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
     await page.waitForLoadState('networkidle');
@@ -47,8 +43,6 @@ test.describe('Mission Portfolio', () => {
 // ============================================================================
 
 test.describe('Mission List Controls', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
     await page.waitForLoadState('networkidle');
@@ -89,8 +83,6 @@ test.describe('Mission List Controls', () => {
 // ============================================================================
 
 test.describe('Mission Detail Navigation', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should navigate to mission detail when mission is clicked', async ({ page }) => {
     await page.goto('/control');
 
@@ -107,7 +99,7 @@ test.describe('Mission Detail Navigation', () => {
       expect(page.url()).toMatch(/\/control\/missions\/.+/);
     } else {
       // No missions - that's OK for this test
-      test.skip();
+      test.skip(true, 'No missions available to test');
     }
   });
 
@@ -132,8 +124,6 @@ test.describe('Mission Detail Navigation', () => {
 // ============================================================================
 
 test.describe('Mission Status Display', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
     await page.waitForLoadState('networkidle');

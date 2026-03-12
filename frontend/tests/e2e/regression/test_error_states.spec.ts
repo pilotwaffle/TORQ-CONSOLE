@@ -7,15 +7,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-
 // ============================================================================
 // Loading States Tests
 // ============================================================================
 
 test.describe('Loading States', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should show loading indicator during navigation', async ({ page }) => {
     // Navigate to a page that might need loading time
     await page.goto('/workflows');
@@ -61,8 +57,6 @@ test.describe('Loading States', () => {
 // ============================================================================
 
 test.describe('Empty States', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should show empty state when no data', async ({ page }) => {
     await page.goto('/workflows');
 
@@ -105,8 +99,6 @@ test.describe('Empty States', () => {
 // ============================================================================
 
 test.describe('Error States', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should handle API errors gracefully', async ({ page }) => {
     // Mock a failing request
     await page.route('**/api/**', route => {
@@ -174,8 +166,6 @@ test.describe('Error States', () => {
 // ============================================================================
 
 test.describe('Network Errors', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should handle offline mode gracefully', async ({ page }) => {
     // Go offline
     await page.context().offline();
@@ -230,8 +220,6 @@ test.describe('Network Errors', () => {
 // ============================================================================
 
 test.describe('Timeout Handling', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should handle slow requests gracefully', async ({ page }) => {
     // Mock a slow request
     await page.route('**/api/**', async route => {

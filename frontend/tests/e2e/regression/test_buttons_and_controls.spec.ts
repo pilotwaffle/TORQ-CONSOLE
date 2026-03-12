@@ -7,15 +7,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-
 // ============================================================================
 // Button Functionality Tests
 // ============================================================================
 
 test.describe('Button Functionality', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should enable clicking all visible buttons', async ({ page }) => {
     await page.goto('/control');
     await page.waitForLoadState('networkidle');
@@ -86,8 +82,6 @@ test.describe('Button Functionality', () => {
 // ============================================================================
 
 test.describe('Dropdown Functionality', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should open dropdowns on click', async ({ page }) => {
     await page.goto('/control');
 
@@ -139,8 +133,6 @@ test.describe('Dropdown Functionality', () => {
 // ============================================================================
 
 test.describe('Modal Functionality', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should close modal when clicking close button', async ({ page }) => {
     await page.goto('/');
 
@@ -206,8 +198,6 @@ test.describe('Modal Functionality', () => {
 // ============================================================================
 
 test.describe('Tab Functionality', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should switch tabs correctly', async ({ page }) => {
     await page.goto('/control');
 
@@ -259,8 +249,6 @@ test.describe('Tab Functionality', () => {
 // ============================================================================
 
 test.describe('Filter Functionality', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should apply filters when changed', async ({ page }) => {
     await page.goto('/control');
 

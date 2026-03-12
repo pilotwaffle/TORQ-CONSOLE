@@ -7,15 +7,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-
 // ============================================================================
 // Failover Status Tests
 // ============================================================================
 
 test.describe('Failover Status', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
   });
@@ -65,8 +61,6 @@ test.describe('Failover Status', () => {
 // ============================================================================
 
 test.describe('Failover History', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
   });
@@ -116,8 +110,6 @@ test.describe('Failover History', () => {
 // ============================================================================
 
 test.describe('Failover Actions', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
   });

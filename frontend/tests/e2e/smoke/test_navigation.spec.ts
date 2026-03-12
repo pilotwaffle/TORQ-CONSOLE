@@ -7,15 +7,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-
 // ============================================================================
 // Navigation Tests
 // ============================================================================
 
 test.describe('Navigation', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should navigate to all main routes', async ({ page }) => {
     await page.goto('/');
 
@@ -102,8 +98,6 @@ test.describe('Navigation', () => {
 // ============================================================================
 
 test.describe('Navigation State', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should preserve navigation state across routes', async ({ page }) => {
     await page.goto('/');
 

@@ -7,7 +7,6 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 const TEST_MISSION_ID = 'test-mission-123';
 
 // ============================================================================
@@ -15,8 +14,6 @@ const TEST_MISSION_ID = 'test-mission-123';
 // ============================================================================
 
 test.describe('Mission Detail Page', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should load mission detail page', async ({ page }) => {
     await page.goto(`/control/missions/${TEST_MISSION_ID}`);
     await page.waitForLoadState('networkidle');
@@ -50,8 +47,6 @@ test.describe('Mission Detail Page', () => {
 // ============================================================================
 
 test.describe('Mission Graph', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto(`/control/missions/${TEST_MISSION_ID}`);
     await page.waitForLoadState('networkidle');
@@ -89,8 +84,6 @@ test.describe('Mission Graph', () => {
 // ============================================================================
 
 test.describe('Mission Event Stream', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto(`/control/missions/${TEST_MISSION_ID}`);
     await page.waitForLoadState('networkidle');
@@ -146,8 +139,6 @@ test.describe('Mission Event Stream', () => {
 // ============================================================================
 
 test.describe('Node Detail Drawer', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto(`/control/missions/${TEST_MISSION_ID}`);
     await page.waitForLoadState('networkidle');
@@ -171,7 +162,7 @@ test.describe('Node Detail Drawer', () => {
       const drawerVisible = await drawer.isVisible().catch(() => false);
       expect(drawerVisible).toBe(true);
     } else {
-      test.skip();
+      test.skip(true, 'No graph nodes visible to test');
     }
   });
 
@@ -184,7 +175,7 @@ test.describe('Node Detail Drawer', () => {
       await page.waitForTimeout(500);
 
       const closeButton = page.locator(
-        'button:has-text("Close"), button[aria-label*="close"], button[aria-label*="dismiss"]'
+        'button:has-text("Close"), button[aria-label*="close"], button[class*="close"]'
       ).first();
 
       if (await closeButton.isVisible().catch(() => false)) {
@@ -199,7 +190,7 @@ test.describe('Node Detail Drawer', () => {
         expect(visible).toBe(false);
       }
     } else {
-      test.skip();
+      test.skip(true, 'No graph nodes visible to test');
     }
   });
 });
@@ -209,8 +200,6 @@ test.describe('Node Detail Drawer', () => {
 // ============================================================================
 
 test.describe('Mission Timeline', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto(`/control/missions/${TEST_MISSION_ID}`);
     await page.waitForLoadState('networkidle');

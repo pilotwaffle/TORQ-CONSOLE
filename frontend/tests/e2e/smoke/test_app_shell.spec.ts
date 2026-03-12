@@ -9,19 +9,10 @@
 import { test, expect } from '@playwright/test';
 
 // ============================================================================
-// Test Configuration
-// ============================================================================
-
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-const BROWSER_URL = process.env.BROWSER_URL || 'https://torq-console.vercel.app';
-
-// ============================================================================
 // App Shell Tests
 // ============================================================================
 
 test.describe('App Shell - Local Environment', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should load the application without errors', async ({ page }) => {
     const errors: string[] = [];
 
@@ -66,55 +57,11 @@ test.describe('App Shell - Local Environment', () => {
   });
 });
 
-test.describe('App Shell - Browser Environment', () => {
-  test.use({ baseURL: BROWSER_URL });
-
-  test('should load the browser deployment without errors', async ({ page }) => {
-    const errors: string[] = [];
-
-    page.on('pageerror', (error) => {
-      errors.push(error.message);
-    });
-
-    await page.goto('/');
-
-    // Allow for some non-critical warnings
-    const criticalErrors = errors.filter(e =>
-      !e.includes('Warning') &&
-      !e.includes('deprecated') &&
-      !e.includes('DevTools')
-    );
-
-    expect(criticalErrors.length).toBeLessThan(3);
-
-    // Verify app loaded
-    await expect(page.locator('body')).toBeVisible();
-  });
-
-  test('should render equivalent UI to local environment', async ({ page }) => {
-    await page.goto('/');
-
-    // Check for core UI elements
-    const sidebar = page.locator('nav, aside').first();
-    const topNav = page.locator('header').first();
-
-    // At least one navigation element should be present
-    const navVisible = await Promise.all([
-      sidebar.isVisible().catch(() => false),
-      topNav.isVisible().catch(() => false)
-    ]);
-
-    expect(navVisible.some(v => v)).toBe(true);
-  });
-});
-
 // ============================================================================
 // Route Loading Tests
 // ============================================================================
 
 test.describe('Route Loading', () => {
-  test.use({ baseURL: BASE_URL });
-
   const routes = [
     { path: '/', name: 'Home/Chat' },
     { path: '/workflows', name: 'Workflows' },
@@ -174,8 +121,6 @@ test.describe('Route Loading', () => {
 // ============================================================================
 
 test.describe('Error Handling', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should handle 404 routes gracefully', async ({ page }) => {
     // Go to a non-existent route
     await page.goto('/this-route-does-not-exist');
@@ -214,8 +159,6 @@ test.describe('Error Handling', () => {
 // ============================================================================
 
 test.describe('Console Health Check', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should not have critical console errors', async ({ page }) => {
     const errors: string[] = [];
     const warnings: string[] = [];

@@ -7,15 +7,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-
 // ============================================================================
 // Distributed Fabric Navigation Tests
 // ============================================================================
 
 test.describe('Distributed Fabric - Navigation', () => {
-  test.use({ baseURL: BASE_URL });
-
   test('should access distributed fabric section', async ({ page }) => {
     // Try to navigate to fabric section
     // This might be under /control/fabric or /fabric or similar
@@ -67,8 +63,6 @@ test.describe('Distributed Fabric - Navigation', () => {
 // ============================================================================
 
 test.describe('Distributed Fabric - Node List', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     // Try to navigate to fabric/nodes page
     await page.goto('/control');
@@ -132,8 +126,6 @@ test.describe('Distributed Fabric - Node List', () => {
 // ============================================================================
 
 test.describe('Distributed Fabric - Node Inspection', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
   });
@@ -180,8 +172,6 @@ test.describe('Distributed Fabric - Node Inspection', () => {
 // ============================================================================
 
 test.describe('Distributed Fabric - Boundary Compliance', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
   });
@@ -236,8 +226,6 @@ test.describe('Distributed Fabric - Boundary Compliance', () => {
 // ============================================================================
 
 test.describe('Distributed Fabric - Federation Events', () => {
-  test.use({ baseURL: BASE_URL });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/control');
   });
