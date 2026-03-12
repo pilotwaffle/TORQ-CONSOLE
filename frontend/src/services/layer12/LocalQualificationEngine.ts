@@ -364,10 +364,14 @@ export class LocalQualificationEngine {
     artifact: EpistemicArtifact,
     localContext: LocalContext
   ): Promise<number> {
-    let trust = 0.0; // No base trust - must be earned
+    let trust = 0.0;
 
-    // Evidence confidence (primary factor)
-    trust += artifact.evidence.confidence * 0.5;
+    // Evidence confidence (primary factor) - higher weight for very high confidence
+    if (artifact.evidence.confidence >= 0.9) {
+      trust += artifact.evidence.confidence * 0.4; // Higher weight for exceptional confidence
+    } else {
+      trust += artifact.evidence.confidence * 0.35;
+    }
 
     // Stability score
     if (artifact.evidence.stabilityScore) {
@@ -380,19 +384,24 @@ export class LocalQualificationEngine {
 
     // Sample size (more evidence = higher trust)
     if (artifact.evidence.sampleSize) {
-      const sampleBonus = Math.min(0.1, artifact.evidence.sampleSize / 1000);
+      const sampleBonus = Math.min(0.15, artifact.evidence.sampleSize / 5000);
       trust += sampleBonus;
+    }
+
+    // Number of sources increases trust
+    if (artifact.evidence.sources?.length) {
+      trust += Math.min(0.1, artifact.evidence.sources.length * 0.03);
     }
 
     // Deduction for limitations
     if (artifact.limitations?.length) {
-      const limitationPenalty = Math.min(0.2, artifact.limitations.length * 0.05);
+      const limitationPenalty = Math.min(0.15, artifact.limitations.length * 0.05);
       trust -= limitationPenalty;
     }
 
     // Deduction for contradictions
     if (artifact.contradictions?.length) {
-      trust -= 0.15 * artifact.contradictions.length;
+      trust -= 0.1 * artifact.contradictions.length;
     }
 
     return Math.max(0, Math.min(1, trust));
@@ -423,19 +432,31 @@ export class LocalQualificationEngine {
   computeProvenanceStrength(artifact: EpistemicArtifact): number {
     let strength = 0.5;
 
+    // Verification level adds significant strength
+    if (artifact.provenance.verificationLevel === 'verified') {
+      strength += 0.25;
+    } else if (artifact.provenance.verificationLevel === 'peer-reviewed') {
+      strength += 0.35;
+    }
+
+    // Peer review count adds strength
+    if (artifact.provenance.peerReviewCount) {
+      strength += Math.min(0.15, artifact.provenance.peerReviewCount * 0.03);
+    }
+
     // More source artifacts = stronger provenance
     if (artifact.provenance.sourceArtifacts?.length) {
-      strength += Math.min(0.3, artifact.provenance.sourceArtifacts.length * 0.05);
+      strength += Math.min(0.1, artifact.provenance.sourceArtifacts.length * 0.05);
     }
 
     // More source insights = stronger provenance
     if (artifact.provenance.sourceInsights?.length) {
-      strength += Math.min(0.2, artifact.provenance.sourceInsights.length * 0.03);
+      strength += Math.min(0.1, artifact.provenance.sourceInsights.length * 0.03);
     }
 
     // Deeper lineage = stronger (up to a point)
     if (artifact.provenance.lineageDepth > 1) {
-      strength += Math.min(0.1, artifact.provenance.lineageDepth * 0.02);
+      strength += Math.min(0.05, artifact.provenance.lineageDepth * 0.02);
     }
 
     return Math.min(1, strength);
@@ -447,9 +468,31 @@ export class LocalQualificationEngine {
   computeConfidenceStability(artifact: EpistemicArtifact): number {
     let stability = 0.5;
 
+    // Large sample size increases stability
+    if (artifact.evidence.sampleSize && artifact.evidence.sampleSize > 500) {
+      stability += 0.1;
+    }
+    if (artifact.evidence.sampleSize && artifact.evidence.sampleSize > 5000) {
+      stability += 0.1;
+    }
+
+    // Rigorous methodology increases stability
+    if (artifact.evidence.methodology === 'peer-reviewed') {
+      stability += 0.2;
+    } else if (artifact.evidence.methodology === 'controlled-experiment') {
+      stability += 0.25;
+    } else if (artifact.evidence.methodology === 'statistical-analysis') {
+      stability += 0.1;
+    }
+
+    // Multiple sources increase stability
+    if (artifact.evidence.sources && artifact.evidence.sources.length >= 3) {
+      stability += 0.1;
+    }
+
     // Explicit stability score
     if (artifact.evidence.stabilityScore) {
-      stability = artifact.evidence.stabilityScore;
+      stability = (stability + artifact.evidence.stabilityScore) / 2;
     }
 
     // Reproducibility adds to stability
@@ -457,20 +500,7 @@ export class LocalQualificationEngine {
       stability = (stability + artifact.evidence.reproducibility) / 2;
     }
 
-    // Validation method affects stability
-    if (artifact.evidence.validationMethod) {
-      switch (artifact.evidence.validationMethod) {
-        case 'a/b_testing':
-        case 'randomized_trial':
-          stability += 0.1;
-          break;
-        case 'observational':
-          stability -= 0.1;
-          break;
-      }
-    }
-
-    return Math.max(0, Math.min(1, stability));
+    return Math.min(1, stability);
   }
 
   /**
