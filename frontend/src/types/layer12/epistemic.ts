@@ -302,7 +302,21 @@ export interface PluralityView {
   competingClaims: CompetingClaim[];
   contradictionCount: number;
   hasResolution: boolean;
+  hasConsensus?: boolean; // Whether competing claims have reached consensus
+  preservesPlurality?: boolean; // Whether multiple viewpoints are preserved
   suggestedAction: 'preserve_plurality' | 'simulation_test' | 'governance_review';
+}
+
+/**
+ * Monoculture risk assessment result
+ */
+export interface MonocultureRisk {
+  hasMonocultureRisk: boolean;
+  adoptionRate: number;
+  atRisk: boolean; // Alias for hasMonocultureRisk
+  diversityScore: number; // 0-1, higher is more diverse
+  dominantOrigin?: string; // The origin with most claims
+  originDistribution?: Record<string, number>; // Distribution by origin
 }
 
 /**
@@ -310,6 +324,7 @@ export interface PluralityView {
  */
 export interface CompetingClaim {
   claimId: string;
+  artifactId?: string; // Alias for claimId - the artifact identifier
   claim: string;
   originNode: string;
   confidence: number;
@@ -323,6 +338,7 @@ export interface CompetingClaim {
 export interface ContradictionDetection {
   contradictions: DetectedContradiction[];
   pluralityPreserved: boolean;
+  hasContradictions?: boolean; // Computed property - true if contradictions.length > 0
 }
 
 /**

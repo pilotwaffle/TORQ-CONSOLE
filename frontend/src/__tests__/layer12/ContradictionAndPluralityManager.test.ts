@@ -54,11 +54,11 @@ describe('ContradictionAndPluralityManager', () => {
   // ============================================================================
 
   describe('detectContradictions', () => {
-    it('should detect direct contradictions', () => {
+    it('should detect direct contradictions', async () => {
       const claimA = createArtifact('claim-001', 'Price always goes up after volume surge');
       const claimB = createArtifact('claim-002', 'Price often goes down after volume surge');
 
-      const detection = manager.detectContradictions(claimB, [claimA]);
+      const detection = await manager.detectContradictions(claimB, [claimA]);
 
       expect(detection.hasContradictions).toBe(true);
       expect(detection.contradictions.length).toBeGreaterThan(0);
@@ -69,7 +69,7 @@ describe('ContradictionAndPluralityManager', () => {
       expect(directContradiction).toBeDefined();
     });
 
-    it('should detect context conflicts', () => {
+    it('should detect context conflicts', async () => {
       const claimA = createArtifact('claim-003', 'Strategy works in bull markets', {
         marketCondition: 'bull',
         timeframe: 'daily'
@@ -80,7 +80,7 @@ describe('ContradictionAndPluralityManager', () => {
         timeframe: 'daily'
       });
 
-      const detection = manager.detectContradictions(claimB, [claimA]);
+      const detection = await manager.detectContradictions(claimB, [claimA]);
 
       const contextConflict = detection.contradictions.find(
         c => c.type === 'context_conflict'
@@ -88,11 +88,11 @@ describe('ContradictionAndPluralityManager', () => {
       expect(contextConflict).toBeDefined();
     });
 
-    it('should detect causal disagreements', () => {
+    it('should detect causal disagreements', async () => {
       const claimA = createArtifact('claim-005', 'High volatility causes price increases');
       const claimB = createArtifact('claim-006', 'Price increases cause high volatility');
 
-      const detection = manager.detectContradictions(claimB, [claimA]);
+      const detection = await manager.detectContradictions(claimB, [claimA]);
 
       const causalDisagreement = detection.contradictions.find(
         c => c.type === 'causal_disagreement'
@@ -100,7 +100,7 @@ describe('ContradictionAndPluralityManager', () => {
       expect(causalDisagreement).toBeDefined();
     });
 
-    it('should detect recommendation conflicts', () => {
+    it('should detect recommendation conflicts', async () => {
       const claimA = createArtifact('claim-007', 'Always use stop-loss at 2%', {
         recommendation: 'use-stop-loss',
         stopLossPercent: 2
@@ -111,7 +111,7 @@ describe('ContradictionAndPluralityManager', () => {
         marketCondition: 'trending'
       });
 
-      const detection = manager.detectContradictions(claimB, [claimA]);
+      const detection = await manager.detectContradictions(claimB, [claimA]);
 
       const recommendationConflict = detection.contradictions.find(
         c => c.type === 'recommendation_conflict'
@@ -119,20 +119,20 @@ describe('ContradictionAndPluralityManager', () => {
       expect(recommendationConflict).toBeDefined();
     });
 
-    it('should return no contradictions for unrelated claims', () => {
+    it('should return no contradictions for unrelated claims', async () => {
       const claimA = createArtifact('claim-009', 'Volume indicates market interest');
       const claimB = createArtifact('claim-010', 'Weather affects agricultural commodities');
 
-      const detection = manager.detectContradictions(claimB, [claimA]);
+      const detection = await manager.detectContradictions(claimB, [claimA]);
 
       expect(detection.hasContradictions).toBe(false);
       expect(detection.contradictions).toHaveLength(0);
     });
 
-    it('should handle empty existing claims array', () => {
+    it('should handle empty existing claims array', async () => {
       const claim = createArtifact('claim-011', 'New claim');
 
-      const detection = manager.detectContradictions(claim, []);
+      const detection = await manager.detectContradictions(claim, []);
 
       expect(detection.hasContradictions).toBe(false);
       expect(detection.contradictions).toHaveLength(0);
@@ -420,7 +420,7 @@ describe('ContradictionAndPluralityManager', () => {
       const claimA = createArtifact('claim-001', 'Viewpoint A is correct');
       const claimB = createArtifact('claim-002', 'Viewpoint B is correct');
 
-      const detection = manager.detectContradictions(claimB, [claimA]);
+      const detection = await manager.detectContradictions(claimB, [claimA]);
 
       expect(detection.hasContradictions).toBe(true);
       // The system should NOT collapse these into a single "truth"
@@ -431,7 +431,7 @@ describe('ContradictionAndPluralityManager', () => {
       const claimA = createArtifact('claim-003', 'Strategy A works in trending markets');
       const claimB = createArtifact('claim-004', 'Strategy A fails in ranging markets');
 
-      const detection = manager.detectContradictions(claimB, [claimA]);
+      const detection = await manager.detectContradictions(claimB, [claimA]);
 
       expect(detection.contradictions.some(c => c.type === 'context_conflict')).toBe(true);
 

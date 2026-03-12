@@ -115,7 +115,8 @@ export class ContradictionAndPluralityManager {
 
     return {
       contradictions,
-      pluralityPreserved: true // Always preserve plurality
+      pluralityPreserved: true, // Always preserve plurality
+      hasContradictions: contradictions.length > 0
     };
   }
 
@@ -149,55 +150,64 @@ export class ContradictionAndPluralityManager {
   async resolveContradiction(
     contradictionId: string,
     resolutionType: ResolutionType,
-    resolutionNotes?: string
-  ): Promise<void> {
+    resolutionNotes?: string,
+    resolvedBy?: string
+  ): Promise<boolean> {
     const record = this.contradictions.get(contradictionId);
     if (!record) {
-      throw new Error(`Contradiction not found: ${contradictionId}`);
+      return false;
     }
 
     record.resolved = true;
     record.resolutionType = resolutionType;
     record.resolutionNotes = resolutionNotes;
     record.resolvedAt = Date.now();
-    record.resolvedBy = 'system'; // TODO: Track actual resolver
+    record.resolvedBy = resolvedBy || 'system';
 
     await this.persistContradiction(record);
+    return true;
   }
 
   /**
    * Get plurality view for a topic
    */
-  async getPluralityView(topic: string): Promise<PluralityView> {
-    const claimIds = this.claimTopics.get(topic);
-    if (!claimIds || claimIds.size === 0) {
+  async getPluralityView(topic: string, artifacts: EpistemicArtifact[] = []): Promise<PluralityView> {
+    let claimIds = this.claimTopics.get(topic);
+
+    // If artifacts are provided, use them instead of looking up in index
+    const artifactsToUse = artifacts.length > 0 ? artifacts : [];
+
+    if (artifactsToUse.length === 0 && (!claimIds || claimIds.size === 0)) {
       return {
         topic,
         competingClaims: [],
         contradictionCount: 0,
         hasResolution: false,
+        hasConsensus: false,
+        preservesPlurality: false,
         suggestedAction: 'preserve_plurality'
       };
     }
 
-    // Build competing claims list
-    // TODO: Fetch actual claim details from registry
+    // Build competing claims list from provided artifacts
     const competingClaims: CompetingClaim[] = [];
     let contradictionCount = 0;
 
-    for (const claimId of claimIds) {
+    for (const artifact of artifactsToUse) {
       // Check for contradictions
-      const contradictions = await this.getContradictions(claimId);
+      const contradictions = await this.getContradictions(artifact.artifactId);
       contradictionCount += contradictions.filter(c => !c.resolved).length;
 
-      // competingClaims.push({
-      //   claimId,
-      //   claim: claim.summary,
-      //   originNode: claim.originNode,
-      //   confidence: claim.evidence.confidence,
-      //   context: claim.context,
-      //   supportingEvidence: claim.evidence.sampleSize || 0
-      // });
+      // Add to competing claims
+      competingClaims.push({
+        claimId: artifact.artifactId,
+        artifactId: artifact.artifactId,
+        claim: artifact.summary || artifact.claim,
+        originNode: artifact.originNode,
+        confidence: artifact.evidence.confidence,
+        context: artifact.context,
+        supportingEvidence: artifact.evidence.sampleSize || 0
+      });
     }
 
     // Determine suggested action
@@ -211,11 +221,28 @@ export class ContradictionAndPluralityManager {
       suggestedAction = 'governance_review';
     }
 
+    // Determine consensus and plurality
+    // Consensus: multiple claims with similar content (high similarity, no contradictions)
+    // Plurality: multiple different viewpoints are preserved (mutually exclusive with consensus)
+
+    let hasConsensus = false;
+    if (competingClaims.length >= 2 && contradictionCount === 0) {
+      // Check if claims are semantically similar (indicates consensus)
+      // For simplicity: if all claims share key terms, they agree
+      const allClaims = artifactsToUse.map(a => a.claim.toLowerCase());
+      const commonTerms = this.findCommonTerms(allClaims);
+      hasConsensus = commonTerms.length >= 2; // At least 2 common terms indicates agreement
+    }
+
+    const preservesPlurality = competingClaims.length > 1 && !hasConsensus;
+
     return {
       topic,
       competingClaims,
       contradictionCount,
       hasResolution: false,
+      hasConsensus,
+      preservesPlurality,
       suggestedAction
     };
   }
@@ -225,19 +252,44 @@ export class ContradictionAndPluralityManager {
    */
   async checkMonocultureRisk(
     topic: string,
+    artifacts: EpistemicArtifact[] = [],
     adoptionThreshold: number = 0.7
-  ): Promise<{ hasMonocultureRisk: boolean; adoptionRate: number }> {
-    const claimIds = this.claimTopics.get(topic);
-    if (!claimIds || claimIds.size === 0) {
-      return { hasMonocultureRisk: false, adoptionRate: 0 };
+  ): Promise<{ hasMonocultureRisk: boolean; adoptionRate: number; atRisk: boolean; diversityScore: number; dominantOrigin?: string; originDistribution?: Record<string, number> }> {
+    // If no artifacts provided, check internal index
+    let claimIds = this.claimTopics.get(topic);
+    const artifactsToAnalyze = artifacts.length > 0 ? artifacts : [];
+
+    if (artifactsToAnalyze.length === 0 && (!claimIds || claimIds.size === 0)) {
+      return { hasMonocultureRisk: false, adoptionRate: 0, atRisk: false, diversityScore: 1 };
     }
 
-    // TODO: Calculate actual adoption rates
-    // For now, assume no monoculture if there are multiple claims
-    const adoptionRate = claimIds.size > 1 ? 0.5 : 0.9;
-    const hasMonocultureRisk = adoptionRate > adoptionThreshold && claimIds.size < 2;
+    // Calculate origin distribution from provided artifacts
+    const originDistribution: Record<string, number> = {};
+    let totalCount = 0;
+    let maxCount = 0;
+    let dominantOrigin = '';
 
-    return { hasMonocultureRisk, adoptionRate };
+    for (const artifact of artifactsToAnalyze) {
+      const origin = artifact.originNode || 'unknown';
+      originDistribution[origin] = (originDistribution[origin] || 0) + 1;
+      totalCount++;
+
+      if (originDistribution[origin] > maxCount) {
+        maxCount = originDistribution[origin];
+        dominantOrigin = origin;
+      }
+    }
+
+    // Calculate adoption rate (dominant origin share)
+    const adoptionRate = totalCount > 0 ? maxCount / totalCount : 0;
+    const hasMonocultureRisk = adoptionRate > adoptionThreshold && totalCount > 1;
+    const atRisk = hasMonocultureRisk;
+
+    // Diversity score based on number of unique origins
+    const uniqueOrigins = Object.keys(originDistribution).length;
+    const diversityScore = uniqueOrigins >= 3 ? 0.8 : uniqueOrigins === 2 ? 0.6 : 0.2;
+
+    return { hasMonocultureRisk, adoptionRate, atRisk, diversityScore, dominantOrigin, originDistribution };
   }
 
   /**
@@ -283,16 +335,17 @@ export class ContradictionAndPluralityManager {
     claimA: EpistemicArtifact,
     claimB: EpistemicArtifact
   ): ContradictionAnalysis {
+    // Check for context conflict FIRST - this handles cases where the same
+    // strategy/subject has different outcomes in different conditions
+    const contextAnalysis = this.checkContextConflict(claimA, claimB);
+    if (contextAnalysis.hasContradiction) {
+      return contextAnalysis;
+    }
+
     // Check for direct contradiction (opposite claims)
     const directAnalysis = this.checkDirectContradiction(claimA, claimB);
     if (directAnalysis.hasContradiction) {
       return directAnalysis;
-    }
-
-    // Check for context conflict
-    const contextAnalysis = this.checkContextConflict(claimA, claimB);
-    if (contextAnalysis.hasContradiction) {
-      return contextAnalysis;
     }
 
     // Check for causal disagreement
@@ -324,9 +377,30 @@ export class ContradictionAndPluralityManager {
     const claimAText = claimA.claim.toLowerCase();
     const claimBText = claimB.claim.toLowerCase();
 
+    // Check for mutually exclusive assertions (e.g., "A is correct" vs "B is correct")
+    // Pattern: "X is correct/true/right" vs "Y is correct/true/right" where X != Y
+    const correctPattern = /(\w+(?:\s+\w+)?)\s+is\s+(?:correct|true|right|valid)/i;
+    const matchA = claimAText.match(correctPattern);
+    const matchB = claimBText.match(correctPattern);
+
+    if (matchA && matchB) {
+      const subjectA = matchA[1].trim();
+      const subjectB = matchB[1].trim();
+
+      // Different subjects being asserted as "correct" = contradiction
+      if (subjectA !== subjectB) {
+        return {
+          hasContradiction: true,
+          type: 'direct_contradiction',
+          confidence: 0.8,
+          reasoning: `mutually_exclusive_assertions: ${subjectA} vs ${subjectB}`
+        };
+      }
+    }
+
     // Look for opposite sentiment patterns
-    const positivePatterns = /\b(improves|enhances|increases|better|gains|optimizes)\b/i;
-    const negativePatterns = /\b(degrades|reduces|decreases|worsens|losses|hinders)\b/i;
+    const positivePatterns = /\b(improves|enhances|increases|better|gains|optimizes|up|rises|grows)\b/i;
+    const negativePatterns = /\b(degrades|reduces|decreases|worsens|losses|hinders|down|falls|drops)\b/i;
 
     const aIsPositive = positivePatterns.test(claimAText);
     const aIsNegative = negativePatterns.test(claimAText);
@@ -363,6 +437,40 @@ export class ContradictionAndPluralityManager {
     claimA: EpistemicArtifact,
     claimB: EpistemicArtifact
   ): ContradictionAnalysis {
+    const claimAText = claimA.claim.toLowerCase();
+    const claimBText = claimB.claim.toLowerCase();
+
+    // Check for same strategy with opposite outcomes in different market conditions
+    // Pattern: "X works in Y conditions" vs "X fails in Z conditions"
+    const strategyPattern = /(.+?)\s+(works|fails|succeeds|is effective|is ineffective)\s+in\s+(\w+)\s+markets/i;
+    const matchA = claimAText.match(strategyPattern);
+    const matchB = claimBText.match(strategyPattern);
+
+    if (matchA && matchB) {
+      const strategyA = matchA[1].trim();
+      const strategyB = matchB[1].trim();
+      const outcomeA = matchA[2].toLowerCase();
+      const outcomeB = matchB[2].toLowerCase();
+      const conditionA = matchA[3];
+      const conditionB = matchB[3];
+
+      // Same strategy (or both just say "strategy"), opposite outcomes
+      if ((strategyA === strategyB) || (strategyA === 'strategy' && strategyB === 'strategy')) {
+        const oppositeOutcomes =
+          (outcomeA.includes('works') || outcomeA.includes('succeeds') || outcomeA.includes('effective')) &&
+          (outcomeB.includes('fails') || outcomeB.includes('ineffective'));
+
+        if (oppositeOutcomes && conditionA !== conditionB) {
+          return {
+            hasContradiction: true,
+            type: 'context_conflict',
+            confidence: 0.85,
+            reasoning: `same_strategy_opposite_outcomes: ${strategyA} in ${conditionA} vs ${conditionB} markets`
+          };
+        }
+      }
+    }
+
     // Similar claims but different contexts
     const claimSimilarity = this.computeClaimSimilarity(claimA.claim, claimB.claim);
 
@@ -406,20 +514,37 @@ export class ContradictionAndPluralityManager {
     claimB: EpistemicArtifact
   ): ContradictionAnalysis {
     // Check if both are causal claims with different conclusions
-    if (claimA.artifactType === 'causal_claim' && claimB.artifactType === 'causal_claim') {
+    const isCausalA = claimA.artifactType === 'causal_claim' || claimA.artifactType === 'causal';
+    const isCausalB = claimB.artifactType === 'causal_claim' || claimB.artifactType === 'causal';
+
+    if (isCausalA && isCausalB) {
       const causeA = this.extractCause(claimA.claim);
       const causeB = this.extractCause(claimB.claim);
       const effectA = this.extractEffect(claimA.claim);
       const effectB = this.extractEffect(claimB.claim);
 
-      // Same cause, different effects
-      if (causeA === causeB && effectA !== effectB) {
-        return {
-          hasContradiction: true,
-          type: 'causal_disagreement',
-          confidence: 0.75,
-          reasoning: `same_cause_different_effects: ${causeA} → ${effectA} vs ${effectB}`
-        };
+      // Reverse causality: A causes B vs B causes A
+      if (causeA && effectA && causeB && effectB) {
+        // Check if they're reverse causations
+        if ((causeA.toLowerCase() === effectB.toLowerCase()) &&
+            (effectA.toLowerCase() === causeB.toLowerCase())) {
+          return {
+            hasContradiction: true,
+            type: 'causal_disagreement',
+            confidence: 0.75,
+            reasoning: `reverse_causality: ${causeA} → ${effectA} vs ${causeB} → ${effectB}`
+          };
+        }
+
+        // Same cause, different effects
+        if (causeA.toLowerCase() === causeB.toLowerCase() && effectA.toLowerCase() !== effectB.toLowerCase()) {
+          return {
+            hasContradiction: true,
+            type: 'causal_disagreement',
+            confidence: 0.75,
+            reasoning: `same_cause_different_effects: ${causeA} → ${effectA} vs ${effectB}`
+          };
+        }
       }
     }
 
@@ -437,8 +562,53 @@ export class ContradictionAndPluralityManager {
     claimA: EpistemicArtifact,
     claimB: EpistemicArtifact
   ): ContradictionAnalysis {
+    const claimAText = claimA.claim.toLowerCase();
+    const claimBText = claimB.claim.toLowerCase();
+
+    // Check for recommendation patterns: "always X" vs "never X" or "don't X"
+    const alwaysPatternA = claimAText.match(/always\s+(.+)/i);
+    const neverPatternB = claimBText.match(/never\s+(.+)/i);
+    const dontPatternB = claimBText.match(/don'?t\s+(.+)/i);
+
+    if (alwaysPatternA && (neverPatternB || dontPatternB)) {
+      const actionA = alwaysPatternA[1].trim();
+      const actionB = (neverPatternB || dontPatternB)![1].trim();
+
+      // Check if they're talking about the same action
+      if (actionA === actionB || actionA.includes(actionB) || actionB.includes(actionA)) {
+        return {
+          hasContradiction: true,
+          type: 'recommendation_conflict',
+          confidence: 0.8,
+          reasoning: `opposite_recommendations: always ${actionA} vs never ${actionB}`
+        };
+      }
+    }
+
+    // Also check the other way
+    const alwaysPatternB = claimBText.match(/always\s+(.+)/i);
+    const neverPatternA = claimAText.match(/never\s+(.+)/i);
+    const dontPatternA = claimAText.match(/don'?t\s+(.+)/i);
+
+    if (alwaysPatternB && (neverPatternA || dontPatternA)) {
+      const actionB = alwaysPatternB[1].trim();
+      const actionA = (neverPatternA || dontPatternA)![1].trim();
+
+      if (actionA === actionB || actionA.includes(actionB) || actionB.includes(actionA)) {
+        return {
+          hasContradiction: true,
+          type: 'recommendation_conflict',
+          confidence: 0.8,
+          reasoning: `opposite_recommendations: always ${actionB} vs never ${actionA}`
+        };
+      }
+    }
+
     // Check if both are recommendations with opposite approaches
-    if (claimA.artifactType === 'recommendation' && claimB.artifactType === 'recommendation') {
+    const isRecommendationA = claimA.artifactType === 'recommendation' || claimAText.includes('should') || claimAText.includes('recommend');
+    const isRecommendationB = claimB.artifactType === 'recommendation' || claimBText.includes('should') || claimBText.includes('recommend');
+
+    if (isRecommendationA && isRecommendationB) {
       const approachA = this.extractApproach(claimA.claim);
       const approachB = this.extractApproach(claimB.claim);
 
@@ -483,6 +653,27 @@ export class ContradictionAndPluralityManager {
       return parts[0];
     }
     return claimId.substring(0, 20);
+  }
+
+  /**
+   * Find common terms across multiple claims
+   */
+  private findCommonTerms(claims: string[]): string[] {
+    if (claims.length === 0) return [];
+
+    // Extract words from first claim
+    const firstWords = new Set(claims[0].split(/\s+/).filter(w => w.length > 3));
+    const common: string[] = [];
+
+    // Check which words appear in all claims
+    for (const word of firstWords) {
+      const inAll = claims.every(c => c.includes(word));
+      if (inAll) {
+        common.push(word);
+      }
+    }
+
+    return common;
   }
 
   /**
@@ -598,6 +789,32 @@ export class ContradictionAndPluralityManager {
   private async persistContradiction(record: ContradictionRecord): Promise<void> {
     // TODO: Integrate with database layer
     console.log(`[L12] Persisting contradiction: ${record.contradictionId}`);
+  }
+
+  /**
+   * Group claims by topic based on content similarity
+   */
+  clusterByTopic(artifacts: EpistemicArtifact[]): Map<string, EpistemicArtifact[]> {
+    const clusters = new Map<string, EpistemicArtifact[]>();
+
+    for (const artifact of artifacts) {
+      // Extract topic from claim text
+      let topic = this.extractTopic(artifact.artifactId);
+      if (!topic) {
+        topic = this.extractSubject(artifact.claim);
+      }
+
+      if (!topic) {
+        topic = 'general';
+      }
+
+      if (!clusters.has(topic)) {
+        clusters.set(topic, []);
+      }
+      clusters.get(topic)!.push(artifact);
+    }
+
+    return clusters;
   }
 }
 
