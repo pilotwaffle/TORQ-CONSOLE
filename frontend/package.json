@@ -15,7 +15,17 @@
     "test:run": "vitest run",
     "test:coverage": "vitest --coverage",
     "test:phase1": "vitest src/tests/phase1-reliability.test.tsx",
-    "test:phase2": "vitest src/tests/phase2-chat.test.tsx"
+    "test:phase2": "vitest src/tests/phase2-chat.test.tsx",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test tests/e2e/smoke",
+    "test:e2e:workflows": "playwright test tests/e2e/workflows",
+    "test:e2e:fabric": "playwright test tests/e2e/distributed_fabric",
+    "test:e2e:regression": "playwright test tests/e2e/regression",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:browser": "playwright test --project=browser-deployment",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
