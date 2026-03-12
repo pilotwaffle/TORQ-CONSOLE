@@ -60,6 +60,14 @@ class SignalSource(str, Enum):
     CROSS_EXECUTION_PATTERN = "cross_execution_pattern"
 
 
+class EntryImportance(str, Enum):
+    """Importance level of a workspace or evaluation entry."""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
 # ============================================================================
 # Signal Creation Models
 # ============================================================================
