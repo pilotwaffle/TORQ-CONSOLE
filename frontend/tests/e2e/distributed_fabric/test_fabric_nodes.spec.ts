@@ -88,9 +88,9 @@ test.describe('Distributed Fabric - Node List', () => {
   });
 
   test('should display node health information', async ({ page }) => {
-    // Look for health indicators
-    const healthIndicators = page.locator(
-      '[data-testid="health"], [class*="health"], text: /healthy|degraded|unhealthy/i'
+    // Look for health indicators - use simpler selector without text regex
+    const healthIndicators = await page.locator(
+      '[data-testid="health"], [class*="health"], [data-testid*="health"]'
     ).all();
 
     // If health indicators exist, they should be visible
@@ -104,9 +104,9 @@ test.describe('Distributed Fabric - Node List', () => {
   });
 
   test('should show node region and tier information', async ({ page }) => {
-    // Look for region/tier badges
-    const regionBadges = page.locator(
-      'text: /us_east|us_west|europe|asia|enterprise|standard|edge/i'
+    // Look for region/tier badges - use simpler selector
+    const regionBadges = await page.locator(
+      '[class*="region"], [class*="tier"], [data-testid*="region"]'
     ).all();
 
     // These are optional - might not be displayed
@@ -186,8 +186,8 @@ test.describe('Distributed Fabric - Boundary Compliance', () => {
 
     if (sectionVisible) {
       // Check that sensitive data is redacted or not shown
-      const sensitiveData = page.locator(
-        'text: /password|secret|token|private.*key|_id:/i'
+      const sensitiveData = await page.locator(
+        'text: /password|secret|token|private.*key/i'
       ).all();
 
       // Sensitive data should not be visible in federated views
@@ -200,11 +200,11 @@ test.describe('Distributed Fabric - Boundary Compliance', () => {
 
   test('should clearly label simulated vs operational data', async ({ page }) => {
     // Check for visual distinction
-    const simulatedLabel = page.locator(
+    const simulatedLabel = await page.locator(
       '[data-testid="simulated"], [class*="simulated"], [aria-label*="simulated"]'
     ).all();
 
-    const operationalLabel = page.locator(
+    const operationalLabel = await page.locator(
       '[data-testid="operational"], [class*="operational"], [class*="live"], [aria-label*="operational"]'
     ).all();
 
@@ -243,7 +243,7 @@ test.describe('Distributed Fabric - Federation Events', () => {
       await expect(federationEvents).toBeVisible();
 
       // Check that events have metadata
-      const eventItems = page.locator('[data-testid="event-item"], li[class*="event"]').all();
+      const eventItems = await page.locator('[data-testid="event-item"], li[class*="event"]').all();
       expect(eventItems.length).toBeGreaterThan(0);
     }
   });

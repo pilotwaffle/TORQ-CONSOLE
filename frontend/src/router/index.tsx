@@ -53,6 +53,25 @@ const MissionDetailPage = lazy(() =>
   }))
 );
 
+const MissionPortfolioPage = lazy(() =>
+  import("@/features/control/pages/MissionPortfolioPage").then((m) => ({
+    default: m.MissionPortfolioPage,
+  }))
+);
+
+// Distributed Fabric routes - lazy-loaded
+const FabricNodesPage = lazy(() =>
+  import("@/features/fabric/pages/FabricNodesPage").then((m) => ({
+    default: m.FabricNodesPage,
+  }))
+);
+
+const FabricFailoverPage = lazy(() =>
+  import("@/features/fabric/pages/FabricFailoverPage").then((m) => ({
+    default: m.FabricFailoverPage,
+  }))
+);
+
 // ============================================================================
 // Route change tracker component
 // ============================================================================
@@ -174,10 +193,34 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "control/missions",
+        element: (
+          <LazyRoute>
+            <MissionPortfolioPage />
+          </LazyRoute>
+        ),
+      },
+      {
         path: "control/missions/:missionId",
         element: (
           <LazyRoute>
             <MissionDetailPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: "control/fabric",
+        element: (
+          <LazyRoute>
+            <FabricNodesPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: "control/fabric/failover",
+        element: (
+          <LazyRoute>
+            <FabricFailoverPage />
           </LazyRoute>
         ),
       },

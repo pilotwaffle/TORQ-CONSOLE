@@ -8,7 +8,7 @@ export const TopNav: React.FC = () => {
   const { workspace, isConnected } = useAgentStore();
 
   return (
-    <div className="h-12 bg-bg-secondary border-b border-border flex items-center justify-between px-4">
+    <div className="h-12 bg-bg-secondary border-b border-border flex items-center justify-between px-4" data-testid="topnav">
       <div className="flex items-center gap-3">
         <TorqLogo size="sm" />
         <h1 className="text-h3 font-semibold text-torq-accent">TORQ Console</h1>

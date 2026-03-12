@@ -102,7 +102,7 @@ export const AgentSidebar: React.FC = () => {
 
   return (
     <>
-      <div className="w-80 bg-bg-secondary border-r border-border flex flex-col">
+      <div className="w-80 bg-bg-secondary border-r border-border flex flex-col" data-testid="sidebar">
         <div className="p-4 border-b border-border">
           <h2 className="text-h3 font-semibold">Agents</h2>
           <p className="text-small text-text-muted mt-1">

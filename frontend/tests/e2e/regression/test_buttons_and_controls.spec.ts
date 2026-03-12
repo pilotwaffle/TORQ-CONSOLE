@@ -61,7 +61,7 @@ test.describe('Button Functionality', () => {
     await page.goto('/control');
 
     // Look for disabled buttons
-    const disabledButtons = page.locator('button:disabled').all();
+    const disabledButtons = await page.locator('button:disabled').all();
 
     // Disabled buttons should have proper styling/attributes
     for (const button of disabledButtons) {
@@ -86,7 +86,7 @@ test.describe('Dropdown Functionality', () => {
     await page.goto('/control');
 
     // Look for dropdown triggers
-    const dropdowns = page.locator(
+    const dropdowns = await page.locator(
       '[role="combobox"], [data-testid="dropdown"], button[aria-haspopup]'
     ).all();
 
@@ -116,7 +116,7 @@ test.describe('Dropdown Functionality', () => {
     await page.goto('/control');
 
     // Look for select elements
-    const selects = page.locator('select').all();
+    const selects = await page.locator('select').all();
 
     for (const select of selects) {
       if (await select.isVisible().catch(() => false)) {

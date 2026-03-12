@@ -38,10 +38,10 @@ test.describe('Navigation', () => {
     await page.goto('/');
 
     // Find navigation links
-    const navLinks = page.locator('nav a, aside a, [role="navigation"] a').all();
+    const navLinks = await page.locator('nav a, aside a, [role="navigation"] a').all();
 
     // Try clicking the first few navigation links
-    const linkCount = Math.min((await navLinks).length, 3);
+    const linkCount = Math.min(navLinks.length, 3);
 
     for (let i = 0; i < linkCount; i++) {
       const links = await page.locator('nav a, aside a, [role="navigation"] a').all();

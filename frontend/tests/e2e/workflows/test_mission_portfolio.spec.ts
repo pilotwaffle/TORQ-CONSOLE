@@ -68,7 +68,7 @@ test.describe('Mission List Controls', () => {
 
   test('should have filter controls', async ({ page }) => {
     // Look for filter dropdowns or buttons
-    const filters = page.locator(
+    const filters = await page.locator(
       'select, button:has-text("Filter"), [data-testid="filter"], [role="combobox"]'
     ).all();
 
@@ -130,9 +130,9 @@ test.describe('Mission Status Display', () => {
   });
 
   test('should display status badges correctly', async ({ page }) => {
-    // Look for status badges or indicators
-    const statusBadges = page.locator(
-      '[class*="status"], [class*="badge"], span:has-text(/running|completed|failed|pending/i)'
+    // Look for status badges or indicators - use simpler selector
+    const statusBadges = await page.locator(
+      '[class*="status"], [class*="badge"], [data-testid*="status"]'
     ).all();
 
     // If there are badges, they should be visible
@@ -147,7 +147,7 @@ test.describe('Mission Status Display', () => {
 
   test('should display progress indicators for active missions', async ({ page }) => {
     // Look for progress bars or percentage indicators
-    const progressBars = page.locator(
+    const progressBars = await page.locator(
       '[role="progressbar"], [class*="progress"], progress'
     ).all();
 

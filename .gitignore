@@ -297,3 +297,5 @@ telemetry*.sqlite
 # Mission execution artifacts
 mission_*.json
 mission_*_report.json
+playwright-report/
+test-results.json

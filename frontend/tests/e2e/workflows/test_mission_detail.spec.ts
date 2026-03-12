@@ -66,7 +66,7 @@ test.describe('Mission Graph', () => {
 
   test('should have graph controls', async ({ page }) => {
     // Look for zoom, pan, or fit controls
-    const graphControls = page.locator(
+    const graphControls = await page.locator(
       'button[aria-label*="zoom"], button[aria-label*="pan"], button[aria-label*="fit"], [data-testid="graph-controls"]'
     ).all();
 
@@ -100,7 +100,7 @@ test.describe('Mission Event Stream', () => {
     // Event stream might be in a tab or panel
     if (!streamVisible) {
       // Check for tabs that might contain events
-      const tabs = page.locator('[role="tab"]').all();
+      const tabs = await page.locator('[role="tab"]').all();
       const tabsVisible = await Promise.all(
         tabs.map(tab => tab.isVisible().catch(() => false))
       );

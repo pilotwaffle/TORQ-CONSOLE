@@ -38,9 +38,9 @@ test.describe('Failover Status', () => {
   });
 
   test('should indicate degraded or failed nodes', async ({ page }) => {
-    // Look for status badges
-    const statusBadges = page.locator(
-      '[class*="status"], [class*="badge"], span:has-text(/healthy|degraded|unhealthy|failed/i)'
+    // Look for status badges - use separate locators instead of complex regex
+    const statusBadges = await page.locator(
+      '[class*="status"], [class*="badge"], [data-testid*="status"]'
     ).all();
 
     // If status badges exist, they should be accessible
@@ -78,11 +78,11 @@ test.describe('Failover History', () => {
       await expect(failoverLog).toBeVisible();
 
       // Check for event items
-      const eventItems = failoverLog.locator(
+      const eventItems = await failoverLog.locator(
         '[data-testid="failover-event"], li, tr'
       ).all();
 
-      const itemCount = await eventItems.length;
+      const itemCount = eventItems.length;
       expect(itemCount).toBeGreaterThanOrEqual(0);
     }
   });

@@ -167,8 +167,8 @@ test.describe('Error States', () => {
 
 test.describe('Network Errors', () => {
   test('should handle offline mode gracefully', async ({ page }) => {
-    // Go offline
-    await page.context().offline();
+    // Go offline - use setOffline instead of deprecated offline()
+    await page.context().setOffline(true);
 
     await page.goto('/');
 
@@ -187,17 +187,17 @@ test.describe('Network Errors', () => {
     expect(appVisible).toBe(true);
 
     // Go back online
-    await page.context().online();
+    await page.context().setOffline(false);
   });
 
   test('should recover when connection is restored', async ({ page }) => {
-    // Start offline
-    await page.context().offline();
+    // Start offline - use setOffline instead of deprecated offline()
+    await page.context().setOffline(true);
     await page.goto('/');
     await page.waitForTimeout(1000);
 
     // Go online
-    await page.context().online();
+    await page.context().setOffline(false);
 
     // Look for recovery indicator or normal state restoration
     await page.waitForTimeout(2000);
