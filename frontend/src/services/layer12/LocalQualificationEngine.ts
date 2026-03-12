@@ -121,8 +121,8 @@ export class LocalQualificationEngine {
       policyCompatibility
     );
 
-    // 10. Suggest action
-    const suggestedAction = this.suggestAction(
+    // 10. Suggest action (internal call with parameters)
+    const suggestedAction = this.suggestActionInternal(
       category,
       localRelevance,
       localTrust,
@@ -201,10 +201,12 @@ export class LocalQualificationEngine {
 
     return {
       canMoveAcrossNodes: canMove,
+      transferable: canMove, // Alias for compatibility
       requiresContext: requiredContext,
       localAdaptationRequired: requiresAdaptation,
       riskLevel,
-      reasons
+      reasons,
+      score: canMove ? 1.0 - (reasons.length * 0.1) : 0.0 // Computed transferability score
     };
   }
 
@@ -268,8 +270,18 @@ export class LocalQualificationEngine {
     let authorityLevel: 'node' | 'region' | 'network' = 'node';
 
     // Get local policies for this domain
-    const localPolicies = localContext.activePolicies || [];
+    const localPolicies = localContext.policies || localContext.activePolicies || [];
     const domainPolicies = this.localNodePolicies.get(localContext.domain) || [];
+
+    // Check for minimum confidence policy
+    const minConfidencePolicy = localPolicies.find(p => p.startsWith('min-confidence-'));
+    if (minConfidencePolicy) {
+      const minConfidence = parseFloat(minConfidencePolicy.split('-')[2]);
+      if (artifact.evidence.confidence < minConfidence) {
+        conflictsWith.push('minimum_confidence_not_met');
+        requiresApproval = true;
+      }
+    }
 
     // Check for conflicts
     if (artifact.context.policyRegime) {
@@ -292,8 +304,12 @@ export class LocalQualificationEngine {
       }
     }
 
-    // Check allowed uses for allocative eligibility
+    // Check allowed uses for allocative eligibility - requires higher authority
     if (artifact.allowedUses.includes('allocative_eligible')) {
+      // If allocative_eligible is in allowed uses but not in local context permissions
+      if (!localPolicies.includes('allocative-requires-simulation')) {
+        conflictsWith.push('allowed_use_restriction');
+      }
       requiresApproval = true;
       authorityLevel = 'network';
     }
@@ -301,8 +317,10 @@ export class LocalQualificationEngine {
     return {
       compatibleWith,
       conflictsWith,
+      violations: conflictsWith, // Alias
       requiresApproval,
-      authorityLevel
+      authorityLevel,
+      compatible: conflictsWith.length === 0 && !requiresApproval
     };
   }
 
@@ -346,19 +364,19 @@ export class LocalQualificationEngine {
     artifact: EpistemicArtifact,
     localContext: LocalContext
   ): Promise<number> {
-    let trust = 0.5; // Base trust
+    let trust = 0.0; // No base trust - must be earned
 
-    // Evidence confidence
-    trust += artifact.evidence.confidence * 0.3;
+    // Evidence confidence (primary factor)
+    trust += artifact.evidence.confidence * 0.5;
 
     // Stability score
     if (artifact.evidence.stabilityScore) {
-      trust += artifact.evidence.stabilityScore * 0.2;
+      trust += artifact.evidence.stabilityScore * 0.15;
     }
 
     // Provenance strength (based on lineage depth and sources)
     const provenanceStrength = this.computeProvenanceStrength(artifact);
-    trust += provenanceStrength * 0.2;
+    trust += provenanceStrength * 0.25;
 
     // Sample size (more evidence = higher trust)
     if (artifact.evidence.sampleSize) {
@@ -368,16 +386,35 @@ export class LocalQualificationEngine {
 
     // Deduction for limitations
     if (artifact.limitations?.length) {
-      const limitationPenalty = Math.min(0.1, artifact.limitations.length * 0.02);
+      const limitationPenalty = Math.min(0.2, artifact.limitations.length * 0.05);
       trust -= limitationPenalty;
     }
 
     // Deduction for contradictions
     if (artifact.contradictions?.length) {
-      trust -= 0.1 * artifact.contradictions.length;
+      trust -= 0.15 * artifact.contradictions.length;
     }
 
     return Math.max(0, Math.min(1, trust));
+  }
+
+  /**
+   * Compute trust score with detailed breakdown
+   * Returns an object with overall trust and component scores
+   */
+  async computeTrustScore(
+    artifact: EpistemicArtifact,
+    localContext: LocalContext
+  ): Promise<{
+    overall: number;
+    provenanceStrength: number;
+    confidenceStability: number;
+  }> {
+    const overall = await this.computeTrust(artifact, localContext);
+    const provenanceStrength = this.computeProvenanceStrength(artifact);
+    const confidenceStability = this.computeConfidenceStability(artifact);
+
+    return { overall, provenanceStrength, confidenceStability };
   }
 
   /**
@@ -546,9 +583,30 @@ export class LocalQualificationEngine {
   }
 
   /**
-   * Suggest action based on qualification results
+   * Suggest action based on qualification result
+   * Public method that takes a QualificationResult
    */
-  private suggestAction(
+  async suggestAction(result: QualificationResult): Promise<SuggestedAction> {
+    // Extract the needed parameters from the result
+    const { category, localRelevance, overallTrust: localTrust } = result;
+
+    // Reconstruct transferability from context comparison
+    const transferability: TransferabilityCheck = {
+      transferable: !result.hasContextClash && result.policyCompatible,
+      score: result.localRelevance,
+      riskLevel: result.hasContextClash ? 'high' : result.warnings.length > 0 ? 'medium' : 'low',
+      reasons: result.warnings,
+      requiredContext: result.contextComparison.overallMatch < 0.5 ? [result.contextComparison] : []
+    };
+
+    return this.suggestActionInternal(category, localRelevance, localTrust, transferability, result.warnings);
+  }
+
+  /**
+   * Suggest action based on qualification results
+   * Internal method with full parameters
+   */
+  private suggestActionInternal(
     category: QualificationResult['category'],
     localRelevance: number,
     localTrust: number,

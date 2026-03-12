@@ -191,10 +191,12 @@ export type ResolutionType =
  */
 export interface TransferabilityCheck {
   canMoveAcrossNodes: boolean;
+  transferable?: boolean; // Alias for canMoveAcrossNodes
   requiresContext: string[];
   localAdaptationRequired: boolean;
   riskLevel: 'low' | 'medium' | 'high';
   reasons: string[];
+  score?: number; // Transferability score 0-1
 }
 
 /**
@@ -210,6 +212,8 @@ export interface PolicyCompatibility {
   conflictsWith: string[];    // Policy IDs
   requiresApproval: boolean;
   authorityLevel: 'node' | 'region' | 'network';
+  compatible?: boolean; // Computed property: true if no conflicts
+  violations?: string[]; // Alias for conflictsWith
 }
 
 /**
