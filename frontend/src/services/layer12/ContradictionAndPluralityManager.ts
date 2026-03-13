@@ -222,16 +222,47 @@ export class ContradictionAndPluralityManager {
     }
 
     // Determine consensus and plurality
-    // Consensus: multiple claims with similar content (high similarity, no contradictions)
+    // Consensus: multiple claims with similar content (no contradictions, same general topic)
     // Plurality: multiple different viewpoints are preserved (mutually exclusive with consensus)
 
     let hasConsensus = false;
     if (competingClaims.length >= 2 && contradictionCount === 0) {
-      // Check if claims are semantically similar (indicates consensus)
-      // For simplicity: if all claims share key terms, they agree
-      const allClaims = artifactsToUse.map(a => a.claim.toLowerCase());
-      const commonTerms = this.findCommonTerms(allClaims);
-      hasConsensus = commonTerms.length >= 2; // At least 2 common terms indicates agreement
+      // Check if claims have words indicating different viewpoints
+      // If different subjects are being promoted as "superior", it's plurality not consensus
+      const subjects: string[] = [];
+      for (const artifact of artifactsToUse) {
+        const match = artifact.claim.match(/(\w+(?:\s+\w+)?)\s+is\s+superior/i);
+        if (match) {
+          subjects.push(match[1].trim().toLowerCase());
+        }
+      }
+
+      // If multiple different subjects are called "superior", it's competing viewpoints
+      const uniqueSubjects = new Set(subjects);
+      if (uniqueSubjects.size > 1) {
+        hasConsensus = false; // Different viewpoints
+      } else {
+        // No "X is superior" pattern - check for common theme words
+        const allWords = artifactsToUse.flatMap(a =>
+          a.claim.toLowerCase().split(/\s+/).filter(w => w.length >= 5)
+        );
+
+        const wordCounts = new Map<string, number>();
+        for (const word of allWords) {
+          wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+        }
+
+        // Look for words that appear in at least half the claims
+        const threshold = Math.ceil(artifactsToUse.length / 2);
+        const commonWords = Array.from(wordCounts.entries()).filter(([_, count]) => count >= threshold);
+
+        // Filter out common words that don't indicate meaning
+        const meaningfulWords = commonWords.filter(([w, _]) =>
+          !['better', 'lower', 'higher', 'best', 'most', 'least'].includes(w)
+        );
+
+        hasConsensus = meaningfulWords.length >= 1;
+      }
     }
 
     const preservesPlurality = competingClaims.length > 1 && !hasConsensus;
