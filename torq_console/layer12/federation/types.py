@@ -172,6 +172,8 @@ class InboundTrustDecision(BaseModel):
     node_id: str = Field(..., description="Source node ID")
     envelope_id: str = Field(..., description="Envelope ID being decided")
     decided_at: datetime = Field(default_factory=datetime.utcnow, description="When decision was made")
+    effective_trust: float | None = Field(None, ge=0.0, le=1.0, description="Effective trust after adjustments (defaults to node_trust_score if not set)")
+    trust_adjustment: float = Field(default=0.0, description="Trust adjustment applied")
 
     @property
     def should_proceed(self) -> bool:

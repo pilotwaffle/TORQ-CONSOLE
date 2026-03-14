@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import hashlib
 import json
+from typing import Union
 
 from .models import (
     Domain,
@@ -22,6 +23,11 @@ from .models import (
     SimulatedNode,
     Stance,
 )
+# Import SimulatedNetworkNode for Phase 2B network simulation
+try:
+    from .network.node_registry import SimulatedNetworkNode
+except ImportError:
+    SimulatedNetworkNode = None  # type: ignore
 from ..inbound_claim_processor import InboundFederatedClaimProcessor
 from ..types import (
     ArtifactSignature,
@@ -108,20 +114,32 @@ class ProcessorAdapter:
         # Nodes will be registered as they are created
         pass
 
-    def register_node(self, node: SimulatedNode) -> None:
+    def register_node(self, node: Union[SimulatedNode, 'SimulatedNetworkNode']) -> None:
         """
         Register a simulator node with the identity guard.
 
+        Handles both Phase 2A SimulatedNode and Phase 2B SimulatedNetworkNode.
+
         Args:
-            node: The simulated node to register
+            node: The simulated node to register (SimulatedNode or SimulatedNetworkNode)
         """
         try:
+            # Extract trust score - handle both node types
+            if hasattr(node, 'state') and hasattr(node.state, 'current_trust'):
+                # Phase 2A SimulatedNode
+                trust_score = node.state.current_trust
+            elif hasattr(node, 'current_trust'):
+                # Phase 2B SimulatedNetworkNode
+                trust_score = node.current_trust
+            else:
+                trust_score = 0.5  # Default fallback
+
             # Create NodeCredentials object
             credentials = NodeCredentials(
                 node_id=node.node_id,
                 key_id=f"key_{node.node_id}",
                 public_key=f"simulated_key_{node.node_id}",
-                trust_tier="trusted" if node.state.current_trust > 0.7 else "verified",
+                trust_tier="trusted" if trust_score > 0.7 else "verified",
                 is_active=True,
             )
             self.identity_guard.register_node(credentials)
@@ -129,14 +147,14 @@ class ProcessorAdapter:
             # Also register trust profile for trust evaluation
             trust_profile = NodeTrustProfile(
                 node_id=node.node_id,
-                baseline_trust_score=node.state.current_trust,
-                trust_tier="trusted" if node.state.current_trust > 0.7 else "verified",
-                is_trusted=node.state.current_trust > 0.8,
+                baseline_trust_score=trust_score,
+                trust_tier="trusted" if trust_score > 0.7 else "verified",
+                is_trusted=trust_score > 0.8,
                 is_quarantined=False,
             )
             self.identity_guard.register_trust_profile(trust_profile)
 
-            self.logger.debug(f"Registered node {node.node_id} with identity guard (trust={node.state.current_trust:.2f})")
+            self.logger.debug(f"Registered node {node.node_id} with identity guard (trust={trust_score:.2f})")
         except Exception as e:
             # Node might already be registered
             self.logger.debug(f"Node {node.node_id} already registered or registration failed: {e}")
@@ -144,7 +162,7 @@ class ProcessorAdapter:
     async def process_simulated_claim(
         self,
         sim_claim: SimulatedClaim,
-        origin_node: SimulatedNode,
+        origin_node: Union[SimulatedNode, 'SimulatedNetworkNode'],
         round_context: Optional[Dict[str, Any]] = None,
     ) -> ProcessedSimulationClaimResult:
         """
@@ -273,7 +291,7 @@ class ProcessorAdapter:
                 "stance": stance_str,
                 "round": round_num,
                 "scenario": scenario_name,
-                "adversarial_mode": origin_node.profile.adversarial_mode or "none",
+                "adversarial_mode": getattr(origin_node.behavior_profile, 'adversarial_mode', None) or "none",
                 "quality_level": getattr(sim_claim, 'quality_level', 'medium'),
             },
             tags=[domain_str, stance_str, scenario_name],
@@ -399,14 +417,19 @@ class ProcessorAdapter:
             return getattr(decision, 'trust_adjustment', 0.0)
         return 0.0
 
-    def _extract_effective_trust(self, processing_result: Any, node: SimulatedNode) -> float:
+    def _extract_effective_trust(self, processing_result: Any, node: Union[SimulatedNode, 'SimulatedNetworkNode']) -> float:
         """Extract effective trust used for the decision."""
         if hasattr(processing_result, 'trust_decision') and processing_result.trust_decision:
             decision = processing_result.trust_decision
             effective_trust = getattr(decision, 'effective_trust', None)
             if effective_trust is not None:
                 return effective_trust
-        return node.state.current_trust
+        # Handle both SimulatedNode (with .state) and SimulatedNetworkNode (with .current_trust)
+        if hasattr(node, 'current_trust'):
+            return node.current_trust
+        elif hasattr(node, 'state') and hasattr(node.state, 'current_trust'):
+            return node.state.current_trust
+        return 0.5  # Default fallback
 
     def _extract_contradiction_detected(self, processing_result: Any) -> bool:
         """Extract whether contradiction was detected."""

@@ -20,6 +20,7 @@ import type {
   AllowedUse,
   SuggestedAction
 } from '@/types/layer12/epistemic';
+import type { ILayer12Repository } from './ILayer12Repository';
 
 /**
  * Configuration for qualification thresholds
@@ -53,7 +54,7 @@ const DEFAULT_CONFIG: QualificationConfig = {
     ignore: 0.2
   },
   trustThresholds: {
-    low: 0.3,
+    low: 0.5,      // Raised from 0.3 - artifacts below 0.5 should be ignored
     medium: 0.6,
     high: 0.8
   },
@@ -70,9 +71,12 @@ const DEFAULT_CONFIG: QualificationConfig = {
  */
 export class LocalQualificationEngine {
   private config: QualificationConfig;
-  private localNodePolicies: Map<string, string[]> = new Map(); // domain -> policy IDs
+  private localNodePolicies: Map<string, string[]> = new Map(); // domain -> policy IDs (runtime config, not persisted)
 
-  constructor(config?: Partial<QualificationConfig>) {
+  constructor(
+    private readonly repository: ILayer12Repository,
+    config?: Partial<QualificationConfig>
+  ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -96,7 +100,7 @@ export class LocalQualificationEngine {
     const localRelevance = this.computeRelevance(artifact, localContext);
 
     // 5. Compute local trust
-    const localTrust = await this.computeTrust(artifact, localContext);
+    const localTrust = this.computeTrust(artifact, localContext);
 
     // 6. Compute provenance strength
     const provenanceStrength = this.computeProvenanceStrength(artifact);
@@ -133,7 +137,7 @@ export class LocalQualificationEngine {
     // 11. Determine recommended uses
     const recommendedUses = this.determineRecommendedUses(artifact, category, localTrust);
 
-    return {
+    const result: QualificationResult = {
       artifactId: artifact.artifactId,
       category,
       localRelevance,
@@ -149,6 +153,11 @@ export class LocalQualificationEngine {
       warnings,
       suggestedAction
     };
+
+    // Persist qualification to repository (append-only, never overwrite history)
+    await this.repository.createQualification(result);
+
+    return result;
   }
 
   /**
@@ -359,32 +368,33 @@ export class LocalQualificationEngine {
 
   /**
    * Compute local trust score (0-1)
+   * Synchronous - pure calculation, no async operations
    */
-  async computeTrust(
+  computeTrust(
     artifact: EpistemicArtifact,
     localContext: LocalContext
-  ): Promise<number> {
+  ): number {
     let trust = 0.0;
 
     // Evidence confidence (primary factor) - higher weight for very high confidence
     if (artifact.evidence.confidence >= 0.9) {
-      trust += artifact.evidence.confidence * 0.4; // Higher weight for exceptional confidence
+      trust += artifact.evidence.confidence * 0.45; // Increased from 0.4
     } else {
-      trust += artifact.evidence.confidence * 0.35;
+      trust += artifact.evidence.confidence * 0.4;  // Increased from 0.35
     }
 
     // Stability score
     if (artifact.evidence.stabilityScore) {
-      trust += artifact.evidence.stabilityScore * 0.15;
+      trust += artifact.evidence.stabilityScore * 0.1; // Reduced from 0.15
     }
 
     // Provenance strength (based on lineage depth and sources)
     const provenanceStrength = this.computeProvenanceStrength(artifact);
-    trust += provenanceStrength * 0.25;
+    trust += provenanceStrength * 0.3; // Increased from 0.25
 
     // Sample size (more evidence = higher trust)
     if (artifact.evidence.sampleSize) {
-      const sampleBonus = Math.min(0.15, artifact.evidence.sampleSize / 5000);
+      const sampleBonus = Math.min(0.1, artifact.evidence.sampleSize / 10000); // Reduced max from 0.15 to 0.1
       trust += sampleBonus;
     }
 
@@ -410,16 +420,17 @@ export class LocalQualificationEngine {
   /**
    * Compute trust score with detailed breakdown
    * Returns an object with overall trust and component scores
+   * Synchronous - pure calculation, no async operations
    */
-  async computeTrustScore(
+  computeTrustScore(
     artifact: EpistemicArtifact,
     localContext: LocalContext
-  ): Promise<{
+  ): {
     overall: number;
     provenanceStrength: number;
     confidenceStability: number;
-  }> {
-    const overall = await this.computeTrust(artifact, localContext);
+  } {
+    const overall = this.computeTrust(artifact, localContext);
     const provenanceStrength = this.computeProvenanceStrength(artifact);
     const confidenceStability = this.computeConfidenceStability(artifact);
 
@@ -594,6 +605,7 @@ export class LocalQualificationEngine {
     // Evidence warnings
     if (artifact.evidence.confidence < 0.7) {
       warnings.push('moderate_confidence');
+      warnings.push(`confidence_below_threshold: ${artifact.evidence.confidence}`);
     }
     if (artifact.evidence.sampleSize && artifact.evidence.sampleSize < 20) {
       warnings.push('small_sample_size');
@@ -643,6 +655,11 @@ export class LocalQualificationEngine {
     transferability: TransferabilityCheck,
     warnings: string[]
   ): SuggestedAction {
+    // Allocative-eligible ALWAYS requires simulation before real allocation (safety policy)
+    if (category === 'allocative_candidate' || category === 'allocative_eligible') {
+      return 'send_to_simulation';
+    }
+
     // High trust, high relevance -> use or simulate
     if (localTrust >= this.config.trustThresholds.high &&
         localRelevance >= this.config.relevanceThresholds.advisory) {
@@ -653,13 +670,13 @@ export class LocalQualificationEngine {
     }
 
     // Low relevance -> ignore
-    if (localRelevance < this.config.relevanceThresholds.ignore) {
+    if (localRelevance <= this.config.relevanceThresholds.ignore) {
       return 'ignore';
     }
 
-    // Low trust -> informational only
+    // Low trust -> ignore (safety policy: don't use untrusted artifacts)
     if (localTrust < this.config.trustThresholds.low) {
-      return 'store_informational';
+      return 'ignore';
     }
 
     // Has contradictions -> governance review
@@ -742,8 +759,12 @@ export class LocalQualificationEngine {
 /**
  * Export singleton instance factory
  */
+/**
+ * Export factory function for repository-backed service
+ */
 export function createLocalQualificationEngine(
+  repository: ILayer12Repository,
   config?: Partial<QualificationConfig>
 ): LocalQualificationEngine {
-  return new LocalQualificationEngine(config);
+  return new LocalQualificationEngine(repository, config);
 }

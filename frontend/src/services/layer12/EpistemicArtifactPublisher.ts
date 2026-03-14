@@ -21,6 +21,7 @@ import type {
   Pattern,
   RedactedArtifact
 } from '@/types/layer12/epistemic';
+import type { ILayer12Repository } from './ILayer12Repository';
 
 /**
  * Maps Layer 4 insight types to Layer 12 artifact types
@@ -57,10 +58,13 @@ const REDACTION_PATTERNS = [
  */
 export class EpistemicArtifactPublisher {
   private localNodeId: string;
-  private publicationCache: Map<string, number> = new Map();
+  private publicationCache: Map<string, number> = new Map(); // Runtime rate limit tracking
   private readonly DEFAULT_RATE_LIMIT = 50; // per day
 
-  constructor(localNodeId: string) {
+  constructor(
+    localNodeId: string,
+    private readonly repository: ILayer12Repository
+  ) {
     this.localNodeId = localNodeId;
   }
 
@@ -373,9 +377,37 @@ export class EpistemicArtifactPublisher {
    * Store artifact in local registry
    */
   private async storeArtifact(artifact: RedactedArtifact): Promise<void> {
-    // TODO: Integrate with database layer
-    // For now, this is a placeholder
-    console.log(`[L12] Storing artifact: ${artifact.artifactId}`);
+    // Convert RedactedArtifact back to EpistemicArtifact for storage
+    const epistemicArtifact: EpistemicArtifact = {
+      artifactId: artifact.artifactId,
+      artifactType: artifact.artifactType,
+      originNode: this.localNodeId,
+      originLayer: 12,
+      createdAt: artifact.createdAt,
+      version: artifact.version,
+      claim: artifact.claim,
+      summary: artifact.summary,
+      context: artifact.context,
+      evidence: artifact.evidence,
+      limitations: artifact.limitations,
+      allowedUses: artifact.allowedUses,
+      provenance: artifact.provenance
+    };
+
+    // Persist to repository
+    await this.repository.createClaim(epistemicArtifact);
+
+    // Write audit event for publication
+    await this.repository.logEvent({
+      eventId: `audit_${uuidv4()}`,
+      eventType: 'publication',
+      artifactId: artifact.artifactId,
+      nodeId: this.localNodeId,
+      timestamp: Date.now(),
+      originNode: this.localNodeId,
+      artifactType: artifact.artifactType,
+      allowedUses: artifact.allowedUses
+    });
   }
 
   /**
@@ -463,6 +495,14 @@ interface RedactedArtifact extends EpistemicArtifact {
 /**
  * Export singleton instance factory
  */
-export function createEpistemicArtifactPublisher(localNodeId: string): EpistemicArtifactPublisher {
+/**
+ * Export factory function for repository-backed service
+ */
+export function createEpistemicArtifactPublisher(
+  localNodeId: string,
+  repository: ILayer12Repository
+): EpistemicArtifactPublisher {
+  return new EpistemicArtifactPublisher(localNodeId, repository);
+}
   return new EpistemicArtifactPublisher(localNodeId);
 }

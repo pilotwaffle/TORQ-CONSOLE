@@ -7,13 +7,16 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createEpistemicAuditService } from '@/services/layer12/EpistemicAuditService';
+import { createMockRepository } from './testHelpers';
 import type { AuditEvent, AuditQuery, AdoptionStatistics } from '@/types/layer12/epistemic';
 
 describe('EpistemicAuditService', () => {
   let audit: ReturnType<typeof createEpistemicAuditService>;
+  let mockRepository: ILayer12Repository;
 
   beforeEach(() => {
-    audit = createEpistemicAuditService();
+    mockRepository = createMockRepository();
+    audit = createEpistemicAuditService(mockRepository);
     vi.clearAllMocks();
   });
 

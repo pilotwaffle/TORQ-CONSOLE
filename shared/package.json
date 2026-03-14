@@ -1,0 +1,28 @@
+{
+  "name": "@torq/federation-contracts",
+  "version": "1.0.0",
+  "description": "Shared TypeScript contracts for TORQ Federation Layer (Phase 1B)",
+  "type": "module",
+  "main": "./types/federation/index.ts",
+  "exports": {
+    ".": "./types/federation/index.ts",
+    "./envelope": "./types/federation/envelope.ts",
+    "./identity": "./types/federation/identity.ts",
+    "./signature": "./types/federation/signature.ts",
+    "./trust": "./types/federation/trust.ts",
+    "./api": "./types/federation/api.ts",
+    "./errors": "./types/federation/errors.ts",
+    "./enums": "./types/federation/enums.ts"
+  },
+  "files": [
+    "types"
+  ],
+  "keywords": [
+    "torq",
+    "federation",
+    "contracts",
+    "types"
+  ],
+  "author": "TORQ Business Solutions",
+  "license": "MIT"
+}

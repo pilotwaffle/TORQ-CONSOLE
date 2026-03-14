@@ -209,8 +209,8 @@ class ClaimProcessingResult(BaseModel):
             "identityValidation": self.identity_validation.model_dump() if self.identity_validation else None,
             "signatureVerification": self.signature_verification.model_dump() if self.signature_verification else None,
             "trustDecision": self.trust_decision.model_dump() if self.trust_decision else None,
-            "replayProtection": self.replay_protection.to_dict() if self.replay_protection else None,
-            "duplicateSuppression": self.duplicate_suppression.to_dict() if self.duplicate_suppression else None,
+            "replayProtection": self.replay_protection.model_dump() if self.replay_protection else None,
+            "duplicateSuppression": self.duplicate_suppression.model_dump() if self.duplicate_suppression else None,
             # Phase 1B Hardening: Safeguard results
             "eligibilityResult": self.eligibility_result.model_dump() if self.eligibility_result else None,
             "similarityResult": self.similarity_result.model_dump() if self.similarity_result else None,

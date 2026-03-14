@@ -1,0 +1,58 @@
+{
+  "baseline_healthy_exchange": {
+    "health_index": 0.47000000000000003,
+    "status": false,
+    "pass_rate": 0.42857142857142855,
+    "safeguard_triggers": 0,
+    "execution_time": 1.037696
+  },
+  "insight_flooding_attack": {
+    "health_index": 0.5298,
+    "status": false,
+    "pass_rate": 0.2,
+    "safeguard_triggers": 0,
+    "execution_time": 1.039561
+  },
+  "semantic_monoculture": {
+    "health_index": 0.5172,
+    "status": false,
+    "pass_rate": 0.0,
+    "safeguard_triggers": 0,
+    "execution_time": 1.042666
+  },
+  "minority_viewpoint_suppression": {
+    "health_index": 0.47000000000000003,
+    "status": false,
+    "pass_rate": 0.42857142857142855,
+    "safeguard_triggers": 0,
+    "execution_time": 1.065164
+  },
+  "authority_concentration": {
+    "health_index": 0.47000000000000003,
+    "status": false,
+    "pass_rate": 0.5,
+    "safeguard_triggers": 0,
+    "execution_time": 1.068819
+  },
+  "trust_drift_gaming": {
+    "health_index": 0.51,
+    "status": false,
+    "pass_rate": 0.42857142857142855,
+    "safeguard_triggers": 0,
+    "execution_time": 1.070657
+  },
+  "compound_adversarial_network": {
+    "health_index": 0.49304000000000003,
+    "status": false,
+    "pass_rate": 0.25,
+    "safeguard_triggers": 0,
+    "execution_time": 1.124012
+  },
+  "replay_duplicate_persistence": {
+    "health_index": 0.51,
+    "status": false,
+    "pass_rate": 0.42857142857142855,
+    "safeguard_triggers": 0,
+    "execution_time": 0.806051
+  }
+}

@@ -210,7 +210,7 @@ class ReplayProtectionService:
                 )
                 raise ReplayAttackError(
                     f"Replay attack detected: {reason}",
-                    details=result.to_dict()
+                    details=result.model_dump()
                 )
 
         # Check 2: Envelope ID tracking
@@ -229,7 +229,7 @@ class ReplayProtectionService:
                 )
                 raise ReplayAttackError(
                     f"Replay attack detected: {reason}",
-                    details=result.to_dict()
+                    details=result.model_dump()
                 )
 
         # Check 3: Signature hash tracking
@@ -249,7 +249,7 @@ class ReplayProtectionService:
                 )
                 raise ReplayAttackError(
                     f"Replay attack detected: {reason}",
-                    details=result.to_dict()
+                    details=result.model_dump()
                 )
 
         # All checks passed - this is a new envelope

@@ -21,6 +21,7 @@ import type {
   AdoptionStatistics,
   EpistemicArtifact
 } from '@/types/layer12/epistemic';
+import type { ILayer12Repository } from './ILayer12Repository';
 
 /**
  * Audit record stored in the audit log
@@ -37,13 +38,8 @@ type AuditEvent =
  * Service for tracking epistemic exchange and adoption
  */
 export class EpistemicAuditService {
-  private auditLog: Map<string, AuditEvent> = new Map();
-  private artifactIndex: Map<string, Set<string>> = new Map(); // artifactId -> event IDs
-  private nodeIndex: Map<string, Set<string>> = new Map(); // nodeId -> event IDs
-  private typeIndex: Map<AuditEventType, Set<string>> = new Map(); // eventType -> event IDs
-
-  constructor() {
-    this.initializeIndexes();
+  constructor(private readonly repository: ILayer12Repository) {
+    // Repository-backed - no in-memory state needed
   }
 
   /**
@@ -155,50 +151,12 @@ export class EpistemicAuditService {
    * Query audit log
    */
   async queryAudit(query: AuditQuery): Promise<AuditEvent[]> {
-    let results = Array.from(this.auditLog.values());
+    // Delegate to repository's queryAudit method
+    // The repository handles filtering and sorting
+    const events = await this.repository.queryAudit(query);
 
-    // Filter by artifact ID
-    if (query.artifactId) {
-      const eventIds = this.artifactIndex.get(query.artifactId);
-      if (eventIds) {
-        results = results.filter(r => eventIds.has(r.eventId));
-      } else {
-        return [];
-      }
-    }
-
-    // Filter by event type
-    if (query.eventType) {
-      const eventIds = this.typeIndex.get(query.eventType);
-      if (eventIds) {
-        results = results.filter(r => eventIds.has(r.eventId));
-      } else {
-        return [];
-      }
-    }
-
-    // Filter by node ID
-    if (query.nodeId) {
-      const eventIds = this.nodeIndex.get(query.nodeId);
-      if (eventIds) {
-        results = results.filter(r => eventIds.has(r.eventId));
-      } else {
-        return [];
-      }
-    }
-
-    // Filter by time range
-    if (query.startDate !== undefined) {
-      results = results.filter(r => r.timestamp >= query.startDate!);
-    }
-    if (query.endDate !== undefined) {
-      results = results.filter(r => r.timestamp <= query.endDate!);
-    }
-
-    // Sort by timestamp descending
-    results.sort((a, b) => b.timestamp - a.timestamp);
-
-    return results;
+    // Ensure events are sorted by timestamp descending
+    return events.sort((a, b) => b.timestamp - a.timestamp);
   }
 
   /**
@@ -209,60 +167,16 @@ export class EpistemicAuditService {
     startDate?: number,
     endDate?: number
   ): Promise<AdoptionStatistics> {
-    const events = await this.queryAudit({
-      nodeId,
-      startDate,
-      endDate
-    });
-
-    const totalReceived = new Set<string>();
-    let totalAdopted = 0;
-    let totalRejected = 0;
-    const byCategory = {
-      informational: 0,
-      advisory: 0,
-      simulationOnly: 0,
-      allocativeEligible: 0
-    };
-    const byRejectionReason: Record<string, number> = {};
-
-    for (const event of events) {
-      // Track unique artifacts received
-      totalReceived.add(event.artifactId);
-
-      if (event.eventType === 'adoption') {
-        totalAdopted++;
-        const adoptionEvent = event as AdoptionEvent;
-        switch (adoptionEvent.adoptionType) {
-          case 'informational':
-            byCategory.informational++;
-            break;
-          case 'advisory':
-            byCategory.advisory++;
-            break;
-          case 'simulation_tested':
-            byCategory.simulationOnly++;
-            break;
-          case 'allocative_eligible':
-            byCategory.allocativeEligible++;
-            break;
-        }
-      } else if (event.eventType === 'rejection') {
-        totalRejected++;
-        const rejectionEvent = event as RejectionEvent;
-        byRejectionReason[rejectionEvent.reason] = (byRejectionReason[rejectionEvent.reason] || 0) + 1;
-      }
-    }
-
-    const adoptionRate = totalReceived.size > 0 ? totalAdopted / totalReceived.size : 0;
+    // Use repository's optimized aggregation query
+    const stats = await this.repository.getAdoptionStats(nodeId, startDate, endDate);
 
     return {
-      totalReceived: totalReceived.size,
-      totalAdopted,
-      totalRejected,
-      adoptionRate,
-      byCategory,
-      byRejectionReason
+      totalReceived: stats.totalReceived,
+      totalAdopted: stats.totalAdopted,
+      totalRejected: stats.totalRejected,
+      adoptionRate: stats.adoptionRate,
+      byCategory: stats.byCategory as any,
+      byRejectionReason: stats.byRejectionReason
     };
   }
 
@@ -416,21 +330,9 @@ export class EpistemicAuditService {
    * Add event to audit log
    */
   private async addEvent(event: AuditEvent): Promise<void> {
-    this.auditLog.set(event.eventId, event);
-
-    // Update indexes
-    if (!this.artifactIndex.has(event.artifactId)) {
-      this.artifactIndex.set(event.artifactId, new Set());
-    }
-    this.artifactIndex.get(event.artifactId)!.add(event.eventId);
-
-    if (!this.nodeIndex.has(event.nodeId)) {
-      this.nodeIndex.set(event.nodeId, new Set());
-    }
-    this.nodeIndex.get(event.nodeId)!.add(event.eventId);
-
-    if (!this.typeIndex.has(event.eventType)) {
-      this.typeIndex.set(event.eventType, new Set());
+    // Persist to repository instead of in-memory storage
+    await this.repository.logEvent(event);
+  }
     }
     this.typeIndex.get(event.eventType)!.add(event.eventId);
 
@@ -478,28 +380,11 @@ export class EpistemicAuditService {
         };
     }
   }
-
-  /**
-   * Initialize indexes
-   */
-  private initializeIndexes(): void {
-    this.artifactIndex = new Map();
-    this.nodeIndex = new Map();
-    this.typeIndex = new Map();
-  }
-
-  /**
-   * Persist event to storage
-   */
-  private async persistEvent(event: AuditEvent): Promise<void> {
-    // TODO: Integrate with database layer
-    console.log(`[L12] Persisting audit event: ${event.eventId} (${event.eventType})`);
-  }
 }
 
 /**
- * Export singleton instance factory
+ * Export factory function for repository-backed service
  */
-export function createEpistemicAuditService(): EpistemicAuditService {
-  return new EpistemicAuditService();
+export function createEpistemicAuditService(repository: ILayer12Repository): EpistemicAuditService {
+  return new EpistemicAuditService(repository);
 }

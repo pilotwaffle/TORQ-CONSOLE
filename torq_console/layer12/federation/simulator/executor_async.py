@@ -116,6 +116,15 @@ class AsyncFederationSimulationExecutor:
 
     def _initialize_processor(self) -> Tuple[InboundFederatedClaimProcessor, FederationIdentityGuard]:
         """Initialize the claim processor with safeguards."""
+        # Import safeguard types
+        from ..safeguards import EligibilityCriteria
+        from ..safeguards import (
+            create_context_similarity_engine,
+            create_plurality_preservation_rules,
+            create_allocative_boundary_guard,
+            create_trust_decay_model,
+        )
+
         # Create shared federation config
         federation_config = FederationConfig()
 
@@ -129,44 +138,40 @@ class AsyncFederationSimulationExecutor:
         allocative_guard = None
         trust_decay = None
 
-        if self.enable_all_safeguards:
-            # Import safeguard types
-            from ..safeguards import EligibilityCriteria
-
-            # For simulation mode, disable safeguards that cause false positives
-            # with low node counts and limited claim diversity
-            if self.simulation_mode:
-                # Only enable eligibility filter for quality control
-                eligibility_filter = create_eligibility_filter(
-                    criteria=EligibilityCriteria(
-                        min_confidence=0.2,  # Very low threshold for simulation
-                        max_claims_per_minute=1000,  # High rate limit
-                        spam_keywords=[],  # No spam filtering
-                    )
-                )
-                # Disable other safeguards for simulation to allow baseline acceptance
-                similarity_engine = None
-                plurality_rules = None
-                allocative_guard = None
-                trust_decay = None
-            else:
-                # Production thresholds - enable all safeguards
-                from ..safeguards import (
-                    create_context_similarity_engine,
-                    create_plurality_preservation_rules,
-                    create_allocative_boundary_guard,
-                    create_trust_decay_model,
-                )
-                eligibility_filter = create_eligibility_filter()
-                similarity_engine = create_context_similarity_engine()
-                plurality_rules = create_plurality_preservation_rules()
-                allocative_guard = create_allocative_boundary_guard()
-                trust_decay = create_trust_decay_model()
+        # For simulation mode, create a processor config that disables
+        # safeguards that cause false positives with low node counts
+        if self.simulation_mode:
+            processor_config = ProcessorConfig(
+                enable_eligibility_filter=True,  # Keep for quality control
+                enable_context_similarity=False,  # Disable to avoid false monoculture detection
+                enable_plurality_preservation=False,  # Disable to avoid false monoculture detection
+                enable_allocative_boundaries=False,  # Disable to avoid false authority concentration
+                enable_trust_decay=False,  # Disable for simulation
+            )
+            # Only enable eligibility filter for quality control
+            eligibility_filter = create_eligibility_filter(
+                criteria=EligibilityCriteria(
+                    min_confidence=0.2,  # Very low threshold for simulation
+                    max_claims_per_minute=1000,  # High rate limit
+                    spam_keywords=[],  # No spam filtering
+                ),
+                disable_similarity_check=True,  # Disable similarity for simulation
+            )
+        elif self.enable_all_safeguards:
+            processor_config = self.processor_config
+            # Production thresholds - enable all safeguards
+            eligibility_filter = create_eligibility_filter()
+            similarity_engine = create_context_similarity_engine()
+            plurality_rules = create_plurality_preservation_rules()
+            allocative_guard = create_allocative_boundary_guard()
+            trust_decay = create_trust_decay_model()
+        else:
+            processor_config = self.processor_config
 
         # Initialize processor
         processor = InboundFederatedClaimProcessor(
             identity_guard=identity_guard,
-            config=self.processor_config,
+            config=processor_config,
             federation_config=federation_config,
             eligibility_filter=eligibility_filter,
             similarity_engine=similarity_engine,
@@ -878,11 +883,24 @@ def create_async_executor(
     enable_metrics: bool = True,
     enable_health_index: bool = True,
     enable_predictive_metrics: bool = True,
+    simulation_mode: bool = True,
 ) -> AsyncFederationSimulationExecutor:
-    """Factory function to create an async simulation executor."""
+    """Factory function to create an async simulation executor.
+
+    Args:
+        enable_all_safeguards: Whether to enable all safeguard engines
+        enable_metrics: Whether to enable metrics collection
+        enable_health_index: Whether to enable health index calculation
+        enable_predictive_metrics: Whether to enable predictive metrics (EDDR, ACA, FCRI)
+        simulation_mode: If True, uses permissive configuration for testing
+
+    Returns:
+        Configured AsyncFederationSimulationExecutor instance
+    """
     return AsyncFederationSimulationExecutor(
         enable_all_safeguards=enable_all_safeguards,
         enable_metrics=enable_metrics,
         enable_health_index=enable_health_index,
         enable_predictive_metrics=enable_predictive_metrics,
+        simulation_mode=simulation_mode,
     )

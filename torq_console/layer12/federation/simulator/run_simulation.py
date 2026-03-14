@@ -38,8 +38,28 @@ from torq_console.layer12.federation.simulator import (
     create_semantic_monoculture_assertions,
     create_authority_concentration_assertions,
     create_compound_adversarial_assertions,
-    create_async_executor,
 )
+
+# Phase 2B Network simulation imports
+try:
+    from torq_console.layer12.federation.simulator.network import (
+        NetworkTopology,
+        NetworkSimulationConfig,
+        NetworkSnapshot,
+        create_network_controller,
+    )
+    from torq_console.layer12.federation.simulator.network.validation import (
+        Phase2BValidator,
+        run_validation_suite_sync,
+        ValidationSuiteResult,
+        save_validation_results,
+    )
+    PHASE2B_AVAILABLE = True
+except ImportError:
+    PHASE2B_AVAILABLE = False
+
+# Import create_async_executor for Phase 2A
+from torq_console.layer12.federation.simulator.executor_async import create_async_executor
 
 
 # Configure logging
@@ -427,6 +447,172 @@ def list_available_scenarios() -> None:
         print()
 
 
+# ============================================================================
+# Phase 2B: Network Simulation Functions
+# ============================================================================
+
+async def run_network_simulation(
+    num_nodes: int = 10,
+    topology: str = "small_world",
+    epochs: int = 25,
+    scenario: Optional[str] = None,
+    seed: Optional[int] = None,
+    verbose: bool = False,
+) -> NetworkSnapshot:
+    """
+    Run a Phase 2B network simulation.
+
+    Args:
+        num_nodes: Number of nodes in the network (1-50)
+        topology: Network topology (small_world, fully_connected, hub_and_spoke, random_graph)
+        epochs: Number of simulation epochs
+        scenario: Optional predefined scenario name (overrides other params)
+        seed: Random seed for reproducibility
+        verbose: Enable verbose output
+
+    Returns:
+        Final NetworkSnapshot
+    """
+    setup_logging(verbose)
+
+    # Import scenario types if using scenario
+    claim_quality_bias = 0.78  # Default calibrated quality
+
+    if scenario:
+        from .network import ScenarioType, get_claim_quality_for_scenario
+
+        scenario_type = ScenarioType(scenario)
+        claim_quality_bias = get_claim_quality_for_scenario(scenario_type)
+
+        print(f"\n{'='*80}")
+        print(f"SCENARIO: {scenario}")
+        print(f"Claim Quality Bias: {claim_quality_bias:.2f}")
+        print(f"{'='*80}")
+
+    # Create executor and adapter (reuse Phase 2A infrastructure)
+    executor = create_async_executor(
+        enable_all_safeguards=True,
+        enable_metrics=True,
+        enable_health_index=True,
+        simulation_mode=True,
+    )
+
+    # Create network config
+    config = NetworkSimulationConfig(
+        num_nodes=num_nodes,
+        topology=NetworkTopology(topology),
+        num_epochs=epochs,
+        claims_per_epoch=max(20, num_nodes * 2),
+        random_seed=seed if seed else 42,
+    )
+
+    # Create network controller with calibrated claim quality
+    controller = create_network_controller(
+        config=config,
+        processor_adapter=executor.adapter,
+        claim_quality_bias=claim_quality_bias,
+    )
+
+    print(f"\n{'='*80}")
+    if scenario:
+        print(f"NETWORK SIMULATION: {scenario} scenario")
+    else:
+        print(f"NETWORK SIMULATION: {num_nodes} nodes, {topology} topology, {epochs} epochs")
+    print(f"{'='*80}")
+
+    # Run simulation
+    result = await controller.run_simulation(
+        progress_callback=(_print_epoch_progress if verbose else None)
+    )
+
+    # Print summary
+    _print_network_summary(result)
+
+    return result.final_network_metrics
+
+
+async def _print_epoch_progress(epoch: int, snapshot: NetworkSnapshot) -> None:
+    """Async callback for epoch progress updates."""
+    print(
+        f"  Epoch {epoch}: {snapshot.active_nodes} active, "
+        f"resilience={snapshot.network_resilience_score:.2f}, "
+        f"domains={snapshot.domain_count}"
+    )
+
+
+def _print_network_summary(result) -> None:
+    """Print network simulation summary."""
+    print("\n" + "="*80)
+    print("NETWORK SIMULATION RESULTS")
+    print("="*80)
+
+    print(f"\nConfiguration:")
+    print(f"  Nodes: {result.config.num_nodes}")
+    print(f"  Topology: {result.config.topology.value}")
+    print(f"  Epochs: {result.total_epochs_completed}")
+    print(f"  Adversarial Ratio: {result.config.adversarial_ratio:.1%}")
+
+    print(f"\nExecution:")
+    print(f"  Duration: {result.duration_ms/1000:.2f}s")
+    print(f"  Claims Processed: {result.total_claims_processed}")
+    print(f"  Claims Accepted: {result.total_claims_accepted}")
+    print(f"  Acceptance Rate: {result.acceptance_rate:.1%}")
+
+    if result.final_network_metrics:
+        metrics = result.final_network_metrics
+        print(f"\nFinal Network State:")
+        print(f"  Active Nodes: {metrics.active_nodes}/{metrics.total_nodes}")
+        print(f"  Network Density: {metrics.network_density:.2f}")
+        print(f"  Clustering Coefficient: {metrics.avg_clustering:.2f}")
+        print(f"  Path Length: {metrics.avg_path_length:.2f}")
+
+        print(f"\nDomain Competition:")
+        print(f"  Active Domains: {metrics.domain_count}")
+        print(f"  Competition Index: {metrics.domain_competition_index:.2f}")
+
+        print(f"\nInfluence Concentration:")
+        print(f"  Gini Coefficient: {metrics.gini_coefficient:.3f}")
+        print(f"  Herfindahl Index: {metrics.herfindahl_index:.3f}")
+        print(f"  Top Node Share: {metrics.top_node_concentration:.1%}")
+
+        print(f"\nNetwork Resilience:")
+        print(f"  Resilience Score: {metrics.network_resilience_score:.2f}")
+        print(f"  Node Survival Rate: {metrics.node_survival_rate:.1%}")
+
+        print(f"\nContradiction Clustering:")
+        print(f"  Clusters: {metrics.contradiction_clusters}")
+        print(f"  Avg Cluster Size: {metrics.avg_cluster_size:.2f}")
+        print(f"  Fragmentation Index: {metrics.fragmentation_index:.2f}")
+
+    print("\n" + "="*80)
+
+
+def run_network_simulation_sync(
+    num_nodes: int = 10,
+    topology: str = "small_world",
+    epochs: int = 25,
+    scenario: Optional[str] = None,
+    seed: Optional[int] = None,
+    verbose: bool = False,
+) -> None:
+    """
+    Synchronous wrapper for network simulation.
+
+    Args:
+        num_nodes: Number of nodes (1-50)
+        topology: Network topology
+        epochs: Number of simulation epochs
+        scenario: Optional predefined scenario name
+        seed: Random seed for reproducibility
+        verbose: Enable verbose output
+    """
+    asyncio.run(run_network_simulation(num_nodes, topology, epochs, scenario, seed, verbose))
+
+
+# ============================================================================
+# Phase 2A Functions (Original)
+# ============================================================================
+
 def run_all_scenarios(
     verbose: bool = False,
     save_individual: bool = False,
@@ -586,6 +772,55 @@ Examples:
         help="Log file path"
     )
 
+    # Phase 2B: Network simulation arguments
+    parser.add_argument(
+        "--network",
+        action="store_true",
+        help="Run Phase 2B network simulation"
+    )
+    parser.add_argument(
+        "--nodes",
+        type=int,
+        default=10,
+        help="Number of nodes for network simulation (default: 10)"
+    )
+    parser.add_argument(
+        "--topology",
+        type=str,
+        default="small_world",
+        choices=["small_world", "fully_connected", "hub_and_spoke", "random_graph", "linear"],
+        help="Network topology (default: small_world)"
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=25,
+        help="Number of simulation epochs (default: 25)"
+    )
+    parser.add_argument(
+        "--network-scenario",
+        type=str,
+        choices=["baseline", "network_growth", "domain_capture", "trust_cascade_failure",
+                 "contradiction_fragmentation", "multi_node_adversarial_coalition"],
+        help="Use predefined network scenario instead of manual parameters"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="Random seed for reproducibility"
+    )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Run Phase 2B validation suite"
+    )
+    parser.add_argument(
+        "--validation-tests",
+        nargs="+",
+        choices=["baseline", "domain", "trust_cascade", "adversarial"],
+        help="Specific validation tests to run"
+    )
+
     args = parser.parse_args()
 
     # Setup logging
@@ -594,6 +829,29 @@ Examples:
     # Handle list command
     if args.list:
         list_available_scenarios()
+        return
+
+    # Handle Phase 2B validation suite
+    if args.validate:
+        if not PHASE2B_AVAILABLE:
+            print("Error: Phase 2B validation suite not available")
+            sys.exit(1)
+        run_validation_suite_sync(
+            tests=args.validation_tests,
+            verbose=args.verbose,
+        )
+        return
+
+    # Handle Phase 2B network simulation
+    if args.network:
+        run_network_simulation_sync(
+            num_nodes=args.nodes,
+            topology=args.topology,
+            epochs=args.epochs,
+            scenario=getattr(args, 'network_scenario', None),
+            seed=args.seed,
+            verbose=args.verbose,
+        )
         return
 
     # Handle all scenarios

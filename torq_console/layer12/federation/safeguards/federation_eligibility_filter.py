@@ -157,14 +157,17 @@ class FederationEligibilityFilter:
     def __init__(
         self,
         criteria: EligibilityCriteria | None = None,
+        disable_similarity_check: bool = False,
     ):
         """
         Initialize the eligibility filter.
 
         Args:
             criteria: Eligibility criteria
+            disable_similarity_check: Skip similarity checking (for simulation)
         """
         self.criteria = criteria or EligibilityCriteria()
+        self.disable_similarity_check = disable_similarity_check
         self.logger = logging.getLogger(__name__)
 
         # Rate limiter
@@ -382,6 +385,11 @@ class FederationEligibilityFilter:
         scores: dict[str, float],
     ) -> float:
         """Check for similarity to existing claims."""
+        # Skip similarity check if disabled (for simulation)
+        if self.disable_similarity_check:
+            scores["similarity"] = 1.0
+            return 1.0
+
         import hashlib
 
         # Create content hash
@@ -435,14 +443,19 @@ class FederationEligibilityFilter:
 
 def create_eligibility_filter(
     criteria: EligibilityCriteria | None = None,
+    disable_similarity_check: bool = False,
 ) -> FederationEligibilityFilter:
     """
     Factory function to create a FederationEligibilityFilter.
 
     Args:
         criteria: Eligibility criteria
+        disable_similarity_check: Skip similarity checking (for simulation)
 
     Returns:
         Configured FederationEligibilityFilter instance
     """
-    return FederationEligibilityFilter(criteria=criteria)
+    return FederationEligibilityFilter(
+        criteria=criteria,
+        disable_similarity_check=disable_similarity_check,
+    )

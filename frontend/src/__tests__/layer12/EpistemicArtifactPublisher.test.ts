@@ -7,13 +7,16 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createEpistemicArtifactPublisher } from '@/services/layer12/EpistemicArtifactPublisher';
+import { createMockRepository } from './testHelpers';
 import type { PublishedInsight, Pattern, EpistemicArtifact, PublicationOptions } from '@/types/layer12/epistemic';
 
 describe('EpistemicArtifactPublisher', () => {
   let publisher: ReturnType<typeof createEpistemicArtifactPublisher>;
+  let mockRepository: ILayer12Repository;
 
   beforeEach(() => {
-    publisher = createEpistemicArtifactPublisher();
+    mockRepository = createMockRepository();
+    publisher = createEpistemicArtifactPublisher('test-node-1', mockRepository);
     vi.clearAllMocks();
   });
 

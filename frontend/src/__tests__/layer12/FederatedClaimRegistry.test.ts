@@ -7,13 +7,16 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createFederatedClaimRegistry } from '@/services/layer12/FederatedClaimRegistry';
+import { createMockRepository } from './testHelpers';
 import type { EpistemicArtifact, ClaimQuery, ClaimRecord } from '@/types/layer12/epistemic';
 
 describe('FederatedClaimRegistry', () => {
   let registry: ReturnType<typeof createFederatedClaimRegistry>;
+  let mockRepository: ILayer12Repository;
 
   beforeEach(() => {
-    registry = createFederatedClaimRegistry();
+    mockRepository = createMockRepository();
+    registry = createFederatedClaimRegistry(mockRepository);
     vi.clearAllMocks();
   });
 

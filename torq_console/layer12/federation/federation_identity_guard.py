@@ -467,6 +467,7 @@ class FederationIdentityGuard:
             decision=decision,
             reasons=reasons,
             node_trust_score=node_trust_score,
+            effective_trust=node_trust_score,  # Initialize effective_trust to match node_trust_score
             identity_valid=identity_valid,
             signature_valid=signature_valid,
             node_id=node_id,

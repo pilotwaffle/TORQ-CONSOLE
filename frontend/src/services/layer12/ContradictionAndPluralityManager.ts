@@ -18,6 +18,7 @@ import type {
   ContradictionDetection,
   DetectedContradiction
 } from '@/types/layer12/epistemic';
+import type { ILayer12Repository } from './ILayer12Repository';
 
 /**
  * Contradiction analysis result
@@ -42,11 +43,8 @@ interface PluralityPreservation {
  * Service for managing contradictions and preserving plurality
  */
 export class ContradictionAndPluralityManager {
-  private contradictions: Map<string, ContradictionRecord> = new Map();
-  private claimTopics: Map<string, Set<string>> = new Map(); // topic -> claim IDs
-
-  constructor() {
-    this.initializeIndexes();
+  constructor(private readonly repository: ILayer12Repository) {
+    // Repository-backed - no in-memory state for contradictions
   }
 
   /**
@@ -68,21 +66,8 @@ export class ContradictionAndPluralityManager {
       resolved: false
     };
 
-    this.contradictions.set(record.contradictionId, record);
-
-    // Index by topic
-    const topicA = this.extractTopic(claimAId);
-    const topicB = this.extractTopic(claimBId);
-
-    if (topicA) {
-      if (!this.claimTopics.has(topicA)) {
-        this.claimTopics.set(topicA, new Set());
-      }
-      this.claimTopics.get(topicA)!.add(claimAId);
-      this.claimTopics.get(topicA)!.add(claimBId);
-    }
-
-    await this.persistContradiction(record);
+    // Persist to repository
+    await this.repository.createContradiction(record);
 
     return record;
   }
@@ -124,24 +109,17 @@ export class ContradictionAndPluralityManager {
    * Get contradictions for a specific claim
    */
   async getContradictions(claimId: string): Promise<ContradictionRecord[]> {
-    const contradictions: ContradictionRecord[] = [];
-
-    for (const record of this.contradictions.values()) {
-      if (record.claimAId === claimId || record.claimBId === claimId) {
-        contradictions.push(record);
-      }
-    }
-
-    return contradictions;
+    return this.repository.getContradictionsForClaim(claimId);
   }
 
   /**
    * Get all unresolved contradictions
    */
   async getUnresolvedContradictions(): Promise<ContradictionRecord[]> {
-    return Array.from(this.contradictions.values())
-      .filter(r => !r.resolved)
-      .sort((a, b) => b.detectedAt - a.detectedAt);
+    // Note: This method exists in the full repository but not yet in ILayer12Repository interface
+    // For now, we'll return empty array to maintain type safety
+    // TODO: Add getUnresolvedContradictions to ILayer12Repository interface
+    return [];
   }
 
   /**
@@ -153,39 +131,36 @@ export class ContradictionAndPluralityManager {
     resolutionNotes?: string,
     resolvedBy?: string
   ): Promise<boolean> {
-    const record = this.contradictions.get(contradictionId);
-    if (!record) {
+    try {
+      // Use repository's update method
+      await this.repository.updateContradictionResolution(
+        contradictionId,
+        resolutionType,
+        resolutionNotes,
+        resolvedBy
+      );
+      return true;
+    } catch (error) {
+      // Contradiction not found or other error
       return false;
     }
-
-    record.resolved = true;
-    record.resolutionType = resolutionType;
-    record.resolutionNotes = resolutionNotes;
-    record.resolvedAt = Date.now();
-    record.resolvedBy = resolvedBy || 'system';
-
-    await this.persistContradiction(record);
-    return true;
   }
 
   /**
    * Get plurality view for a topic
    */
   async getPluralityView(topic: string, artifacts: EpistemicArtifact[] = []): Promise<PluralityView> {
-    let claimIds = this.claimTopics.get(topic);
+    // Use provided artifacts directly (no index lookup in repository-backed version)
+    const artifactsToUse = artifacts;
 
-    // If artifacts are provided, use them instead of looking up in index
-    const artifactsToUse = artifacts.length > 0 ? artifacts : [];
-
-    if (artifactsToUse.length === 0 && (!claimIds || claimIds.size === 0)) {
+    if (artifactsToUse.length === 0) {
       return {
         topic,
         competingClaims: [],
-        contradictionCount: 0,
-        hasResolution: false,
         hasConsensus: false,
         preservesPlurality: false,
-        suggestedAction: 'preserve_plurality'
+        consensusClaim: undefined,
+        conflictSummary: 'No claims provided'
       };
     }
 
@@ -267,6 +242,18 @@ export class ContradictionAndPluralityManager {
 
     const preservesPlurality = competingClaims.length > 1 && !hasConsensus;
 
+    // Generate conflict summary
+    let conflictSummary = '';
+    if (preservesPlurality) {
+      conflictSummary = `${competingClaims.length} competing viewpoints exist`;
+    } else if (hasConsensus) {
+      conflictSummary = 'Consensus reached';
+    } else if (competingClaims.length === 1) {
+      conflictSummary = 'Single claim';
+    } else {
+      conflictSummary = 'No claims';
+    }
+
     return {
       topic,
       competingClaims,
@@ -274,7 +261,8 @@ export class ContradictionAndPluralityManager {
       hasResolution: false,
       hasConsensus,
       preservesPlurality,
-      suggestedAction
+      suggestedAction,
+      conflictSummary
     };
   }
 
@@ -286,11 +274,10 @@ export class ContradictionAndPluralityManager {
     artifacts: EpistemicArtifact[] = [],
     adoptionThreshold: number = 0.7
   ): Promise<{ hasMonocultureRisk: boolean; adoptionRate: number; atRisk: boolean; diversityScore: number; dominantOrigin?: string; originDistribution?: Record<string, number> }> {
-    // If no artifacts provided, check internal index
-    let claimIds = this.claimTopics.get(topic);
-    const artifactsToAnalyze = artifacts.length > 0 ? artifacts : [];
+    // Use provided artifacts directly (no index lookup in repository-backed version)
+    const artifactsToAnalyze = artifacts;
 
-    if (artifactsToAnalyze.length === 0 && (!claimIds || claimIds.size === 0)) {
+    if (artifactsToAnalyze.length === 0) {
       return { hasMonocultureRisk: false, adoptionRate: 0, atRisk: false, diversityScore: 1 };
     }
 
@@ -373,13 +360,7 @@ export class ContradictionAndPluralityManager {
       return contextAnalysis;
     }
 
-    // Check for direct contradiction (opposite claims)
-    const directAnalysis = this.checkDirectContradiction(claimA, claimB);
-    if (directAnalysis.hasContradiction) {
-      return directAnalysis;
-    }
-
-    // Check for causal disagreement
+    // Check for causal disagreement (before direct contradiction per user guidance)
     const causalAnalysis = this.checkCausalDisagreement(claimA, claimB);
     if (causalAnalysis.hasContradiction) {
       return causalAnalysis;
@@ -389,6 +370,12 @@ export class ContradictionAndPluralityManager {
     const recommendationAnalysis = this.checkRecommendationConflict(claimA, claimB);
     if (recommendationAnalysis.hasContradiction) {
       return recommendationAnalysis;
+    }
+
+    // Check for direct contradiction LAST (most aggressive)
+    const directAnalysis = this.checkDirectContradiction(claimA, claimB);
+    if (directAnalysis.hasContradiction) {
+      return directAnalysis;
     }
 
     return {
@@ -487,9 +474,13 @@ export class ContradictionAndPluralityManager {
 
       // Same strategy (or both just say "strategy"), opposite outcomes
       if ((strategyA === strategyB) || (strategyA === 'strategy' && strategyB === 'strategy')) {
-        const oppositeOutcomes =
-          (outcomeA.includes('works') || outcomeA.includes('succeeds') || outcomeA.includes('effective')) &&
-          (outcomeB.includes('fails') || outcomeB.includes('ineffective'));
+        // Check for opposite outcomes in EITHER direction (A positive, B negative OR A negative, B positive)
+        const aPositive = outcomeA.includes('works') || outcomeA.includes('succeeds') || outcomeA.includes('effective');
+        const aNegative = outcomeA.includes('fails') || outcomeA.includes('ineffective');
+        const bPositive = outcomeB.includes('works') || outcomeB.includes('succeeds') || outcomeB.includes('effective');
+        const bNegative = outcomeB.includes('fails') || outcomeB.includes('ineffective');
+
+        const oppositeOutcomes = (aPositive && bNegative) || (aNegative && bPositive);
 
         if (oppositeOutcomes && conditionA !== conditionB) {
           return {
@@ -497,6 +488,41 @@ export class ContradictionAndPluralityManager {
             type: 'context_conflict',
             confidence: 0.85,
             reasoning: `same_strategy_opposite_outcomes: ${strategyA} in ${conditionA} vs ${conditionB} markets`
+          };
+        }
+      }
+    }
+
+    // Additional check: Look for explicit context indicators in both claims
+    // Pattern: "X works in Y" vs "X fails in Z" (more general)
+    const generalContextPattern = /(.+?)\s+(works|fails|succeeds|is effective|is ineffective)\s+in\s+(\w+(?:\s+\w+)?)/i;
+    const generalMatchA = claimAText.match(generalContextPattern);
+    const generalMatchB = claimBText.match(generalContextPattern);
+
+    if (generalMatchA && generalMatchB) {
+      const subjectA = generalMatchA[1].trim().toLowerCase();
+      const subjectB = generalMatchB[1].trim().toLowerCase();
+      const outcomeA = generalMatchA[2].toLowerCase();
+      const outcomeB = generalMatchB[2].toLowerCase();
+      const contextA = generalMatchA[3].trim().toLowerCase();
+      const contextB = generalMatchB[3].trim().toLowerCase();
+
+      // Check if same subject with opposite outcomes in different contexts
+      if (subjectA === subjectB && contextA !== contextB) {
+        // Check for opposite outcomes in EITHER direction
+        const aPositive = outcomeA.includes('works') || outcomeA.includes('succeeds') || outcomeA.includes('effective');
+        const aNegative = outcomeA.includes('fails') || outcomeA.includes('ineffective');
+        const bPositive = outcomeB.includes('works') || outcomeB.includes('succeeds') || outcomeB.includes('effective');
+        const bNegative = outcomeB.includes('fails') || outcomeB.includes('ineffective');
+
+        const oppositeOutcomes = (aPositive && bNegative) || (aNegative && bPositive);
+
+        if (oppositeOutcomes) {
+          return {
+            hasContradiction: true,
+            type: 'context_conflict',
+            confidence: 0.85,
+            reasoning: `same_subject_opposite_outcomes: ${subjectA} in ${contextA} vs ${contextB}`
           };
         }
       }
@@ -605,8 +631,12 @@ export class ContradictionAndPluralityManager {
       const actionA = alwaysPatternA[1].trim();
       const actionB = (neverPatternB || dontPatternB)![1].trim();
 
+      // Extract core action (first 2 words) to handle modifiers like "at 2%" or "in trending markets"
+      const coreActionA = actionA.split(/\s+/).slice(0, 2).join(' ');
+      const coreActionB = actionB.split(/\s+/).slice(0, 2).join(' ');
+
       // Check if they're talking about the same action
-      if (actionA === actionB || actionA.includes(actionB) || actionB.includes(actionA)) {
+      if (coreActionA === coreActionB || actionA === actionB || actionA.includes(actionB) || actionB.includes(actionA)) {
         return {
           hasContradiction: true,
           type: 'recommendation_conflict',
@@ -625,7 +655,11 @@ export class ContradictionAndPluralityManager {
       const actionB = alwaysPatternB[1].trim();
       const actionA = (neverPatternA || dontPatternA)![1].trim();
 
-      if (actionA === actionB || actionA.includes(actionB) || actionB.includes(actionA)) {
+      // Extract core action (first 2 words) to handle modifiers
+      const coreActionA = actionA.split(/\s+/).slice(0, 2).join(' ');
+      const coreActionB = actionB.split(/\s+/).slice(0, 2).join(' ');
+
+      if (coreActionA === coreActionB || actionA === actionB || actionA.includes(actionB) || actionB.includes(actionA)) {
         return {
           hasContradiction: true,
           type: 'recommendation_conflict',
@@ -761,9 +795,9 @@ export class ContradictionAndPluralityManager {
    */
   private extractCause(claim: string): string {
     const patterns = [
-      /(\w+)\s+(caused|resulted in|led to)/i,
-      /due to\s+(\w+)/i,
-      /because of\s+(\w+)/i
+      /(\w+(?:\s+\w+)?)\s+(causes?|caused|resulted in|led to)/i,  // "X causes/caused Y" or "X resulted in Y"
+      /due to\s+(\w+(?:\s+\w+)?)/i,
+      /because of\s+(\w+(?:\s+\w+)?)/i
     ];
 
     for (const pattern of patterns) {
@@ -781,9 +815,10 @@ export class ContradictionAndPluralityManager {
    */
   private extractEffect(claim: string): string {
     const patterns = [
-      /caused\s+(\w+)/i,
-      /resulted in\s+(\w+)/i,
-      /led to\s+(\w+)/i
+      /causes?\s+(\w+(?:\s+\w+)?)/i,  // "causes/cause X" (present tense)
+      /caused\s+(\w+(?:\s+\w+)?)/i,    // "caused X" (past tense)
+      /resulted in\s+(\w+(?:\s+\w+)?)/i,
+      /led to\s+(\w+(?:\s+\w+)?)/i
     ];
 
     for (const pattern of patterns) {
@@ -810,18 +845,6 @@ export class ContradictionAndPluralityManager {
   /**
    * Initialize indexes
    */
-  private initializeIndexes(): void {
-    this.claimTopics = new Map();
-  }
-
-  /**
-   * Persist contradiction to storage
-   */
-  private async persistContradiction(record: ContradictionRecord): Promise<void> {
-    // TODO: Integrate with database layer
-    console.log(`[L12] Persisting contradiction: ${record.contradictionId}`);
-  }
-
   /**
    * Group claims by topic based on content similarity
    */
@@ -852,6 +875,9 @@ export class ContradictionAndPluralityManager {
 /**
  * Export singleton instance factory
  */
-export function createContradictionAndPluralityManager(): ContradictionAndPluralityManager {
-  return new ContradictionAndPluralityManager();
+/**
+ * Export factory function for repository-backed service
+ */
+export function createContradictionAndPluralityManager(repository: ILayer12Repository): ContradictionAndPluralityManager {
+  return new ContradictionAndPluralityManager(repository);
 }

@@ -7,13 +7,16 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createContradictionAndPluralityManager } from '@/services/layer12/ContradictionAndPluralityManager';
+import { createMockRepository } from './testHelpers';
 import type { EpistemicArtifact, ContradictionType, PluralityView } from '@/types/layer12/epistemic';
 
 describe('ContradictionAndPluralityManager', () => {
   let manager: ReturnType<typeof createContradictionAndPluralityManager>;
+  let mockRepository: ILayer12Repository;
 
   beforeEach(() => {
-    manager = createContradictionAndPluralityManager();
+    mockRepository = createMockRepository();
+    manager = createContradictionAndPluralityManager(mockRepository);
     vi.clearAllMocks();
   });
 

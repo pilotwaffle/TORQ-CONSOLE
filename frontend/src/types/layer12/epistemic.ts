@@ -280,6 +280,7 @@ export interface ClaimRecord {
   provenance: ClaimProvenance;
   receivedAt?: number;
   indexedAt?: number;
+  relevanceScore?: number; // Added by findRelevantClaims() when returning scored results
 }
 
 /**
@@ -305,6 +306,8 @@ export interface PluralityView {
   hasConsensus?: boolean; // Whether competing claims have reached consensus
   preservesPlurality?: boolean; // Whether multiple viewpoints are preserved
   suggestedAction: 'preserve_plurality' | 'simulation_test' | 'governance_review';
+  consensusClaim?: CompetingClaim; // The consensus claim if one exists
+  conflictSummary?: string; // Human-readable summary of conflicts
 }
 
 /**

@@ -7,13 +7,16 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createLocalQualificationEngine } from '@/services/layer12/LocalQualificationEngine';
+import { createMockRepository } from './testHelpers';
 import type { EpistemicArtifact, LocalContext, QualificationResult } from '@/types/layer12/epistemic';
 
 describe('LocalQualificationEngine', () => {
   let engine: ReturnType<typeof createLocalQualificationEngine>;
+  let mockRepository: ILayer12Repository;
 
   beforeEach(() => {
-    engine = createLocalQualificationEngine();
+    mockRepository = createMockRepository();
+    engine = createLocalQualificationEngine(mockRepository);
   });
 
   // Helper to create a test artifact
