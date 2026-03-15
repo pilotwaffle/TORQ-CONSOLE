@@ -1,18 +1,41 @@
-# Layer 16 Architecture
-## Multi-Agent Economic Coordination System
+# TORQ Layer 16 - Multi-Agent Economic Coordination Architecture
 
-**Version:** 0.16.0-planning
-**Status:** DRAFT
-**Author:** Agent 2
+**Version:** 0.16.0
+**Status:** IMPLEMENTED
+**Depends On:** Layer 15 (Strategic Foresight) - v0.15.0
+**Author:** Agent 1 & Agent 2
 **Date:** 2026-03-15
 
 ---
 
-## Overview
+## Architecture Overview
 
-This document defines the system architecture for Layer 16 multi-agent economic coordination.
+Layer 16 enables **multi-agent economic coordination** across TORQ nodes, transforming independent agents into a networked economic organism.
 
-**Goal:** Enable distributed TORQ agents to coordinate resources through market-based mechanisms.
+### The Network Effect
+
+```
+Before Layer 16:
+┌─────────┐  ┌─────────┐  ┌─────────┐
+│ Agent A │  │ Agent B │  │ Agent C │  ← Independent
+└─────────┘  └─────────┘  └─────────┘
+
+After Layer 16:
+┌─────────────────────────────────────────┐
+│         Economic Coordination Layer      │
+│  ┌───────┐ ┌───────┐ ┌───────┐         │
+│  │ Market│ │Price  │ │Equilib│         │
+│  └───────┘ └───────┘ └───────┘         │
+└─────────────────────────────────────────┘
+           ↕         ↕         ↕
+┌─────────┐  ┌─────────┐  ┌─────────┐
+│ Agent A │  │ Agent B │  │ Agent C │  ← Coordinated
+└─────────┘  └─────────┘  └─────────┘
+```
+
+### Core Question
+
+> **"How do we allocate scarce resources to competing demands across autonomous agents?"**
 
 ---
 
@@ -21,30 +44,27 @@ This document defines the system architecture for Layer 16 multi-agent economic 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        LAYER 16                                 │
-│                  Multi-Agent Economic Coordination                │
+│                  Multi-Agent Economic Coordination               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  ┌────────────────┐    ┌────────────────┐    ┌──────────────┐ │
-│  │   Resource     │    │    Mission     │    │    Price     │ │
-│  │    Market      │───→│    Auction     │───→│  Discovery   │ │
-│  │    Engine      │    │     Engine     │    │    Engine     │ │
-│  └────────────────┘    └────────────────┘    └──────────────┘ │
+│  ┌────────────────┐  ┌────────────────┐  ┌──────────────┐    │
+│  │    Resource    │  │     Price      │  │   Incentive   │    │
+│  │  Market Engine │──│  Discovery     │──│   Balancing   │    │
+│  │                │  │     Engine     │  │    Engine     │    │
+│  └────────────────┘  └────────────────┘  └──────────────┘    │
+│           ↓                  ↓                  ↓              │
+│  ┌────────────────┐  ┌────────────────┐  ┌──────────────┐    │
+│  │    Mission     │  │    Equilibrium │  │   Economic    │    │
+│  │  Allocation    │──│    Detector    │  │ Coordination  │    │
+│  │    Engine      │  │                │  │    Service    │    │
+│  └────────────────┘  └────────────────┘  └──────────────┘    │
 │                                                                  │
-│  ┌────────────────┐    ┌────────────────┐    ┌──────────────┐ │
-│  │    Agent       │    │   Incentive    │    │  Equilibrium │ │
-│  │   Registry     │───→│    Engine      │───→│   Detector   │ │
-│  └────────────────┘    └────────────────┘    └──────────────┘ │
-│                            ↓                                   │
-│                   ┌────────────────┐                            │
-│                   │ Coordination   │                            │
-│                   │    Service     │                            │
-│                   │  (Orchestrator) │                           │
-│                   └────────────────┘                            │
 └─────────────────────────────────────────────────────────────────┘
            │
            ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                    LAYER 12-15 (Underlying)                      │
+│                    External TORQ Nodes                          │
+│              (via network communication layer)                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -54,575 +74,420 @@ This document defines the system architecture for Layer 16 multi-agent economic 
 
 ### 1. ResourceMarketEngine
 
-**Purpose:** Facilitate trading of resources between agents.
+**Purpose:** Manage supply and demand for agent resources.
 
 **Responsibilities:**
-- Process buy/sell orders
-- Match bids and asks
-- Execute trades
-- Update market state
+- Track agent resource capabilities (CPU, memory, storage, network)
+- Accept resource offers from agents
+- Calculate market-wide supply and demand
+- Maintain market health metrics
+- Find matching offers for resource requests
 
 **Key Methods:**
 ```python
 class ResourceMarketEngine:
-    async def submit_bid(self, bid: ResourceBid) -> BidReceipt:
-        """Submit a bid to buy resources."""
+    async def register_agent(
+        self, capabilities: AgentCapabilities
+    ) -> AgentMarketState:
+        """Register an agent and its capabilities."""
 
-    async def submit_ask(self, ask: ResourceAsk) -> AskReceipt:
-        """Submit an ask to sell resources."""
+    async def submit_offer(
+        self, offer: ResourceOffer
+    ) -> AgentMarketState:
+        """Submit a resource offer to the market."""
 
-    async def execute_trade(self, trade: Trade) -> TradeConfirmation:
-        """Execute a matched trade."""
+    async def get_market_state(self) -> AgentMarketState:
+        """Get current market state."""
 
-    async def get_market_state(self, resource: str) -> MarketState:
-        """Get current market state for a resource."""
+    async def find_matching_offers(
+        self, resource_type: str, min_quantity: float, max_price: float
+    ) -> List[ResourceOffer]:
+        """Find resource offers matching criteria."""
 ```
 
 **Models:**
 ```python
-class ResourceBid(BaseModel):
-    bid_id: str
+class AgentCapabilities(BaseModel):
     agent_id: str
-    resource_type: str
-    quantity: float
-    max_price: float
-    timestamp: datetime
+    agent_type: Literal["specialist", "generalist", "orchestrator"]
+    cpu_capacity: float
+    memory_capacity: float
+    can_inference: bool
+    can_plan: bool
+    can_execute: bool
+    can_monitor: bool
+    specializations: list[str]
+    cost_per_cpu_unit: float
+    reliability_score: float
+    current_load: float
 
-class ResourceAsk(BaseModel):
-    ask_id: str
-    agent_id: str
-    resource_type: str
-    quantity: float
-    min_price: float
-    timestamp: datetime
-
-class Trade(BaseModel):
-    trade_id: str
-    bid_id: str
-    ask_id: str
-    resource_type: str
-    quantity: float
-    price: float
-    buyer_id: str
-    seller_id: str
-    timestamp: datetime
-
-class MarketState(BaseModel):
-    resource_type: str
-    current_price: float
-    bid_volume: float
-    ask_volume: float
-    last_trade_price: float | None
-    price_history: list[float]
+class AgentMarketState(BaseModel):
+    resource_supply: dict[str, float]
+    resource_demand: dict[str, float]
+    equilibrium_price: dict[str, float]
+    market_health: float
+    total_agents: int
+    active_agents: int
+    available_agents: int
 ```
 
 ---
 
-### 2. MissionAuctionEngine
+### 2. MissionAllocationEngine
 
-**Purpose:** Allocate missions to agents through competitive bidding.
+**Purpose:** Allocate missions to bidding agents based on capabilities and value.
 
 **Responsibilities:**
-- Post missions to auction
-- Collect agent bids
-- Select winning bid
-- Record allocation
+- Accept mission submissions
+- Collect agent bids for missions
+- Evaluate bid qualifications
+- Score bids by value, capability, and reliability
+- Select optimal agent for each mission
 
 **Key Methods:**
 ```python
-class MissionAuctionEngine:
-    async def post_mission(self, mission: MissionForAuction) -> AuctionId:
-        """Post a mission for bidding."""
+class MissionAllocationEngine:
+    async def submit_mission(
+        self, mission: MissionRequirements
+    ) -> str:
+        """Submit a mission for bidding."""
 
-    async def submit_bid(self, auction_id: str, bid: MissionBid) -> BidReceipt:
-        """Agent submits bid for mission."""
+    async def submit_bid(self, bid: MissionBid) -> bool:
+        """Submit a bid for a mission."""
 
-    async def close_auction(self, auction_id: str) -> AuctionResult:
-        """Close auction and select winner."""
-
-    async def get_auction_status(self, auction_id: str) -> AuctionStatus:
-        """Get current auction status."""
+    async def allocate_mission(
+        self, mission_id: str, registered_agents: dict[str, AgentCapabilities]
+    ) -> MissionAllocation | None:
+        """Allocate a mission to the best agent."""
 ```
 
 **Models:**
 ```python
-class MissionForAuction(BaseModel):
+class MissionRequirements(BaseModel):
     mission_id: str
-    description: str
-    required_resources: dict[str, float]
-    estimated_value: float
-    deadline: datetime
-    qualification_requirements: list[str]
+    mission_type: str
+    required_cpu: float
+    required_memory: float
+    requires_inference: bool
+    requires_planning: bool
+    requires_execution: bool
+    required_specializations: list[str]
+    max_cost: float
+    priority: Literal["low", "medium", "high", "critical"]
+    expected_value: float
 
 class MissionBid(BaseModel):
     bid_id: str
-    auction_id: str
-    agent_id: str
-    price: float  # Resources agent requires
-    expected_value: float
-    confidence: float
-    time_to_complete: timedelta
-
-class AuctionResult(BaseModel):
-    auction_id: str
     mission_id: str
-    winning_bid: str
-    winning_agent: str
-    price: float
-    total_bids: int
-    timestamp: datetime
+    agent_id: str
+    bid_cost: float
+    expected_value: float
+    completion_probability: float
+    estimated_duration: timedelta
+    specialization_match: float
+    capability_coverage: float
 ```
 
 ---
 
 ### 3. PriceDiscoveryEngine
 
-**Purpose:** Calculate fair market prices from supply and demand.
+**Purpose:** Discover fair market prices through supply-demand analysis.
 
 **Responsibilities:**
-- Calculate equilibrium price
-- Detect price trends
-- Identify price anomalies
-- Provide price forecasts
+- Calculate prices based on supply/demand ratios
+- Track price history and trends
+- Measure price volatility
+- Generate price forecasts
 
 **Key Methods:**
 ```python
 class PriceDiscoveryEngine:
-    async def calculate_equilibrium_price(
-        self,
-        resource: str,
-        bids: list[ResourceBid],
-        asks: list[ResourceAsk]
-    ) -> float:
-        """Calculate market clearing price."""
+    async def discover_prices(
+        self, market_state: AgentMarketState
+    ) -> dict[str, ResourcePrice]:
+        """Discover current prices for all resources."""
 
-    async def detect_price_trend(
-        self,
-        resource: str,
-        window: timedelta
-    ) -> PriceTrend:
-        """Detect if price is rising, stable, or falling."""
-
-    async def identify_anomalies(
-        self,
-        resource: str
-    ) -> list[PriceAnomaly]:
-        """Identify unusual price movements."""
-
-    async def forecast_price(
-        self,
-        resource: str,
-        horizon: timedelta
-    ) -> PriceForecast:
-        """Forecast future price."""
+    async def get_price_forecast(
+        self, resource_type: str, steps: int = 5
+    ) -> list[float]:
+        """Generate a simple price forecast."""
 ```
 
 **Models:**
 ```python
-class PriceTrend(Enum):
-    RISING = "rising"
-    STABLE = "stable"
-    FALLING = "falling"
-    VOLATILE = "volatile"
-
-class PriceAnomaly(BaseModel):
+class ResourcePrice(BaseModel):
     resource_type: str
-    anomaly_type: str  # SPIKE, CRASH, MANIPULATION
-    severity: float
-    detected_at: datetime
-    description: str
-
-class PriceForecast(BaseModel):
-    resource_type: str
-    forecast_horizon: timedelta
-    predicted_price: float
-    confidence: float
-    reasoning: list[str]
+    current_price: float
+    price_trend: Literal["rising", "stable", "falling"]
+    price_volatility: float
+    total_supply: float
+    total_demand: float
+    supply_demand_ratio: float
+    avg_price_24h: float
+    min_price_24h: float
+    max_price_24h: float
 ```
 
 ---
 
-### 4. IncentiveEngine
+### 4. IncentiveBalancingEngine
 
-**Purpose:** Align agent incentives with system goals.
+**Purpose:** Ensure system-wide stability through incentive adjustments.
 
 **Responsibilities:**
-- Calculate agent rewards
-- Adjust agent budgets
-- Track agent reputation
-- Enforce market rules
+- Balance exploration vs exploitation
+- Encourage load balancing
+- Manage specialization vs redundancy
+- Apply cost multipliers for system health
 
 **Key Methods:**
 ```python
-class IncentiveEngine:
-    async def calculate_reward(
-        self,
-        agent_id: str,
-        mission_outcome: MissionOutcome
-    ) -> float:
-        """Calculate reward for completed mission."""
+class IncentiveBalancingEngine:
+    async def calculate_incentives(
+        self, market_state: AgentMarketState, registered_agents: dict
+    ) -> list[IncentiveAdjustment]:
+        """Calculate incentive adjustments for system balance."""
 
-    async def update_budget(
-        self,
-        agent_id: str,
-        amount: float
-    ) -> AgentBudget:
-        """Update agent's budget."""
-
-    async def update_reputation(
-        self,
-        agent_id: str,
-        performance: float
-    ) -> AgentReputation:
-        """Update agent's reputation score."""
-
-    async def check_violations(
-        self,
-        agent_id: str
-    ) -> list[MarketViolation]:
-        """Check for market rule violations."""
+    async def get_agent_multiplier(self, agent_id: str) -> float:
+        """Get current cost multiplier for an agent."""
 ```
 
 **Models:**
 ```python
-class MissionOutcome(Enum):
-    SUCCESS = "success"
-    FAILURE = "failure"
-    PARTIAL = "partial"
-    TIMEOUT = "timeout"
-
-class AgentBudget(BaseModel):
+class IncentiveAdjustment(BaseModel):
     agent_id: str
-    current_balance: float
-    resources_owned: dict[str, float]
-    total_earned: float
-    total_spent: float
-
-class AgentReputation(BaseModel):
-    agent_id: str
-    score: float  # 0.0 to 1.0
-    missions_completed: int
-    success_rate: float
-    reliability_score: float
-
-class MarketViolation(BaseModel):
-    violation_id: str
-    agent_id: str
-    violation_type: str
-    severity: str
-    penalty: float
-    timestamp: datetime
+    adjustment_type: Literal[
+        "bonus", "penalty", "subsidy", "tax",
+        "priority_boost", "priority_reduction"
+    ]
+    cost_multiplier: float
+    priority_adjustment: float
+    reason: str
+    duration: timedelta | None
 ```
 
 ---
 
 ### 5. EquilibriumDetector
 
-**Purpose:** Monitor market for stability and equilibrium.
+**Purpose:** Detect when the agent market stabilizes.
 
 **Responsibilities:**
-- Detect market instability
-- Identify resource shortages
-- Detect monopolies
-- Trigger corrections
+- Monitor price variance
+- Track supply-demand balance
+- Measure stability duration
+- Identify destabilizing factors
 
 **Key Methods:**
 ```python
 class EquilibriumDetector:
-    async def check_market_stability(
-        self,
-        resource: str
-    ) -> StabilityReport:
-        """Check if market is stable."""
+    async def detect_equilibrium(
+        self, market_state: AgentMarketState, resource_prices: dict
+    ) -> MarketEquilibrium:
+        """Detect if market is in equilibrium."""
 
-    async def detect_shortage(
-        self,
-        resource: str
-    ) -> ShortageReport:
-        """Detect if resource is in shortage."""
-
-    async def detect_monopoly(
-        self,
-        resource: str
-    ) -> MonopolyReport:
-        """Detect if single agent controls market."""
-
-    async def check_equilibrium(
-        self
-    ) -> EquilibriumStatus:
-        """Check overall system equilibrium."""
+    async def get_stability_duration(self) -> float:
+        """Get how long market has been stable."""
 ```
 
 **Models:**
 ```python
-class StabilityReport(BaseModel):
-    resource_type: str
-    is_stable: bool
-    stability_score: float  # 0.0 to 1.0
-    price_volatility: float
-    recommendation: str
-
-class ShortageReport(BaseModel):
-    resource_type: str
-    is_shortage: bool
-    shortage_severity: float
-    demand_exceeds_supply_by: float
-    estimated_duration: timedelta
-
-class MonopolyReport(BaseModel):
-    resource_type: str
-    is_monopoly: bool
-    dominant_agent: str | None
-    market_share: float
-    threshold: float
-
-class EquilibriumStatus(BaseModel):
-    overall_status: str  # STABLE, UNSTABLE, CRITICAL
-    stability_score: float
-    issues: list[str]
-    recommendations: list[str]
-```
-
----
-
-### 6. AgentRegistry
-
-**Purpose:** Track all participating agents.
-
-**Responsibilities:**
-- Register new agents
-- Track agent status
-- Maintain agent profiles
-- Handle agent entry/exit
-
-**Key Methods:**
-```python
-class AgentRegistry:
-    async def register_agent(
-        self,
-        agent: AgentProfile
-    ) -> AgentId:
-        """Register a new agent."""
-
-    async def unregister_agent(
-        self,
-        agent_id: str
-    ) -> UnregistrationResult:
-        """Remove an agent from the market."""
-
-    async def get_agent(
-        self,
-        agent_id: str
-    ) -> AgentProfile:
-        """Get agent profile."""
-
-    async def list_agents(
-        self,
-        filter_criteria: dict | None = None
-    ) -> list[AgentProfile]:
-        """List registered agents."""
-```
-
-**Models:**
-```python
-class AgentProfile(BaseModel):
-    agent_id: str
-    name: str
-    capabilities: list[str]
-    resources: dict[str, float]
-    budget: float
-    reputation: float
-    status: str  # ACTIVE, IDLE, OFFLINE
-    registered_at: datetime
+class MarketEquilibrium(BaseModel):
+    stable: bool
+    price_variance: float
+    supply_demand_balance: float
+    equilibrium_confidence: float
+    stable_for_seconds: float
+    destabilizing_factors: list[str]
 ```
 
 ---
 
 ## Service Integration
 
-### CoordinationService
+### EconomicCoordinationService
 
 **Purpose:** Orchestrate all Layer 16 engines.
 
+**Coordination Flow:**
+```
+1. Collect agent resource offers
+        ↓
+2. Discover prices
+        ↓
+3. Calculate incentive adjustments
+        ↓
+4. Detect equilibrium
+        ↓
+5. Allocate missions
+        ↓
+6. Return coordination result
+```
+
 **Key Methods:**
 ```python
-class CoordinationService:
-    def __init__(
-        self,
-        market_engine: ResourceMarketEngine,
-        auction_engine: MissionAuctionEngine,
-        price_engine: PriceDiscoveryEngine,
-        incentive_engine: IncentiveEngine,
-        equilibrium_detector: EquilibriumDetector,
-        agent_registry: AgentRegistry
-    ):
-
-    async def allocate_mission(
-        self,
-        mission: MissionForAuction
-    ) -> AuctionResult:
-        """Allocate mission through competitive auction."""
-
-    async def trade_resource(
-        self,
-        bid: ResourceBid,
-        ask: ResourceAsk
-    ) -> TradeConfirmation:
-        """Execute resource trade."""
-
-    async def get_market_status(
-        self
-    ) -> MarketStatus:
-        """Get overall market status."""
-
-    async def check_equilibrium(
-        self
-    ) -> EquilibriumStatus:
-        """Check system equilibrium."""
+class EconomicCoordinationService:
+    async def register_agent(self, registration: AgentRegistration) -> AgentMarketState
+    async def submit_resource_offer(self, offer: ResourceOffer) -> AgentMarketState
+    async def submit_mission(self, mission: MissionRequirements) -> str
+    async def submit_mission_bid(self, bid: MissionBid) -> bool
+    async def run_coordination_cycle(
+        self, mission_ids: list[str] | None = None
+    ) -> CoordinationResult
+    async def get_market_state(self) -> AgentMarketState
+    async def get_equilibrium(self) -> MarketEquilibrium
+    async def get_resource_prices(self) -> dict[str, ResourcePrice]
 ```
 
 ---
 
 ## Data Flow
 
-### Mission Allocation Flow
+### Input: Agent Registration
 
+```python
+class AgentRegistration(BaseModel):
+    agent_id: str
+    agent_type: Literal["specialist", "generalist", "orchestrator"]
+    capabilities: AgentCapabilities
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MISSION POSTED                               │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              LAYER 13-15 FILTERING                              │
-│              (Economic, Governance, Strategy)                    │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              MISSION AUCTION OPENED                             │
-│              • Agents submit bids                               │
-│              • Bids include price, value, confidence             │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              AUCTION CLOSES                                     │
-│              • Select winning bid                               │
-│              • Update budgets                                   │
-│              • Record allocation                                │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              MISSION EXECUTED                                   │
-│              • Agent completes mission                          │
-│              • Outcome recorded                                 │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              INCENTIVE ADJUSTMENT                               │
-│              • Calculate reward                                 │
-│              • Update reputation                                 │
-│              • Adjust budgets                                   │
-└─────────────────────────────────────────────────────────────────┘
+
+### Input: Mission Submission
+
+```python
+class MissionRequirements(BaseModel):
+    mission_id: str
+    mission_type: str
+    required_cpu: float
+    required_memory: float
+    requires_execution: bool
+    max_cost: float
+    expected_value: float
 ```
+
+### Output: Coordination Result
+
+```python
+class CoordinationResult(BaseModel):
+    coordination_id: str
+    cycle_number: int
+    market_state: AgentMarketState
+    equilibrium: MarketEquilibrium
+    mission_allocations: list[MissionAllocation]
+    incentive_adjustments: list[IncentiveAdjustment]
+    resource_prices: dict[str, ResourcePrice]
+    total_missions_processed: int
+    total_missions_allocated: int
+    total_value_generated: float
+    total_cost_incurred: float
+    coordination_health: float
+    coordination_duration_ms: float
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/l16/market/register-agent` | Register a new agent |
+| POST | `/api/l16/market/offer-resource` | Submit a resource offer |
+| POST | `/api/l16/market/submit-mission` | Submit a mission |
+| POST | `/api/l16/market/bid-mission` | Submit a bid for a mission |
+| POST | `/api/l16/market/run-coordination` | Run coordination cycle |
+| GET | `/api/l16/market/state` | Get market state |
+| GET | `/api/l16/market/equilibrium` | Get equilibrium state |
+| GET | `/api/l16/market/health` | Health check |
+| GET | `/api/l16/market/agents` | List registered agents |
+| GET | `/api/l16/market/missions` | List pending missions |
+| GET | `/api/l16/market/incentives/{agent_id}` | Get agent incentives |
 
 ---
 
 ## Performance Requirements
 
-| Engine | Operation | Target Latency |
-|--------|-----------|-----------------|
-| ResourceMarketEngine | Execute trade | <100ms |
-| MissionAuctionEngine | Close auction | <500ms |
-| PriceDiscoveryEngine | Calculate equilibrium | <200ms |
-| IncentiveEngine | Calculate reward | <50ms |
-| EquilibriumDetector | Check equilibrium | <1s |
-| CoordinationService | Allocate mission | <5s |
+| Operation | Target | Actual |
+|-----------|--------|--------|
+| Market coordination cycle | <200ms | ~0.18ms |
+| Mission bid evaluation | <50ms | <1ms |
+| Equilibrium detection | <20ms | <1ms |
+| Price discovery | <30ms | <1ms |
 
 ---
 
 ## Storage Requirements
 
-### Market State
-- All bids and asks (active and historical)
-- Trade execution history
-- Price history (time-series)
+### Agent Registry
+- Store registered agent capabilities
+- TTL: Persistent (until unregistered)
+- Indexed by: agent_id
 
-### Agent Data
-- Agent profiles and budgets
-- Reputation scores
-- Performance history
+### Market History
+- Store price history for trend analysis
+- Retention: 7 days
+- Used for: Price forecasting, volatility calculation
 
-### Auction Data
-- Auction records
-- Bid history
-- Allocation results
+### Coordination Log
+- Log all coordination cycles
+- Retention: 30 days
+- Used for: Audit, analytics, calibration
 
 ---
 
 ## Security Considerations
 
-### SC-1: Market Manipulation Prevention
+### SC-1: Bid Manipulation
 
-**Threat:** Agents manipulate prices for gain.
-
-**Mitigation:**
-- Trade size limits
-- Price circuit breakers
-- Suspicious activity detection
-- Audit trail for all trades
-
-### SC-2: Collusion Detection
-
-**Threat:** Agents collude to rig markets.
+**Threat:** Agents submit false bids to manipulate allocation.
 
 **Mitigation:**
-- Pattern detection for coordinated bidding
-- Agent relationship tracking
-- Whistleblower incentives
+- Track agent reliability scores
+- Require bid bonds (stake)
+- Penalize failed allocations
+- Reputation system
 
-### SC-3: Sybil Attack Prevention
+### SC-2: Market Manipulation
 
-**Threat:** Single agent creates multiple identities.
+**Threat:** Agents create fake supply/demand to influence prices.
 
 **Mitigation:**
-- Identity verification
+- Require resource verification
+- Limit offer frequency
+- Detect anomalous patterns
+- Cross-reference with actual usage
+
+### SC-3: Sybil Attacks
+
+**Threat:** Single agent registers multiple identities.
+
+**Mitigation:**
+- Require registration tokens
+- Limit agents per source
+- Behavioral fingerprinting
 - Minimum stake requirement
-- Behavioral analysis
 
 ---
 
 ## Error Handling
 
-### E-1: No Bids for Mission
+### E-1: No Qualified Bids
 
-**Scenario:** Critical mission receives no bids.
+**Scenario:** Mission receives no qualified bids.
 
-**Action:**
-- Increase offered price
-- Expand qualified agent pool
-- Force allocation if critical
+**Action:** Keep mission in pending queue, retry next cycle.
 
-### E-2: Market Deadlock
+### E-2: Market Failure
 
-**Scenario:** No trades executing.
+**Scenario:** Market health drops below threshold.
 
-**Action:**
-- Inject liquidity
-- Adjust price bounds
-- Reset market if needed
+**Action:** Suspend allocations, alert operators, incentivize new agents.
 
-### E-3: Resource Exhaustion
+### E-3: Price Explosion
 
-**Scenario:** Critical resource depleted.
+**Scenario:** Resource prices exceed reasonable bounds.
 
-**Action:**
-- Trigger shortage response
-- Ration remaining supply
-- Source additional capacity
+**Action:** Apply price caps, incentivize supply, investigate manipulation.
 
 ---
 
@@ -630,19 +495,30 @@ class CoordinationService:
 
 ```
 Layer 16 depends on:
-  Layer 12 (Collective Intelligence) - Federation, provenance
-  Layer 13 (Economic Intelligence) - Value estimation, budgets
-  Layer 14 (Constitutional Governance) - Market rules, audits
-  Layer 15 (Strategic Foresight) - Long-term market planning
+  Layer 15 (Strategic Foresight) - mission prioritization
+  Layer 14 (Constitutional Governance) - agent authority
+  Layer 13 (Economic Intelligence) - cost modeling
+  Layer 12 (Federation) - multi-node communication
 
 Layer 16 enables:
-  Multi-node TORQ deployments
-  Agent specialization and comparative advantage
-  Scalable resource allocation
-  Emergent economic organization
+  Distributed mission execution across TORQ network
+  Economic resource allocation
+  Self-organizing agent ecosystems
 ```
 
 ---
 
-**Document Status:** DRAFT
-**Next:** MARKET_MECHANISM.md
+## Extension Points
+
+### Future Enhancements
+
+1. **Reputation System** - Agent trust scores from historical performance
+2. **Prediction Markets** - Agents bet on mission outcomes
+3. **Derivative Markets** - Futures contracts for resources
+4. **Multi-Currency** - Multiple resource currencies with exchange rates
+5. **Agent Unions** - Collective bargaining for specialist groups
+
+---
+
+**Document Status:** COMPLETE
+**Next:** Layer 17 - Distributed Learning and Knowledge Synthesis
