@@ -1,8 +1,8 @@
 # Layer 17 Cycle 001
 
-**Execution Date:** 2026-03-16T02:44:49.034065+00:00
+**Execution Date:** 2026-03-16T03:05:17.901032+00:00
 **Cycle ID:** cycle_001
-**Status:** COMPLETE WITH ERRORS
+**Status:** COMPLETE
 
 ---
 
@@ -16,7 +16,7 @@
 ---
 
 ## Mutation
-- **new_genome_id:** genome_9678cb8718e7
+- **new_genome_id:** genome_9c07d72cdc75
 - **parent_genome_id:** torq_production_v1
 - **generation:** 1
 - **mutation_operators_applied:** added_tools: ['test_runner'], removed_tools: ['file_read', 'code_executor']
@@ -26,8 +26,8 @@
 
 ## L16 Signal Evidence
 - **source service/class:** torq_console.layer16.services.EconomicCoordinationService
-- **timestamp:** 2026-03-16T02:44:49.034304
-- **signal_id:** signal_4ac65f7b94ab
+- **timestamp:** 2026-03-16T03:05:17.901253
+- **signal_id:** signal_2e90c0678826
 
 **Key Fields Captured:**
 - `total_agents`: 0
@@ -48,7 +48,7 @@
 - **consistency_score:** 1.0000
 - **overall_score:** 0.6760
 - **passed:** True
-- **evaluated_at:** 2026-03-16T02:44:49.034357
+- **evaluated_at:** 2026-03-16T03:05:17.901303
 
 ---
 
@@ -66,8 +66,17 @@
 
 ## Persistence Evidence
 
-**error:**
-- Persistence failed: {'message': "Could not find the table 'public.agent_genomes' in the schema cache", 'code': 'PGRST205', 'hint': "Perhaps you meant the table 'public.agent_teams'", 'details': None}
+**parent_genome:**
+- Row upserted: torq_production_v1
+
+**mutated_genome:**
+- Row upserted: genome_9c07d72cdc75
+
+**l16_ecosystem_signals:**
+- Row upserted: signal_2e90c0678826
+
+**benchmark_evaluations:**
+- Row inserted: evaluation_id=be7abec9-4523-4e55-88da-8f8d9ce52038
 
 
 ---
@@ -85,9 +94,9 @@
 
 ## Errors
 
-- Persistence error: {'message': "Could not find the table 'public.agent_genomes' in the schema cache", 'code': 'PGRST205', 'hint': "Perhaps you meant the table 'public.agent_teams'", 'details': None}
+No errors.
 
 ---
 
-**Report Generated:** 2026-03-16T02:44:50.847751+00:00
-**Cycle Duration:** 0:00:01.813686
+**Report Generated:** 2026-03-16T03:05:19.046794+00:00
+**Cycle Duration:** 0:00:01.145762
