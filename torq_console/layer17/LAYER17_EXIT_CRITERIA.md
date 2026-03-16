@@ -2,7 +2,7 @@
 
 **Version:** v0.17.0-beta
 **Date:** 2026-03-15
-**Status:** CYCLE 001 COMPLETE ✅
+**Status:** AWAITING PERSISTENCE VERIFICATION ⏳
 
 ---
 
@@ -12,11 +12,39 @@ Exit criteria for Layer 17 alpha → beta. All criteria must be evidenced.
 
 ---
 
+## Agent 2 Review: Exit Criteria Assessment
+
+### Summary
+
+Layer 17 Cycle 001 has been executed successfully with live L16 ecosystem signals. The evolution cycle demonstrates all required functionality. However, one blocker remains for the beta gate: **Supabase migration execution and row persistence verification**.
+
+### Blockers for v0.17.0-stable
+
+| # | Criterion | Status | Blocker | Details |
+|---|-----------|--------|---------|---------|
+| 1 | Migration executed | ⏳ | **YES** | Tables do not exist in Supabase. Requires SQL Editor or psql access with database password. |
+| 2 | Row persistence verified | ⏳ | **YES** | Cannot insert rows until migration is executed. |
+| 3 | Foreign key validation | ⏳ | **YES** | Cannot validate FK relationships until tables exist. |
+
+### Non-Blocking Items
+
+| # | Criterion | Status | Notes |
+|---|-----------|--------|-------|
+| 1 | Full cycle execution | ✅ | Cycle 001 completed with live L16 signals |
+| 2 | Verified field usage | ✅ | All fields from VERIFIED_L16_MODELS.md |
+| 3 | Integration tests | ✅ | 49/49 tests passing |
+| 4 | Mutation determinism | ✅ | Seed=42 produces reproducible results |
+| 5 | L16 signal collection | ✅ | Real EconomicCoordinationService (not mocked) |
+| 6 | Benchmark evaluation | ✅ | 5 missions executed, scores computed |
+| 7 | Promotion/retirement logic | ✅ | Decision based on thresholds applied correctly |
+
+---
+
 ## Critical Gate Requirements
 
 ### 1. Full Cycle Execution REQUIRED ✅
 
-**Evidence:** `experiment_results/layer17_cycle_001.md`
+**Evidence:** `experiment_results/layer17_cycle_001.md` and `experiment_results/layer17_cycle_001_with_persistence.md`
 
 - [x] Parent genome selected (torq_production_v1 - production baseline)
 - [x] Mutated genome generated with deterministic seed (genome_9678cb8718e7, seed=42)
@@ -25,11 +53,15 @@ Exit criteria for Layer 17 alpha → beta. All criteria must be evidenced.
 - [x] Pass/fail outcome computed (overall: 0.676, completion: 0.25, consistency: 1.0)
 - [x] Genome decision made (retained_as_experimental - below threshold)
 - [x] All records persisted to in-memory registry
-- [x] Exact evidence recorded in layer17_cycle_001.md
+- [x] Exact evidence recorded
 
-### 2. Supabase Persistence REQUIRED
+**Agent 2 Assessment:** ✅ PASSED - Cycle execution demonstrates all required functionality.
 
-**Evidence:** Migration created, execution pending admin action
+---
+
+### 2. Supabase Persistence REQUIRED ⏳ BLOCKER
+
+**Evidence:** Migration created, execution pending
 
 - [x] Migration `017_layer17_agent_genome_evolution.sql` created (233 lines)
   - agent_genomes table with 27 fields
@@ -37,10 +69,39 @@ Exit criteria for Layer 17 alpha → beta. All criteria must be evidenced.
   - benchmark_evaluations table with 10 fields
   - Foreign keys, indexes, triggers, views
 - [x] Schema validated (all CHECK constraints verified)
-- [ ] Table execution in Supabase (requires SQL Editor or psql access)
-- [ ] Row persistence (pending migration execution)
+- [ ] **BLOCKER:** Table execution in Supabase (requires SQL Editor or psql access)
+- [ ] **BLOCKER:** Row persistence verification
 
 **Migration Location:** `E:\TORQ-CONSOLE\migrations\017_layer17_agent_genome_evolution.sql`
+
+**Execution Instructions:**
+```sql
+-- Via Supabase Dashboard:
+-- 1. Open https://supabase.com/dashboard/project/npukynbaglmcdvzyklqa/sql
+-- 2. Paste migration SQL
+-- 3. Run
+
+-- Via psql:
+psql postgresql://postgres:[PASSWORD]@db.npukynbaglmcdvzyklqa.supabase.co:5432/postgres -f migrations/017_layer17_agent_genome_evolution.sql
+```
+
+**Verification Queries (Post-Migration):**
+```sql
+-- Verify tables exist
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
+AND table_name IN ('agent_genomes', 'l16_ecosystem_signals', 'benchmark_evaluations');
+
+-- Verify expected row counts (after cycle re-run)
+SELECT
+  (SELECT COUNT(*) FROM agent_genomes) as genomes_count,  -- Expected: 2
+  (SELECT COUNT(*) FROM l16_ecosystem_signals) as signals_count,  -- Expected: 1
+  (SELECT COUNT(*) FROM benchmark_evaluations) as evaluations_count;  -- Expected: 1
+```
+
+**Agent 2 Assessment:** ⏳ BLOCKED - Migration file exists but tables not created. Database password required for automated execution.
+
+---
 
 ### 3. Verified Field Usage REQUIRED ✅
 
@@ -51,17 +112,23 @@ Exit criteria for Layer 17 alpha → beta. All criteria must be evidenced.
 - [x] MissionRequirements uses all 14 verified fields (including deadline)
 - [x] No proposed/experimental fields in production code paths
 
-### 4. Integration Tests Passing REQUIRED ✅
-
-**Evidence:** INTEGRATION_TEST_REPORT.md shows all tests passing
-
-- [x] Unit tests: 13/13 passing
-- [x] Integration tests with L16: passing
-- [x] No import errors after fixes (create_economic_coordination_service export added)
+**Agent 2 Assessment:** ✅ PASSED - Verified field usage confirmed through integration tests.
 
 ---
 
-## Component Requirements
+### 4. Integration Tests Passing REQUIRED ✅
+
+**Evidence:** pytest output shows all tests pass
+
+- [x] Unit tests: 49/49 passing
+- [x] Integration tests with L16: passing
+- [x] No import errors after fixes
+
+**Agent 2 Assessment:** ✅ PASSED - All tests passing.
+
+---
+
+## Component Verification
 
 ### AgentRegistry ✅
 - [x] register_genome() - Registers genome with validation
@@ -79,100 +146,15 @@ Exit criteria for Layer 17 alpha → beta. All criteria must be evidenced.
 - [x] Parent tracking, generation increment (generation=1 in cycle)
 - [x] Toolset addition/removal operators
 
-**Cycle 001 Mutation Evidence:**
-- Removed: file_read, code_executor
-- Added: test_runner
-- Result: 5 → 4 tools (within bounds)
-
 ### L16SignalCollector ✅
 - [x] collect() from EconomicCoordinationService
 - [x] Returns L16EcosystemSignal with verified fields
 - [x] Captures: total_agents, market_health, allocation_success_rate, market_stable, equilibrium_confidence
 
-**Cycle 001 Signal Evidence:**
-- Source: torq_console.layer16.services.EconomicCoordinationService
-- Signal ID: signal_4ac65f7b94ab
-- Total agents: 0 (empty market - expected for fresh service)
-- Market health: 0.0 (baseline)
-- Market stable: True (default equilibrium state)
-
 ### EvaluationHarness ✅
 - [x] run_benchmark_suite() for genome evaluation
-- [x] 5 benchmark missions using verified MissionRequirements
-- [x] Returns BenchmarkEvaluationResult (not claiming final fitness)
-
-**Cycle 001 Evaluation Evidence:**
-- Benchmarks run: 5
-- Completion score: 0.25
-- Latency score: 0.92
-- Consistency score: 1.0
-- Overall score: 0.676
-- Passed: True (internal threshold)
-
-### Models ✅
-- [x] AgentGenome - 27 fields, all constraints validated
-- [x] GenomeStatus - EXPERIMENTAL/PRODUCTION/RETIRED enum
-- [x] L16EcosystemSignal - 14 fields from verified L16 models
-- [x] BenchmarkEvaluationResult - 9 fields for benchmark results
-
----
-
-## Code Quality Requirements
-
-### Testing ✅
-- [x] Unit tests for all components (13/13 passing)
-- [x] Integration tests with L16 (passing)
-- [x] Deterministic mutation verified with seed tests
-- [x] Cycle 001 executed with real L16 service (not mocked)
-
-### Documentation ✅
-- [x] VERIFIED_L16_SOURCES.md - Exact L16 integration surfaces
-- [x] VERIFIED_L16_MODELS.md - Exact model field definitions
-- [x] INTEGRATION_TEST_REPORT.md - Full integration test results
-- [x] Docstrings on all public methods
-
-### Error Handling ✅
-- [x] ValueError on duplicate genome registration
-- [x] Graceful handling of missing genomes
-- [x] Fitness score bounds (0.0 to 1.0) enforced
-- [x] Toolset size bounds enforced
-- [x] Pydantic validation on all models
-
----
-
-## Migration Requirements
-
-### Schema ✅
-- [x] agent_genomes table (27 fields, all constraints)
-- [x] l16_ecosystem_signals table (14 fields, verified field names)
-- [x] benchmark_evaluations table (10 fields)
-- [x] Indexes for common queries (6 indexes)
-- [x] Foreign key relationships (2 FKs)
-- [x] Check constraints for numeric bounds
-- [x] Triggers for updated_at timestamps
-- [x] Views: production_genomes, recent_l16_signals
-
-**Migration File:** migrations/017_layer17_agent_genome_evolution.sql (233 lines)
-
----
-
-## Beta Gate Status
-
-**Current Status:** CYCLE 001 COMPLETE ✅
-
-**Completed:**
-1. ✅ experiment_results/layer17_cycle_001.md - Full cycle evidence
-2. ✅ LAYER17_EXIT_CRITERIA.md - This checklist
-3. ✅ Migration schema created and validated
-4. ✅ All integration tests passing
-5. ✅ Verified field usage confirmed
-6. ✅ Real L16 signal collection (not mocked)
-
-**Pending (Non-Blocking):**
-- ⏳ Supabase migration execution (requires admin SQL Editor access)
-- ⏳ Full persistence verification (requires migration execution first)
-
-**Blocking for v0.17.0-beta tag:** None
+- [x] 5 benchmark missions
+- [x] Returns BenchmarkEvaluationResult
 
 ---
 
@@ -192,7 +174,7 @@ STEP 2: Mutation (seed=42)
   toolset: [web_search, file_write, bash_execute, test_runner]
 
 STEP 3: L16 Signal Collection
-  source: EconomicCoordinationService
+  source: EconomicCoordinationService (LIVE)
   signal_id: signal_4ac65f7b94ab
   total_agents: 0
   market_health: 0.0
@@ -212,8 +194,10 @@ STEP 5: Decision
   final_status: experimental
 
 STEP 6: Persistence
-  status: Pending migration execution
-  migration: migrations/017_layer17_agent_genome_evolution.sql
+  status: BLOCKED - Requires migration execution
+  migration: migrations/017_layer17_agent_genome_evolution.sql (READY)
+  in-memory: OK
+  supabase: PENDING
 ```
 
 ---
@@ -226,29 +210,52 @@ STEP 6: Persistence
 - [x] Phase 3: Mutation operators implemented and tested
 - [x] Phase 4: Signal collection and evaluation integrated
 - [x] Full cycle executed (layer17_cycle_001.md)
+- [x] Persistence report created (layer17_cycle_001_with_persistence.md)
 
 ### Agent 2 (Architecture)
 - [x] Phase 1: VERIFIED_L16_SOURCES.md created
 - [x] Phase 1: VERIFIED_L16_MODELS.md created
-- [x] Phase 2: Test infrastructure created (conftest.py, test_layer17_stubs.py)
+- [x] Phase 2: Test infrastructure created
 - [x] Phase 3: Benchmark missions verified
-- [x] Phase 4: Integration tests passed (INTEGRATION_TEST_REPORT.md)
+- [x] Phase 4: Integration tests passed
+- [x] Exit criteria review completed
 
 ---
 
-## Post-Beta Roadmap
+## Beta Gate Decision
 
-Once beta gate is passed:
-1. Execute Supabase migration for production persistence
-2. Implement mutation strategy selection (adaptive vs random)
-3. Add multi-objective optimization (fitness vs diversity)
-4. Implement genome crossover (sexual reproduction)
-5. Add Pareto front tracking for non-dominated genomes
-6. Implement evolutionary pressure mechanisms
-7. Production deployment guide
+**Status:** ⏳ CONDITIONALLY PASSED
+
+**Condition:** Execute Supabase migration and verify row persistence.
+
+**Once migration is executed:**
+1. Re-run `python experiment_results/run_cycle_001.py`
+2. Verify row insertion with provided queries
+3. Append actual row IDs/evidence to cycle report
+4. Tag v0.17.0-stable
+
+**All non-blocking criteria satisfied:**
+- ✅ Full cycle execution with live L16 signals
+- ✅ Verified field usage
+- ✅ All tests passing
+- ✅ Mutation determinism verified
+- ✅ Evaluation harness functional
+
+**Only blocker:** Supabase migration execution (requires database access)
 
 ---
 
-**Document Status:** COMPLETE ✅
+## Next Steps
+
+1. **Immediate:** Execute migration via Supabase SQL Editor
+2. **Then:** Re-run Cycle 001 with persistence enabled
+3. **Verify:** Run verification queries, capture row IDs
+4. **Update:** Append persistence evidence to cycle report
+5. **Tag:** v0.17.0-stable
+
+---
+
+**Document Status:** ACTIVE
 **Last Updated:** 2026-03-15
-**Beta Gate:** PASSED - Ready for v0.17.0-beta tag
+**Agent 2 Review:** COMPLETE
+**Beta Gate:** CONDITIONALLY PASSED (pending migration)
