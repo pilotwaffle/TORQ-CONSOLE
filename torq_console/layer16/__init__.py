@@ -24,7 +24,7 @@ from .engines import (
     IncentiveBalancingEngine,
     EquilibriumDetector,
 )
-from .services import EconomicCoordinationService
+from .services import EconomicCoordinationService, create_economic_coordination_service
 
 __all__ = [
     # Models
@@ -46,4 +46,5 @@ __all__ = [
     "EquilibriumDetector",
     # Services
     "EconomicCoordinationService",
+    "create_economic_coordination_service",
 ]
