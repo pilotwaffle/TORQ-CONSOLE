@@ -8,6 +8,7 @@ import pytest
 from torq_console.layer17.models import AgentGenome, GenomeStatus
 from torq_console.layer17.evaluation import create_evaluation_harness
 from torq_console.layer17.evaluation.benchmark_missions import get_benchmark_missions
+from torq_console.layer16.models import MissionRequirements
 
 
 # =============================================================================

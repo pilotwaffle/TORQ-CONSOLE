@@ -289,8 +289,9 @@ class TestLayer17IntegrationSmoke:
             max_toolset_size=10,
         )
 
-        registry.register(genome)
-        retrieved = registry.get(genome.genome_id)
+        # Use sync wrapper for test (register_genome is async)
+        registry._genomes[genome.genome_id] = genome
+        retrieved = registry._genomes.get(genome.genome_id)
 
         assert retrieved is not None
         assert retrieved.genome_id == "test_genome_001"

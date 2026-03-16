@@ -17,15 +17,15 @@ from torq_console.layer17.mutation import create_mutation_engine
 class TestMutationEngine:
     """Test suite for MutationEngine."""
 
-    def test_mutation_creates_new_genome_id(self, mutation_engine):
+    @pytest.mark.asyncio
+    async def test_mutation_creates_new_genome_id(self, mutation_engine):
         """Test that mutation produces a new genome_id."""
         parent = AgentGenome(
             genome_id="parent_001",
             toolset=["web_search"],
         )
 
-        result = mutation_engine._rng  # Access RNG directly for sync test
-        child = mutation_engine.mutate_genome.__wrapped__(mutation_engine, parent)
+        child = await mutation_engine.mutate_genome(parent)
 
         assert child.genome_id != parent.genome_id
         assert child.parent_genome_id == "parent_001"
